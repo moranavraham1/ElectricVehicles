@@ -48,4 +48,32 @@ body {
     font-size: 24px;
     margin-bottom: 20px;
   }
+  small {
+    color: red;
+    font-size: 14px;
+    display: block;
+    text-align: left;
+    margin-top: -8px;
+    margin-bottom: 10px;
+}
+/* עיצוב הקישור ליצירת חשבון */
+.register-link {
+  color: #007aff;
+  text-decoration: none;
+  font-weight: bold;
+  margin-top: 15px;
+  display: inline-block;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+  color: #005bb5;
+}
+
+/* טקסט תחת הטופס */
+form p {
+  font-size: 14px;
+  color: #555;
+  margin-top: 15px;
+}
   

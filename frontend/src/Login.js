@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { loginUser } from './api';
+import { Link } from 'react-router-dom';
 import './login.css';
 
 function Login() {
@@ -35,7 +36,7 @@ function Login() {
   };
 
   return (
-    <div>
+    <div className="login-container">
       <form onSubmit={handleSubmit} noValidate>
         <h1>Welcome Back!</h1>
         <div>
@@ -57,6 +58,12 @@ function Login() {
           {errors.password && <small style={{ color: 'red' }}>{errors.password}</small>}
         </div>
         <button type="submit">Login</button>
+        <p>
+          Not registered?{' '}
+          <Link to="/register" className="register-link">
+            Create an account
+          </Link>
+        </p>
       </form>
     </div>
   );
