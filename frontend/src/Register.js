@@ -75,7 +75,8 @@ function Register() {
       });
 
       setSuccessMessage('Registration successful!');
-      setTimeout(() => navigate('/'), 2000);
+      // Change the navigation to '/home' for the home page
+      setTimeout(() => navigate('/home'), 2000);  // Redirect to home page after 2 seconds
     } catch (error) {
       // Improved error handling
       const errorMessage = error.response?.data?.message || 
@@ -86,7 +87,8 @@ function Register() {
         server: errorMessage 
       });
     }
-  };
+};
+
 
   // Rest of the component remains the same...
   return (

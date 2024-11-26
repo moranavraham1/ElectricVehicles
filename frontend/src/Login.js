@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { loginUser } from './api';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './login.css';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
+  const [loginError, setLoginError] = useState('');  // State for login error message
+  const navigate = useNavigate();
 
   const validateForm = () => {
     const newErrors = {};
@@ -30,8 +32,15 @@ function Login() {
       const data = await loginUser(email, password);
       localStorage.setItem('token', data.token);
       alert('Login successful');
+      // On successful login, navigate to home page
+      navigate('/home');
     } catch (error) {
-      alert('Invalid credentials');
+      // If error is due to wrong credentials, show 'Wrong email or password'
+      if (error.response && error.response.status === 401) {
+        setLoginError('Incorrect email or password');  // Changed message back to English
+      } else {
+        setLoginError('Incorrect email or password');  // Same message for all errors
+      }
     }
   };
 
@@ -39,6 +48,10 @@ function Login() {
     <div className="login-container">
       <form onSubmit={handleSubmit} noValidate>
         <h1>Welcome Back!</h1>
+
+        {/* Display error message if it exists */}
+        {loginError && <div style={{ color: 'red', marginBottom: '10px' }}>{loginError}</div>}
+
         <div>
           <input
             type="email"
