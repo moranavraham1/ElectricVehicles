@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { registerUser } from './api';
+import axios from 'axios';
 import './Register.css';
 
 function Register() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [validFields, setValidFields] = useState({});
   const [successMessage, setSuccessMessage] = useState('');
@@ -47,16 +46,6 @@ function Register() {
         }
         break;
 
-      case 'confirmPassword':
-        if (!value) {
-          error = 'Please confirm your password.';
-        } else if (value !== password) {
-          error = 'Passwords do not match.';
-        } else {
-          isValid = true;
-        }
-        break;
-
       default:
         break;
     }
@@ -67,18 +56,39 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields before submission
+    validateField('fullName', fullName);
+    validateField('email', email);
+    validateField('password', password);
+
+    // Check if all fields are valid
     const isValid = Object.values(validFields).every((value) => value);
     if (!isValid) return;
 
     try {
-      await registerUser(fullName, email, password);
+      // Updated to use localhost:3001
+      const response = await axios.post('http://localhost:3001/api/auth/register', {
+        fullName,
+        email,
+        password
+      });
+
       setSuccessMessage('Registration successful!');
       setTimeout(() => navigate('/'), 2000);
     } catch (error) {
-      setErrors({ server: error.message });
+      // Improved error handling
+      const errorMessage = error.response?.data?.message || 
+                           error.message || 
+                           'Registration failed';
+      
+      setErrors({ 
+        server: errorMessage 
+      });
     }
   };
 
+  // Rest of the component remains the same...
   return (
     <div className="register-container">
       <form onSubmit={handleSubmit}>
@@ -143,27 +153,6 @@ function Register() {
           ) : (
             errors.password && (
               <span className="invalid-feedback">❌ {errors.password}</span>
-            )
-          )}
-        </div>
-
-        {/* Confirm Password */}
-        <div className="form-group">
-          <input
-            type="password"
-            placeholder="Confirm Password"
-            value={confirmPassword}
-            onChange={(e) => {
-              setConfirmPassword(e.target.value);
-              validateField('confirmPassword', e.target.value);
-            }}
-            className={errors.confirmPassword ? 'error' : ''}
-          />
-          {validFields.confirmPassword ? (
-            <span className="valid-feedback">✔️</span>
-          ) : (
-            errors.confirmPassword && (
-              <span className="invalid-feedback">❌ {errors.confirmPassword}</span>
             )
           )}
         </div>

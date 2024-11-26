@@ -1,10 +1,15 @@
-
 const express = require('express');
-const { register, login, logout } = require('./authController');
 const router = express.Router();
+const authController = require('./authController'); // Assuming you've saved the previous file as authController.js
 
-router.post('/register', register); // הרשמה
-router.post('/login', login);       // התחברות
-router.post('/logout', logout);     // התנתקות
+// POST route for registration
+router.post('/register', authController.register);
+
+// GET route to check register route status
+router.get('/register', authController.registerStatus);
+
+// Other authentication routes...
+router.post('/login', authController.login);
+router.post('/logout', authController.logout);
 
 module.exports = router;

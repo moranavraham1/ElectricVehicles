@@ -5,7 +5,7 @@ const API_URL = 'http://localhost:3001/api/auth';
 
 export const registerUser = async (fullName, email, password) => {
   try {
-    const response = await axios.post(`${API_URL}/register`, {
+    const response = await axios.post(`${API_URL}/register/`, {
       fullName,
       email,
       password,
