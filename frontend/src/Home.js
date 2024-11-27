@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
+import { GoogleMap, LoadScript, Marker, InfoWindow } from '@react-google-maps/api';
 import './Home.css';
 
 function Home() {
@@ -39,12 +39,12 @@ function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredStations, setFilteredStations] = useState(stations);
   const [suggestions, setSuggestions] = useState([]);
-  const [showMap, setShowMap] = useState(false); // מצב שמציג מפה במקום רשימה
+  const [showMap, setShowMap] = useState(false);
+  const [selectedStation, setSelectedStation] = useState(null); // תחנה שנבחרה להציג פרטים
 
   const handleSearch = (query) => {
     setSearchQuery(query);
 
-    // הצעות לערים/כתובות
     const matches = stations
       .map((station) => station.city)
       .filter((city, index, array) => array.indexOf(city) === index) // מניעת כפילויות
@@ -52,7 +52,6 @@ function Home() {
 
     setSuggestions(matches);
 
-    // סינון תחנות לפי עיר/כתובת
     const filtered = stations.filter(
       (station) =>
         station.city.includes(query) || station.address.includes(query)
@@ -86,7 +85,6 @@ function Home() {
         <h1 className="title">AC/DC תחנות טעינה</h1>
       </header>
 
-      {/* שורת חיפוש עם כפתור */}
       <div className="search-bar-container">
         <input
           type="text"
@@ -98,7 +96,6 @@ function Home() {
         <button className="map-button" onClick={() => setShowMap(!showMap)}>
           {showMap ? 'חזור לרשימה' : 'חפש במפה'}
         </button>
-        {/* הצעות */}
         {suggestions.length > 0 && (
           <ul className="suggestions-list">
             {suggestions.map((suggestion, index) => (
@@ -114,13 +111,29 @@ function Home() {
         )}
       </div>
 
-      {/* הצגת מפה או רשימה */}
       {showMap ? (
         <LoadScript googleMapsApiKey="AIzaSyDaXpZE3bFz-0An8LY3vi7vMrkVtLypi7A">
           <GoogleMap mapContainerStyle={mapContainerStyle} center={mapCenter} zoom={10}>
             {filteredStations.map((station) => (
-              <Marker key={station.id} position={station.location} />
+              <Marker
+                key={station.id}
+                position={station.location}
+                onClick={() => setSelectedStation(station)} // לחיצה על התחנה
+              />
             ))}
+            {selectedStation && (
+              <InfoWindow
+                position={selectedStation.location}
+                onCloseClick={() => setSelectedStation(null)} // סגירת החלון
+              >
+                <div>
+                  <h3>{selectedStation.name}</h3>
+                  <p><strong>כתובת:</strong> {selectedStation.address}</p>
+                  <p><strong>סטטוס:</strong> {selectedStation.status === 'Available' ? 'פנוי' : 'תפוס'}</p>
+                  <p><strong>זמן המתנה:</strong> {selectedStation.waitTime} אנשים ממתינים</p>
+                </div>
+              </InfoWindow>
+            )}
           </GoogleMap>
         </LoadScript>
       ) : (
