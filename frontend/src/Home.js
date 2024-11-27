@@ -40,7 +40,7 @@ function Home() {
   const [filteredStations, setFilteredStations] = useState(stations);
   const [suggestions, setSuggestions] = useState([]);
   const [showMap, setShowMap] = useState(false);
-  const [selectedStation, setSelectedStation] = useState(null); // תחנה שנבחרה להציג פרטים
+  const [selectedStation, setSelectedStation] = useState(null);
 
   const handleSearch = (query) => {
     setSearchQuery(query);
@@ -118,13 +118,13 @@ function Home() {
               <Marker
                 key={station.id}
                 position={station.location}
-                onClick={() => setSelectedStation(station)} // לחיצה על התחנה
+                onClick={() => setSelectedStation(station)}
               />
             ))}
             {selectedStation && (
               <InfoWindow
                 position={selectedStation.location}
-                onCloseClick={() => setSelectedStation(null)} // סגירת החלון
+                onCloseClick={() => setSelectedStation(null)}
               >
                 <div>
                   <h3>{selectedStation.name}</h3>
@@ -148,6 +148,20 @@ function Home() {
               <p className="station-wait-time">
                 <strong>זמן המתנה:</strong> {station.waitTime} אנשים ממתינים
               </p>
+              {/* כפתור נווט לתחנה */}
+              <a
+                href={`https://waze.com/ul?ll=${station.location.lat},${station.location.lng}&navigate=yes`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="navigate-to-station"
+              >
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Waze_logo.svg"
+                  alt="נווט באמצעות Waze"
+                  className="waze-icon"
+                />
+                נווט לתחנה
+              </a>
             </div>
           ))}
         </div>

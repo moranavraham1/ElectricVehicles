@@ -5,10 +5,10 @@
   
   /* שורת חיפוש */
   .search-bar-container {
-    position: relative;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 20px;
   }
   
   .search-bar {
@@ -27,32 +27,7 @@
     padding: 12px;
     border-radius: 5px;
     cursor: pointer;
-    margin-left: 10px;
-  }
-  
-  /* הצעות */
-  .suggestions-list {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    width: 100%;
-    background: white;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    max-height: 150px;
-    overflow-y: auto;
-    z-index: 1000;
-  }
-  
-  .suggestion-item {
-    padding: 10px;
-    cursor: pointer;
-    font-size: 14px;
-    border-bottom: 1px solid #eee;
-  }
-  
-  .suggestion-item:hover {
-    background-color: #f4f4f4;
+    text-align: center;
   }
   
   /* רשימה */
@@ -93,5 +68,23 @@
   
   .station-wait-time {
     font-size: 14px;
+  }
+  
+  /* כפתור נווט לתחנה */
+  .navigate-to-station {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #007bff;
+    font-size: 14px;
+    font-weight: bold;
+    margin-top: 10px;
+    cursor: pointer;
+  }
+  
+  .waze-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
   }
   
