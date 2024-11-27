@@ -1,41 +1,70 @@
 import React, { useState } from 'react';
 import { GoogleMap, LoadScript, Marker } from '@react-google-maps/api';
-import './Home.css'; // קובץ CSS מותאם
+import './Home.css';
 
 function Home() {
-  const [stations, setStations] = useState([
+  const [stations] = useState([
     {
       id: 1,
       name: 'תחנה A',
       address: 'שדרות בן גוריון 123, תל אביב',
+      city: 'תל אביב',
       status: 'Available',
       waitTime: 0,
       isFavorite: false,
-      location: { lat: 32.0853, lng: 34.7818 }, // Tel Aviv
-      image: 'https://via.placeholder.com/300x150.png?text=Station+A', // Replace with real image URL
+      location: { lat: 32.0853, lng: 34.7818 },
     },
     {
       id: 2,
       name: 'תחנה B',
       address: 'דרך ירושלים 456, ירושלים',
+      city: 'ירושלים',
       status: 'Occupied',
       waitTime: 3,
       isFavorite: false,
-      location: { lat: 31.7683, lng: 35.2137 }, // Jerusalem
-      image: 'https://via.placeholder.com/300x150.png?text=Station+B', // Replace with real image URL
+      location: { lat: 31.7683, lng: 35.2137 },
+    },
+    {
+      id: 3,
+      name: 'תחנה C',
+      address: 'רחוב אלנבי 100, תל אביב',
+      city: 'תל אביב',
+      status: 'Available',
+      waitTime: 1,
+      isFavorite: false,
+      location: { lat: 32.0707, lng: 34.7799 },
     },
   ]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredStations, setFilteredStations] = useState(stations);
+  const [suggestions, setSuggestions] = useState([]);
+  const [showMap, setShowMap] = useState(false); // מצב שמציג מפה במקום רשימה
 
-  const handleSearch = (event) => {
-    const query = event.target.value.toLowerCase();
+  const handleSearch = (query) => {
     setSearchQuery(query);
+
+    // הצעות לערים/כתובות
+    const matches = stations
+      .map((station) => station.city)
+      .filter((city, index, array) => array.indexOf(city) === index) // מניעת כפילויות
+      .filter((city) => city.includes(query));
+
+    setSuggestions(matches);
+
+    // סינון תחנות לפי עיר/כתובת
     const filtered = stations.filter(
       (station) =>
-        station.name.toLowerCase().includes(query) ||
-        station.address.toLowerCase().includes(query)
+        station.city.includes(query) || station.address.includes(query)
+    );
+    setFilteredStations(filtered);
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setSearchQuery(suggestion);
+    setSuggestions([]);
+    const filtered = stations.filter(
+      (station) => station.city === suggestion || station.address.includes(suggestion)
     );
     setFilteredStations(filtered);
   };
@@ -46,30 +75,58 @@ function Home() {
     borderRadius: '15px',
   };
 
-  const mapCenter = stations.length > 0 ? stations[0].location : { lat: 0, lng: 0 };
+  const mapCenter =
+    filteredStations.length > 0
+      ? filteredStations[0].location
+      : { lat: 32.0853, lng: 34.7818 };
 
   return (
     <div className="home-container">
       <header className="header">
         <h1 className="title">AC/DC תחנות טעינה</h1>
-        <button className="location-button">רענן מיקום</button>
       </header>
 
+      {/* שורת חיפוש עם כפתור */}
       <div className="search-bar-container">
         <input
           type="text"
-          placeholder="חפש תחנות..."
+          placeholder="חפש עיר או כתובת..."
           value={searchQuery}
-          onChange={handleSearch}
+          onChange={(e) => handleSearch(e.target.value)}
           className="search-bar"
         />
+        <button className="map-button" onClick={() => setShowMap(!showMap)}>
+          {showMap ? 'חזור לרשימה' : 'חפש במפה'}
+        </button>
+        {/* הצעות */}
+        {suggestions.length > 0 && (
+          <ul className="suggestions-list">
+            {suggestions.map((suggestion, index) => (
+              <li
+                key={index}
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="suggestion-item"
+              >
+                {suggestion}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      <div className="station-list">
-        {filteredStations.map((station) => (
-          <div key={station.id} className="station-card">
-            <img src={station.image} alt={station.name} className="station-image" />
-            <div className="station-info">
+      {/* הצגת מפה או רשימה */}
+      {showMap ? (
+        <LoadScript googleMapsApiKey="AIzaSyDaXpZE3bFz-0An8LY3vi7vMrkVtLypi7A">
+          <GoogleMap mapContainerStyle={mapContainerStyle} center={mapCenter} zoom={10}>
+            {filteredStations.map((station) => (
+              <Marker key={station.id} position={station.location} />
+            ))}
+          </GoogleMap>
+        </LoadScript>
+      ) : (
+        <div className="station-list">
+          {filteredStations.map((station) => (
+            <div key={station.id} className="station-card">
               <h3 className="station-name">{station.name}</h3>
               <p className="station-address">{station.address}</p>
               <p className={`station-status ${station.status.toLowerCase()}`}>
@@ -78,37 +135,10 @@ function Home() {
               <p className="station-wait-time">
                 <strong>זמן המתנה:</strong> {station.waitTime} אנשים ממתינים
               </p>
-              <div className="station-actions">
-                <button className="navigate-button">נווט לתחנה</button>
-                <button
-                  className={`favorite-button ${station.isFavorite ? 'favorite' : ''}`}
-                  onClick={() =>
-                    setStations((prevStations) =>
-                      prevStations.map((s) =>
-                        s.id === station.id ? { ...s, isFavorite: !s.isFavorite } : s
-                      )
-                    )
-                  }
-                >
-                  {station.isFavorite ? '❤️ מועדף' : '♡ הוסף למועדפים'}
-                </button>
-              </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      <LoadScript googleMapsApiKey="AIzaSyDaXpZE3bFz-0An8LY3vi7vMrkVtLypi7A">
-        <GoogleMap
-          mapContainerStyle={mapContainerStyle}
-          center={mapCenter}
-          zoom={10}
-        >
-          {filteredStations.map((station) => (
-            <Marker key={station.id} position={station.location} />
           ))}
-        </GoogleMap>
-      </LoadScript>
+        </div>
+      )}
     </div>
   );
 }
