@@ -51,7 +51,7 @@ function Home() {
       {showMap ? (
         <div className="map-container">
           <iframe
-            src="https://www.google.com/maps/d/embed?mid=1smMeGPnJ-oxr_8kuiwfB9i6iCURwl8bp&ehbc=2E312F"
+            src="https://openchargemap.org/site"
             width="100%"
             height="480"
             style={{ border: 0 }}
