@@ -51,7 +51,7 @@ function Home() {
       {showMap ? (
         <div className="map-container">
           <iframe
-            src="https://openchargemap.org/site"
+            src="https://cellocharge.com/"
             width="100%"
             height="480"
             style={{ border: 0 }}
