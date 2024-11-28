@@ -1,9 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Login from './Login';
-import Register from './Register';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import Dashboard from './Dashboard';
-import Home from './Home';  // ייבוא דף הבית
+import Home from './pages/Home';  // ייבוא דף הבית
+import MapPage from './pages/MapPage'; // ייבוא דף המפה החדש
 
 function App() {
   return (
@@ -13,7 +14,8 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/home" element={<Home />} />  {/* הוספת הנתיב לדף הבית */}
+          <Route path="/home" element={<Home />} />
+          <Route path="/map" element={<MapPage />} /> {/* הנתיב החדש למפה */}
         </Routes>
       </div>
     </Router>
