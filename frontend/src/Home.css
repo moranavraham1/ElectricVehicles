@@ -1,9 +1,55 @@
-/* רווח כללי */
+/* General page styling */
 .home-container {
-  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  background-color: #f4f4f4;
+  margin: 0;
+  flex-direction: column; /* Vertical layout */
+  width: 100%;
 }
 
-/* שורת חיפוש */
+/* Main content styling */
+.main-content {
+  background-color: #fff;
+  border-radius: 15px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px 30px;
+  width: 90%;
+  max-width: 400px; /* Limit width */
+  text-align: center;
+  margin-bottom: 20px; /* Space for bottom bar */
+}
+
+/* Title styling for the header */
+h1.title {
+  color: #007aff; /* צבע הכותרת */
+  font-size: 24px; /* גודל הפונט */
+  margin-bottom: 20px; /* רווח מתחת לכותרת */
+  margin-top: 40px; /* הוספת רווח מעל הכותרת */
+  text-align: center; /* מרכז את הכותרת */
+  padding: 0 10px; /* הוספת ריפוד שמונע חפיפות */
+  width: 100%; /* הכותרת תופס את כל רוחב המיכל */
+  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
+  line-height: 1.4; /* להבטיח שיש מספיק מרווח בין השורות */
+}
+
+/* Title styling for the search section */
+h2.search-title {
+  color: #333; /* צבע הטקסט */
+  font-size: 20px; /* גודל הפונט */
+  margin-bottom: 15px; /* רווח מתחת לכותרת */
+  font-weight: bold; /* טקסט מודגש */
+  padding-top: 20px; /* הוספת רווח מעל */
+  text-align: center; /* מרכז את הטקסט */
+  width: 100%; /* הכותרת תופס את כל רוחב המיכל */
+  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
+  display: block; /* לוודא שהאלמנט יתנהג כמו בלוק */
+}
+
+
+/* Search bar styling */
 .search-bar-container {
   display: flex;
   justify-content: space-between;
@@ -19,20 +65,10 @@
   font-size: 16px;
 }
 
-.map-button {
-  flex: 0.2;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  padding: 12px;
-  border-radius: 5px;
-  cursor: pointer;
-  text-align: center;
-}
-
-/* רשימה */
+/* Stations list styling */
 .station-list {
   margin-top: 20px;
+  text-align: left;
 }
 
 .station-card {
@@ -70,20 +106,64 @@
   font-size: 14px;
 }
 
-/* כפתור נווט לתחנה */
-.navigate-to-station {
+/* Bottom bar styling - sticky at the bottom */
+.bottom-bar {
+  position: sticky; /* שומר על המיקום המקורי של התפריט, אך מקבע אותו כשיש גלילה */
+  bottom: 0; /* מוודא שהתפריט יהיה בתחתית */
   display: flex;
+  justify-content: space-around;
   align-items: center;
-  text-decoration: none;
-  color: #007bff;
-  font-size: 14px;
-  font-weight: bold;
-  margin-top: 10px;
-  cursor: pointer;
+  background-color: #007bff;
+  padding: 12px 0; /* הגובה הכולל של התפריט */
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  width: 100%; /* מאפשר לתפריט להחזיק את כל רוחב המסך */
+  z-index: 10; /* מבטיח שהתפריט יישאר מעל לשאר האלמנטים */
 }
 
-.waze-icon {
-  width: 20px;
-  height: 20px;
-  margin-right: 8px;
+
+/* Bottom bar buttons styling */
+.bottom-bar-button {
+  background-color: white;
+  color: #007bff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 12px; /* גודל כפתור */
+  font-size: 14px; /* גודל הפונט של הכפתור */
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  flex: 1; /* נותן לכל כפתור לקחת מקום שווה */
+  margin: 0 5px;
+}
+
+.bottom-bar-button:hover {
+  background-color: #0056b3;
+  color: white;
+}
+
+
+/* Map button styling */
+.map-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  margin-left: 10px;
+}
+
+.map-button:hover {
+  background-color: #0056b3;
+}
+
+.station-list {
+  margin-top: 20px;
+  text-align: left;
+  max-height: 400px; 
+  overflow-y: auto; 
+  padding-right: 10px; 
 }

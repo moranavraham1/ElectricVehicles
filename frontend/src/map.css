@@ -1,0 +1,50 @@
+/* Container for the map */
+.map-page-container {
+    text-align: center;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  /* Map styling */
+  div.leaflet-container {
+    width: 100%;
+    height: 70vh; /* Increased map height */
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Search bar styling */
+  .search-bar-container {
+    margin-bottom: 20px;
+    width: 80%; /* Align search bar with map */
+  }
+  
+  .search-bar {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    width: calc(100% - 80px); /* For full-width search bar */
+    font-size: 16px;
+    margin-right: 10px;
+  }
+  
+  .search-button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  
+  .search-button:hover {
+    background-color: #0056b3;
+  }
+  
+  .search-bar::placeholder {
+    color: #888;
+  }
+  
