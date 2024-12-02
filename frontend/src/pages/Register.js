@@ -130,7 +130,7 @@ function Register() {
               validateField('firstName', e.target.value);
             }}
           />
-          {errors.firstName && <span className="invalid-feedback">❌ {errors.firstName}</span>}
+          {errors.firstName && <span className="error-message">{errors.firstName}</span>}
         </div>
 
         {/* Last Name */}
@@ -144,7 +144,7 @@ function Register() {
               validateField('lastName', e.target.value);
             }}
           />
-          {errors.lastName && <span className="invalid-feedback">❌ {errors.lastName}</span>}
+          {errors.lastName && <span className="error-message">{errors.lastName}</span>}
         </div>
 
         {/* Email */}
@@ -158,7 +158,7 @@ function Register() {
               validateField('email', e.target.value);
             }}
           />
-          {errors.email && <span className="invalid-feedback">❌ {errors.email}</span>}
+          {errors.email && <span className="error-message">{errors.email}</span>}
         </div>
 
         {/* Phone */}
@@ -172,7 +172,7 @@ function Register() {
               validateField('phone', e.target.value);
             }}
           />
-          {errors.phone && <span className="invalid-feedback">❌ {errors.phone}</span>}
+          {errors.phone && <span className="error-message">{errors.phone}</span>}
         </div>
 
         {/* Password */}
@@ -186,7 +186,7 @@ function Register() {
               validateField('password', e.target.value);
             }}
           />
-          {errors.password && <span className="invalid-feedback">❌ {errors.password}</span>}
+          {errors.password && <span className="error-message">{errors.password}</span>}
         </div>
 
         {/* Confirm Password */}
@@ -200,14 +200,14 @@ function Register() {
               validateField('confirmPassword', e.target.value);
             }}
           />
-          {errors.confirmPassword && <span className="invalid-feedback">❌ {errors.confirmPassword}</span>}
+          {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
         </div>
 
-        {errors.server && <span className="invalid-feedback">❌ {errors.server}</span>}
+        {errors.server && <span className="error-message">{errors.server}</span>}
 
         <button type="submit">Register</button>
 
-        {successMessage && <p className="success-message">✅ {successMessage}</p>}
+        {successMessage && <p className="success-message">{successMessage}</p>}
 
         <p>
           Already have an account? <Link to="/">Login here</Link>
