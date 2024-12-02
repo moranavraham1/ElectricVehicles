@@ -4,12 +4,14 @@ import axios from 'axios';
 import '../Register.css';
 
 function Register() {
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
   const [validFields, setValidFields] = useState({});
-  const [successMessage, setSuccessMessage] = useState('');
   const navigate = useNavigate();
 
   const validateField = (field, value) => {
@@ -17,9 +19,17 @@ function Register() {
     let isValid = false;
 
     switch (field) {
-      case 'fullName':
+      case 'firstName':
         if (!value.trim()) {
-          error = 'Full name is required.';
+          error = 'First name is required.';
+        } else {
+          isValid = true;
+        }
+        break;
+
+      case 'lastName':
+        if (!value.trim()) {
+          error = 'Last name is required.';
         } else {
           isValid = true;
         }
@@ -35,12 +45,29 @@ function Register() {
         }
         break;
 
+      case 'phone':
+        if (!value.trim()) {
+          error = 'Phone number is required.';
+        } else if (!/^\d{10}$/.test(value)) {
+          error = 'Phone number must be 10 digits.';
+        } else {
+          isValid = true;
+        }
+        break;
+
       case 'password':
         if (!value) {
           error = 'Password is required.';
         } else if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(value)) {
-          error =
-            'Password must be at least 8 characters, include one uppercase letter, and one number.';
+          error = 'Password must be at least 8 characters, include one uppercase letter, and one number.';
+        } else {
+          isValid = true;
+        }
+        break;
+
+      case 'confirmPassword':
+        if (value !== password) {
+          error = 'Passwords do not match.';
         } else {
           isValid = true;
         }
@@ -56,65 +83,68 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate all fields before submission
-    validateField('fullName', fullName);
+
+    // Validate all fields
+    validateField('firstName', firstName);
+    validateField('lastName', lastName);
     validateField('email', email);
+    validateField('phone', phone);
     validateField('password', password);
+    validateField('confirmPassword', confirmPassword);
 
     // Check if all fields are valid
     const isValid = Object.values(validFields).every((value) => value);
     if (!isValid) return;
 
     try {
-      // Updated to use localhost:3001
-      const response = await axios.post('http://localhost:3001/api/auth/register', {
-        fullName,
+      await axios.post('http://localhost:3001/api/auth/register', {
+        firstName,
+        lastName,
         email,
-        password
+        phone,
+        password,
       });
 
-      setSuccessMessage('Registration successful!');
-      // Change the navigation to '/home' for the home page
-      setTimeout(() => navigate('/home'), 2000);  // Redirect to home page after 2 seconds
-    } catch (error) {
-      // Improved error handling
-      const errorMessage = error.response?.data?.message || 
-                           error.message || 
-                           'Registration failed';
+      // Redirect immediately to home page
+      navigate('/home');
       
-      setErrors({ 
-        server: errorMessage 
-      });
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      setErrors((prevErrors) => ({ ...prevErrors, server: errorMessage }));
     }
-};
+  };
 
-
-  // Rest of the component remains the same...
   return (
     <div className="register-container">
       <form onSubmit={handleSubmit}>
         <h1>Create an Account</h1>
 
-        {/* Full Name */}
+        {/* First Name */}
         <div className="form-group">
           <input
             type="text"
-            placeholder="Full Name"
-            value={fullName}
+            placeholder="First Name"
+            value={firstName}
             onChange={(e) => {
-              setFullName(e.target.value);
-              validateField('fullName', e.target.value);
+              setFirstName(e.target.value);
+              validateField('firstName', e.target.value);
             }}
-            className={errors.fullName ? 'error' : ''}
           />
-          {validFields.fullName ? (
-            <span className="valid-feedback">✔️</span>
-          ) : (
-            errors.fullName && (
-              <span className="invalid-feedback">❌ {errors.fullName}</span>
-            )
-          )}
+          {errors.firstName && <span className="error-message">{errors.firstName}</span>}
+        </div>
+
+        {/* Last Name */}
+        <div className="form-group">
+          <input
+            type="text"
+            placeholder="Last Name"
+            value={lastName}
+            onChange={(e) => {
+              setLastName(e.target.value);
+              validateField('lastName', e.target.value);
+            }}
+          />
+          {errors.lastName && <span className="error-message">{errors.lastName}</span>}
         </div>
 
         {/* Email */}
@@ -127,15 +157,22 @@ function Register() {
               setEmail(e.target.value);
               validateField('email', e.target.value);
             }}
-            className={errors.email ? 'error' : ''}
           />
-          {validFields.email ? (
-            <span className="valid-feedback">✔️</span>
-          ) : (
-            errors.email && (
-              <span className="invalid-feedback">❌ {errors.email}</span>
-            )
-          )}
+          {errors.email && <span className="error-message">{errors.email}</span>}
+        </div>
+
+        {/* Phone */}
+        <div className="form-group">
+          <input
+            type="text"
+            placeholder="Phone Number"
+            value={phone}
+            onChange={(e) => {
+              setPhone(e.target.value);
+              validateField('phone', e.target.value);
+            }}
+          />
+          {errors.phone && <span className="error-message">{errors.phone}</span>}
         </div>
 
         {/* Password */}
@@ -148,34 +185,30 @@ function Register() {
               setPassword(e.target.value);
               validateField('password', e.target.value);
             }}
-            className={errors.password ? 'error' : ''}
           />
-          {validFields.password ? (
-            <span className="valid-feedback">✔️</span>
-          ) : (
-            errors.password && (
-              <span className="invalid-feedback">❌ {errors.password}</span>
-            )
-          )}
+          {errors.password && <span className="error-message">{errors.password}</span>}
         </div>
 
-        {errors.server && (
-          <div className="form-group">
-            <span className="invalid-feedback">❌ {errors.server}</span>
-          </div>
-        )}
+        {/* Confirm Password */}
+        <div className="form-group">
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            value={confirmPassword}
+            onChange={(e) => {
+              setConfirmPassword(e.target.value);
+              validateField('confirmPassword', e.target.value);
+            }}
+          />
+          {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+        </div>
+
+        {errors.server && <span className="error-message">{errors.server}</span>}
 
         <button type="submit">Register</button>
 
-        {successMessage && (
-          <p className="success-message">✅ {successMessage}</p>
-        )}
-
         <p>
-          Already have an account?{' '}
-          <Link to="/" className="login-link">
-            Login here
-          </Link>
+          Already have an account? <Link to="/">Login here</Link>
         </p>
       </form>
     </div>

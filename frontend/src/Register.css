@@ -1,15 +1,18 @@
-/* Register.css */
-
-/* עיצוב מכולת העמוד */
+/* Styling for the register container */
 .register-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    min-height: 100vh;  /* Ensures the container fills the entire viewport height */
     background-color: #f4f4f4;
+    position: fixed;  /* Fixes the container in place */
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
-/* עיצוב הטופס */
+/* Styling for the form */
 form {
     background-color: #fff;
     border-radius: 15px;
@@ -18,9 +21,11 @@ form {
     width: 90%;
     max-width: 400px;
     text-align: center;
+    position: relative;
+    z-index: 2;  /* Makes sure the form appears above any other content */
 }
 
-/* עיצוב שדות קלט */
+/* Styling for input fields */
 form input {
     width: 100%;
     padding: 10px;
@@ -30,7 +35,7 @@ form input {
     font-size: 16px;
 }
 
-/* עיצוב כפתור */
+/* Styling for the submit button */
 form button {
     background-color: #007aff;
     color: white;
@@ -46,30 +51,46 @@ form button:hover {
     background-color: #005bb5;
 }
 
-/* כותרת */
+/* Styling for the heading */
 h1 {
     color: #007aff;
     font-size: 24px;
     margin-bottom: 20px;
 }
 
-/* הודעות שגיאה */
-.error-message {
-    color: red;
-    font-size: 14px;
+/* Adjustments for error messages */
+.invalid-feedback {
+    color: red; /* Ensures the error messages are in red */
+    font-size: 12px; /* Smaller font size */
     text-align: left;
-    margin-top: -8px;
-    margin-bottom: 10px;
+    margin-top: 5px;
+    padding-left: 10px;
+    display: block; /* Forces error message to be on a new line */
+    width: 100%;
+    height: 18px; /* Fixed height for the error message box */
+    overflow: hidden; /* Prevents the error message from affecting the layout */
 }
 
-/* הודעות הצלחה */
+/* Styling for the "Phone number must be 10 digits" error */
+.invalid-feedback-phone {
+    color: red;  /* Red color for phone number error */
+    font-size: 12px;
+    text-align: left;
+    margin-top: 5px;
+    padding-left: 10px;
+    display: block; /* Forces the error message to be on a new line */
+    width: 100%;
+}
+
+
+/* Success message styling */
 .success-message {
     color: green;
     font-size: 16px;
     margin-top: 15px;
 }
 
-/* קישור להתחברות */
+/* Styling for the login link */
 .login-link {
     color: #007aff;
     text-decoration: none;
@@ -81,9 +102,15 @@ h1 {
     color: #005bb5;
 }
 
-/* טקסט תחת הטופס */
+/* Styling for the text below the form */
 form p {
     font-size: 14px;
     color: #555;
     margin-top: 15px;
 }
+
+.error-message {
+    color: #e74c3c; /* אדום כהה */
+    font-size: 14px;
+    margin-top: 5px;
+  }
