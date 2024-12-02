@@ -97,7 +97,11 @@ function Register() {
     if (!isValid) return;
 
     try {
+<<<<<<< HEAD
       await axios.post('http://localhost:3001/api/auth/register', {
+=======
+      const response = await axios.post('http://localhost:3001/api/auth/register', {
+>>>>>>> 4abe13f5224f8de5dc615e858a45d75441857a94
         firstName,
         lastName,
         email,
@@ -105,12 +109,20 @@ function Register() {
         password,
       });
 
+<<<<<<< HEAD
       // Redirect immediately to home page
       navigate('/home');
       
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
       setErrors((prevErrors) => ({ ...prevErrors, server: errorMessage }));
+=======
+      setSuccessMessage('Registration successful!');
+      setTimeout(() => navigate('/home'), 2000);
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      setErrors({ server: errorMessage });
+>>>>>>> 4abe13f5224f8de5dc615e858a45d75441857a94
     }
   };
 
@@ -207,6 +219,11 @@ function Register() {
 
         <button type="submit">Register</button>
 
+<<<<<<< HEAD
+=======
+        {successMessage && <p className="success-message">{successMessage}</p>}
+
+>>>>>>> 4abe13f5224f8de5dc615e858a45d75441857a94
         <p>
           Already have an account? <Link to="/">Login here</Link>
         </p>

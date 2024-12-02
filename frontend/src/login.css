@@ -49,13 +49,15 @@ body {
     margin-bottom: 20px;
   }
   small {
-    color: red;
+    color: #ff6347 !important; /* צבע אדום בהיר עם עדיפות */
     font-size: 14px;
     display: block;
     text-align: left;
     margin-top: -8px;
     margin-bottom: 10px;
-}
+  }
+  
+  
 /* עיצוב הקישור ליצירת חשבון */
 .register-link {
   color: #007aff;
