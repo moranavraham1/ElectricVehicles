@@ -1,117 +1,34 @@
-/* Styling for the register container */
 .register-container {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;  /* Ensures the container fills the entire viewport height */
+    min-height: 100vh;
     background-color: #f4f4f4;
-    position: fixed;  /* Fixes the container in place */
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    overflow: hidden;
 }
 
-/* Styling for the form */
 form {
     background-color: #fff;
     border-radius: 15px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 20px 30px;
-    width: 90%;
-    max-width: 400px;
+    width: 400px; /* גודל אחיד */
+    height: 600px; /* גובה אחיד */
     text-align: center;
-    position: relative;
-    z-index: 2;  /* Makes sure the form appears above any other content */
+    padding: 20px 30px;
+    box-sizing: border-box;
 }
-
-/* Styling for input fields */
-form input {
-    width: 100%;
-    padding: 10px;
-    margin: 10px 0;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    font-size: 16px;
-}
-
-/* Styling for the submit button */
-form button {
-    background-color: #007aff;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    font-size: 18px;
-    border-radius: 5px;
-    cursor: pointer;
-    width: 100%;
-}
-
-form button:hover {
-    background-color: #005bb5;
-}
-
-/* Styling for the heading */
-h1 {
-    color: #007aff;
-    font-size: 24px;
-    margin-bottom: 20px;
-}
-
-/* Adjustments for error messages */
-.invalid-feedback {
-    color: red; /* Ensures the error messages are in red */
-    font-size: 12px; /* Smaller font size */
-    text-align: left;
-    margin-top: 5px;
-    padding-left: 10px;
-    display: block; /* Forces error message to be on a new line */
-    width: 100%;
-    height: 18px; /* Fixed height for the error message box */
-    overflow: hidden; /* Prevents the error message from affecting the layout */
-}
-
-/* Styling for the "Phone number must be 10 digits" error */
-.invalid-feedback-phone {
-    color: red;  /* Red color for phone number error */
-    font-size: 12px;
-    text-align: left;
-    margin-top: 5px;
-    padding-left: 10px;
-    display: block; /* Forces the error message to be on a new line */
-    width: 100%;
-}
-
-
-/* Success message styling */
-.success-message {
-    color: green;
-    font-size: 16px;
-    margin-top: 15px;
-}
-
-/* Styling for the login link */
-.login-link {
-    color: #007aff;
-    text-decoration: none;
-    font-weight: bold;
-}
-
-.login-link:hover {
-    text-decoration: underline;
-    color: #005bb5;
-}
-
-/* Styling for the text below the form */
-form p {
-    font-size: 14px;
-    color: #555;
-    margin-top: 15px;
-}
-
+/* Error message styling */
 .error-message {
-    color: #e74c3c; /* אדום כהה */
-    font-size: 14px;
-    margin-top: 5px;
+    color: #dc3545; /* צבע אדום לשגיאה */
+    font-size: 10px; /* גודל פונט קטן יותר */
+    width: auto; /* רוחב אוטומטי לפי התוכן */
+    max-width: 100%; /* הגבלת רוחב אלמנט השגיאה */
+    box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
+    margin: 0; /* ביטול רווחים מסביב לשגיאה */
+    padding: 3px 0; /* להוסיף רווחים פנימיים קטנים למניעת חפיפות */
+    word-wrap: break-word; /* לפרוס טקסט ארוך כך שלא ייצא מגבולות הדף */
+    overflow: hidden; /* למנוע יציאה מגבולות הדף */
+    text-overflow: ellipsis; /* הצגת "..." אם הטקסט ארוך מדי */
+    line-height: 1.2; /* מרווח קטן יותר בין השורות */
   }
   

@@ -1,26 +1,3 @@
-/* General page styling */
-.home-container {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  background-color: #f4f4f4;
-  margin: 0;
-  flex-direction: column; /* Vertical layout */
-  width: 100%;
-}
-
-/* Main content styling */
-.main-content {
-  background-color: #fff;
-  border-radius: 15px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  padding: 20px 30px;
-  width: 90%;
-  max-width: 400px; /* Limit width */
-  text-align: center;
-  margin-bottom: 20px; /* Space for bottom bar */
-}
 
 /* Title styling for the header */
 h1.title {
@@ -106,18 +83,18 @@ h2.search-title {
   font-size: 14px;
 }
 
-/* Bottom bar styling - sticky at the bottom */
+/* Bottom bar styling - transparent background */
 .bottom-bar {
-  position: sticky; /* שומר על המיקום המקורי של התפריט, אך מקבע אותו כשיש גלילה */
-  bottom: 0; /* מוודא שהתפריט יהיה בתחתית */
+  position: sticky;
+  bottom: 0;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background-color: #007bff;
-  padding: 12px 0; /* הגובה הכולל של התפריט */
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-  width: 100%; /* מאפשר לתפריט להחזיק את כל רוחב המסך */
-  z-index: 10; /* מבטיח שהתפריט יישאר מעל לשאר האלמנטים */
+  background-color: transparent; 
+  padding: 12px 0;
+  box-shadow: none; 
+  width: 100%;
+  z-index: 10;
 }
 
 
@@ -166,4 +143,13 @@ h2.search-title {
   max-height: 400px; 
   overflow-y: auto; 
   padding-right: 10px; 
+}
+/* Error message styling */
+.error-message {
+  color: #dc3545; /* צבע אדום לשגיאה */
+  font-size: 14px; /* גודל פונט קטן */
+  width: 100%; /* לוודא שהשגיאה תופסת את כל הרוחב */
+  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
+  margin: 2px 0; /* רווחים מסביב לשגיאה */
+  word-wrap: break-word; /* לפרוס טקסט ארוך כך שלא ייצא מגבולות הדף */
 }
