@@ -34,21 +34,11 @@ function Login() {
 
     try {
       const data = await loginUser(email, password);
-      localStorage.setItem('token', data.token);
-      alert('Login successful');
-      navigate('/home');  // פנייה לדף הבית לאחר התחברות
+      localStorage.setItem('token', data.token);  // שומרים את הטוקן במקומי
+      navigate('/home');  // פנייה ישירה לדף הבית אחרי התחברות מוצלחת
     } catch (error) {
-      // טיפול בשגיאות מה-API
-      if (error.response) {
-        if (error.response.status === 401) {
-          setLoginError('Incorrect email or password');
-        } else {
-          setLoginError('An error occurred. Please try again.');
-        }
-      } else {
-        // אם ה-API לא זמין או שיש שגיאה אחרת
-        setLoginError('Network error. Please check your connection.');
-      }
+      // מציגים הודעה אחידה על מייל או סיסמה לא תקינים
+      setLoginError('Incorrect email or password.');
     }
   };
 
