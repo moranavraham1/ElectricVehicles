@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { loginUser } from '../api';
+import { loginUser } from '../api';  // הנחה שאתה מייבא את הפונקציה הזו כראוי
 import { Link, useNavigate } from 'react-router-dom';
 import '../login.css';
 
@@ -10,6 +10,7 @@ function Login() {
   const [loginError, setLoginError] = useState('');  // State for login error message
   const navigate = useNavigate();
 
+  // פונקציה לבדוק אם כל השדות תקינים
   const validateForm = () => {
     const newErrors = {};
     if (!email) {
@@ -24,22 +25,29 @@ function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // פונקציה להשלמת התחברות
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // אם יש שגיאות בכניסה, לא שולחים את הטופס
     if (!validateForm()) return;
 
     try {
       const data = await loginUser(email, password);
       localStorage.setItem('token', data.token);
       alert('Login successful');
-      // On successful login, navigate to home page
-      navigate('/home');
+      navigate('/home');  // פנייה לדף הבית לאחר התחברות
     } catch (error) {
-      // If error is due to wrong credentials, show 'Wrong email or password'
-      if (error.response && error.response.status === 401) {
-        setLoginError('Incorrect email or password');  // Changed message back to English
+      // טיפול בשגיאות מה-API
+      if (error.response) {
+        if (error.response.status === 401) {
+          setLoginError('Incorrect email or password');
+        } else {
+          setLoginError('An error occurred. Please try again.');
+        }
       } else {
-        setLoginError('Incorrect email or password');  // Same message for all errors
+        // אם ה-API לא זמין או שיש שגיאה אחרת
+        setLoginError('Network error. Please check your connection.');
       }
     }
   };
@@ -82,4 +90,4 @@ function Login() {
   );
 }
 
-export default Login
+export default Login;
