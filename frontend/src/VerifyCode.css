@@ -1,0 +1,118 @@
+/* Page Wrapper */
+.verify-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f4f4f9; /* Light neutral background */
+    padding: 20px;
+    margin: 0;
+    box-sizing: border-box;
+  }
+  
+  /* Card Style */
+  .verify-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 30px 20px;
+    width: 100%;
+    max-width: 400px;
+    text-align: center;
+  }
+  
+  /* Title */
+  .verify-card h1 {
+    font-size: 1.8rem;
+    color: #333333;
+    margin-bottom: 10px;
+  }
+  
+  /* Email Text */
+  .verify-card p {
+    font-size: 1rem;
+    color: #666666;
+    margin-bottom: 20px;
+  }
+  
+  /* Form Style */
+  .verify-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  /* Input Style */
+  .verify-input {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border: 1px solid #cccccc;
+    border-radius: 8px;
+    transition: border-color 0.3s ease;
+  }
+  
+  .verify-input:focus {
+    border-color: #007bff;
+    outline: none;
+  }
+  
+  /* Button Style */
+  .verify-button {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  .verify-button:hover {
+    background-color: #0056b3;
+  }
+  
+  /* Footer Text */
+  .verify-footer {
+    font-size: 0.9rem;
+    color: #666666;
+    margin-top: 15px;
+  }
+  
+  /* Resend Link */
+  .resend-link {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    font-size: 0.9rem;
+    text-decoration: underline;
+    padding: 0;
+  }
+  
+  .resend-link:hover {
+    color: #0056b3;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 480px) {
+    .verify-card {
+      padding: 20px;
+    }
+  
+    .verify-card h1 {
+      font-size: 1.5rem;
+    }
+  
+    .verify-input, .verify-button {
+      font-size: 0.9rem;
+    }
+  }
+
+  .resend-link:disabled {
+    color: #ccc;
+    cursor: not-allowed;
+  }
+  

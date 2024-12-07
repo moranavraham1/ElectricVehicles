@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('./authController'); // Assuming you've saved the previous file as authController.js
+const authController = require('./authController'); 
+
 
 // POST route for registration
 router.post('/register', authController.register);
@@ -11,5 +12,10 @@ router.get('/register', authController.registerStatus);
 // Other authentication routes...
 router.post('/login', authController.login);
 router.post('/logout', authController.logout);
+
+router.post('/verify-code', authController.verifyCode);
+router.post('/resend-verification-code',authController.resendVerificationCode);
+
+
 
 module.exports = router;

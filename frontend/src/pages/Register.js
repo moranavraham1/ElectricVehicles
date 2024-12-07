@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import '../Register.css';
 
 function Register() {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  });
   const [errors, setErrors] = useState({});
-  const [validFields, setValidFields] = useState({});
   const navigate = useNavigate();
 
   const validateField = (field, value) => {
@@ -66,7 +69,7 @@ function Register() {
         break;
 
       case 'confirmPassword':
-        if (value !== password) {
+        if (value !== formData.password) {
           error = 'Passwords do not match.';
         } else {
           isValid = true;
@@ -78,39 +81,41 @@ function Register() {
     }
 
     setErrors((prevErrors) => ({ ...prevErrors, [field]: error }));
-    setValidFields((prevValid) => ({ ...prevValid, [field]: isValid }));
+    return isValid;
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
+    validateField(name, value);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate all fields
-    validateField('firstName', firstName);
-    validateField('lastName', lastName);
-    validateField('email', email);
-    validateField('phone', phone);
-    validateField('password', password);
-    validateField('confirmPassword', confirmPassword);
+    const isValid = Object.keys(formData).every((field) =>
+      validateField(field, formData[field])
+    );
 
-    // Check if all fields are valid
-    const isValid = Object.values(validFields).every((value) => value);
-    if (!isValid) return;
+    if (!isValid) {
+      toast.error('Please correct the errors before submitting.');
+      return;
+    }
 
     try {
-      await axios.post('http://localhost:3001/api/auth/register', {
-        firstName,
-        lastName,
-        email,
-        phone,
-        password,
+      const response = await axios.post('http://localhost:3001/api/auth/register', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
       });
 
-      // Redirect immediately to home page
-      navigate('/home');
-      
+      toast.success(response.data.message);
+      navigate(`/verify-email?email=${formData.email}`);
     } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
-      setErrors((prevErrors) => ({ ...prevErrors, server: errorMessage }));
+      const errorMessage = error.response?.data?.message || 'Registration failed.';
+      toast.error(errorMessage);
     }
   };
 
@@ -119,91 +124,71 @@ function Register() {
       <form onSubmit={handleSubmit}>
         <h1>Create an Account</h1>
 
-        {/* First Name */}
         <div className="form-group">
           <input
             type="text"
+            name="firstName"
             placeholder="First Name"
-            value={firstName}
-            onChange={(e) => {
-              setFirstName(e.target.value);
-              validateField('firstName', e.target.value);
-            }}
+            value={formData.firstName}
+            onChange={handleChange}
           />
           {errors.firstName && <span className="error-message">{errors.firstName}</span>}
         </div>
 
-        {/* Last Name */}
         <div className="form-group">
           <input
             type="text"
+            name="lastName"
             placeholder="Last Name"
-            value={lastName}
-            onChange={(e) => {
-              setLastName(e.target.value);
-              validateField('lastName', e.target.value);
-            }}
+            value={formData.lastName}
+            onChange={handleChange}
           />
           {errors.lastName && <span className="error-message">{errors.lastName}</span>}
         </div>
 
-        {/* Email */}
         <div className="form-group">
           <input
             type="email"
+            name="email"
             placeholder="Email"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              validateField('email', e.target.value);
-            }}
+            value={formData.email}
+            onChange={handleChange}
           />
           {errors.email && <span className="error-message">{errors.email}</span>}
         </div>
 
-        {/* Phone */}
         <div className="form-group">
           <input
             type="text"
+            name="phone"
             placeholder="Phone Number"
-            value={phone}
-            onChange={(e) => {
-              setPhone(e.target.value);
-              validateField('phone', e.target.value);
-            }}
+            value={formData.phone}
+            onChange={handleChange}
           />
           {errors.phone && <span className="error-message">{errors.phone}</span>}
         </div>
 
-        {/* Password */}
         <div className="form-group">
           <input
             type="password"
+            name="password"
             placeholder="Password"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              validateField('password', e.target.value);
-            }}
+            value={formData.password}
+            onChange={handleChange}
           />
           {errors.password && <span className="error-message">{errors.password}</span>}
         </div>
 
-        {/* Confirm Password */}
         <div className="form-group">
           <input
             type="password"
+            name="confirmPassword"
             placeholder="Confirm Password"
-            value={confirmPassword}
-            onChange={(e) => {
-              setConfirmPassword(e.target.value);
-              validateField('confirmPassword', e.target.value);
-            }}
+            value={formData.confirmPassword}
+            onChange={handleChange}
           />
           {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
         </div>
-
-        {errors.server && <span className="error-message">{errors.server}</span>}
 
         <button type="submit">Register</button>
 

@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { loginUser } from '../api';  // הנחה שאתה מייבא את הפונקציה הזו כראוי
+import { loginUser } from '../api'; // Ensure the loginUser function is correctly imported
 import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import '../login.css';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
-  const [loginError, setLoginError] = useState('');  // State for login error message
   const navigate = useNavigate();
 
-  // פונקציה לבדוק אם כל השדות תקינים
+  // Validate form fields
   const validateForm = () => {
     const newErrors = {};
     if (!email) {
@@ -25,20 +26,29 @@ function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // פונקציה להשלמת התחברות
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // אם יש שגיאות בכניסה, לא שולחים את הטופס
+    // If there are validation errors, do not proceed
     if (!validateForm()) return;
 
     try {
       const data = await loginUser(email, password);
-      localStorage.setItem('token', data.token);  // שומרים את הטוקן במקומי
-      navigate('/home');  // פנייה ישירה לדף הבית אחרי התחברות מוצלחת
+      localStorage.setItem('token', data.token); // Store the token locally
+      toast.success('Login successful!'); // Display a success message
+      navigate('/home'); // Redirect to the home page after successful login
     } catch (error) {
-      // מציגים הודעה אחידה על מייל או סיסמה לא תקינים
-      setLoginError('Incorrect email or password.');
+      // Check if the error has a response object
+      if (error.response) {
+        toast.error(error.response.data?.message || 'An error occurred. Please try again.');
+      } else if (error.request) {
+        // If no response was received
+        toast.error(error.request);
+      } else {
+        // If something else caused the error
+        toast.error(error.message);
+      }
     }
   };
 
@@ -47,9 +57,7 @@ function Login() {
       <form onSubmit={handleSubmit} noValidate>
         <h1>Welcome Back!</h1>
 
-        {/* Display error message if it exists */}
-        {loginError && <div style={{ color: 'red', marginBottom: '10px' }}>{loginError}</div>}
-
+        {/* Email Input */}
         <div>
           <input
             type="email"
@@ -59,6 +67,8 @@ function Login() {
           />
           {errors.email && <small style={{ color: 'red' }}>{errors.email}</small>}
         </div>
+
+        {/* Password Input */}
         <div>
           <input
             type="password"
@@ -68,7 +78,11 @@ function Login() {
           />
           {errors.password && <small style={{ color: 'red' }}>{errors.password}</small>}
         </div>
+
+        {/* Login Button */}
         <button type="submit">Login</button>
+
+        {/* Link to Registration Page */}
         <p>
           Not registered?{' '}
           <Link to="/register" className="register-link">
