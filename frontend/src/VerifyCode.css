@@ -90,3 +90,29 @@ html, body {
     max-width: 100%;
   }
 }
+.timer {
+  font-size: 1rem;
+  color: #555;
+  margin-top: 10px;
+}
+
+.verify-footer {
+  margin-top: 15px;
+  font-size: 0.9rem;
+  color: #007bff;
+}
+
+.resend-link {
+  background: none;
+  border: none;
+  color: #007bff;
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.resend-link:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
@@ -10,6 +10,26 @@ function VerifyCode() {
   const navigate = useNavigate();
   const email = searchParams.get('email');
   const [isResending, setIsResending] = useState(false);
+  const [timer, setTimer] = useState(60); // דקה = 60 שניות
+  const [intervalId, setIntervalId] = useState(null);
+
+  useEffect(() => {
+    startTimer();
+
+    return () => clearInterval(intervalId); // ניקוי הטיימר כאשר הקומפוננטה יורדת
+  }, []);
+
+  const startTimer = () => {
+    if (intervalId) clearInterval(intervalId); // מניעת ריבוי אינטרוולים
+    const newIntervalId = setInterval(() => {
+      setTimer((prev) => {
+        if (prev > 0) return prev - 1;
+        clearInterval(newIntervalId); // עצירת הטיימר כשהוא מגיע ל-0
+        return 0;
+      });
+    }, 1000);
+    setIntervalId(newIntervalId);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -25,6 +45,8 @@ function VerifyCode() {
 
   const handleResend = async () => {
     setIsResending(true);
+    setTimer(60); // איפוס הטיימר ל-60 שניות
+    startTimer(); // התחלת הספירה מחדש
 
     try {
       const response = await axios.post('http://localhost:3001/api/auth/resend-verification-code', { email });
@@ -34,6 +56,12 @@ function VerifyCode() {
     } finally {
       setIsResending(false);
     }
+  };
+
+  const formatTime = () => {
+    const minutes = Math.floor(timer / 60);
+    const seconds = timer % 60;
+    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
   return (
@@ -52,6 +80,7 @@ function VerifyCode() {
           />
           <button type="submit" className="verify-button">Verify</button>
         </form>
+        <p className="timer">Time remaining: {formatTime()}</p>
         <p className="verify-footer">
           Didn’t receive the code?{' '}
           <button
