@@ -1,11 +1,10 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
+const Station = require('./Station');
 
-// Generic OSM data fetcher
 router.get('/nearby', async (req, res) => {
-  const { lat, lon, radius = 1000, amenity } = req.query;
-
+  const { lat, lon, radius = 1000, amenity } = req.query;  
   try {
     const overpassQuery = `
       [out:json][timeout:25];
@@ -27,9 +26,9 @@ router.get('/nearby', async (req, res) => {
       }
     );
 
-    res.json(response.data.elements);
+    res.json(response.data.elements);  
   } catch (error) {
-    console.error('OSM Fetch Error:', error);
+    console.error('OSM Fetch Error:', error);  
     res.status(500).json({ 
       error: 'Failed to fetch OpenStreetMap data', 
       details: error.message 
@@ -37,9 +36,8 @@ router.get('/nearby', async (req, res) => {
   }
 });
 
-// Reverse geocoding route
 router.get('/reverse-geocode', async (req, res) => {
-  const { lat, lon } = req.query;
+  const { lat, lon } = req.query;  
 
   try {
     const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
@@ -48,18 +46,19 @@ router.get('/reverse-geocode', async (req, res) => {
         lat,
         lon,
         zoom: 18,
-        addressdetails: 1
+        addressdetails: 1  
       }
     });
 
-    res.json(response.data);
+    res.json(response.data);  
   } catch (error) {
-    console.error('Reverse Geocoding Error:', error);
+    console.error('Reverse Geocoding Error:', error);  
     res.status(500).json({ 
       error: 'Failed to perform reverse geocoding', 
       details: error.message 
     });
   }
 });
+
 
 module.exports = router;

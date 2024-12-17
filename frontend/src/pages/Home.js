@@ -1,78 +1,76 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import axios from 'axios';
 import '../Home.css';
 
 function Home() {
-  const [stations] = useState([
-    {
-      id: 1,
-      name: 'Station A',
-      address: 'Ben Gurion Blvd 123, Tel Aviv',
-      city: 'Tel Aviv',
-      status: 'Available',
-      waitTime: 0,
-      isFavorite: false,
-      location: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-      id: 2,
-      name: 'Station B',
-      address: 'Jerusalem St 456, Jerusalem',
-      city: 'Jerusalem',
-      status: 'Occupied',
-      waitTime: 3,
-      isFavorite: false,
-      location: { lat: 31.7683, lng: 35.2137 },
-    },
-    {
-      id: 3,
-      name: 'Station C',
-      address: 'Allenby St 100, Tel Aviv',
-      city: 'Tel Aviv',
-      status: 'Available',
-      waitTime: 1,
-      isFavorite: false,
-      location: { lat: 32.0707, lng: 34.7799 },
-    },
-  ]);
+  const [stations, setStations] = useState([]); // All stations from the API
+  const [filteredStations, setFilteredStations] = useState([]); // Filtered stations for display
+  const [searchQuery, setSearchQuery] = useState(''); // Search input
+  const [suggestions, setSuggestions] = useState([]); // City suggestions
+  const [loading, setLoading] = useState(true); // Loading state
+  const [error, setError] = useState(null); // Error state
 
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filteredStations, setFilteredStations] = useState(stations);
-  const [suggestions, setSuggestions] = useState([]);
+  // Fetch stations from the backend
+  useEffect(() => {
+    const fetchStations = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('http://localhost:3001/api/stations'); // Fetch stations from backend
+        setStations(response.data); // Store stations in state
+        setFilteredStations(response.data); // Display all stations initially
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching stations:', err);
+        setError('Failed to fetch charging stations. Please try again later.');
+        setLoading(false);
+      }
+    };
 
+    fetchStations();
+  }, []);
+
+  // Handle search input changes
   const handleSearch = (query) => {
     setSearchQuery(query);
 
+    // Generate city suggestions
     const matches = stations
-      .map((station) => station.city)
+      .map((station) => station.City)
       .filter((city, index, array) => array.indexOf(city) === index) // Remove duplicates
-      .filter((city) => city.includes(query));
+      .filter((city) => city.toLowerCase().includes(query.toLowerCase()));
 
     setSuggestions(matches);
 
+    // Filter stations based on city or address
     const filtered = stations.filter(
       (station) =>
-        station.city.includes(query) || station.address.includes(query)
+        station.City.toLowerCase().includes(query.toLowerCase()) ||
+        station.Address.toLowerCase().includes(query.toLowerCase())
     );
     setFilteredStations(filtered);
   };
 
+  // Handle suggestion click
   const handleSuggestionClick = (suggestion) => {
     setSearchQuery(suggestion);
     setSuggestions([]);
     const filtered = stations.filter(
-      (station) => station.city === suggestion || station.address.includes(suggestion)
+      (station) => station.City === suggestion || station.Address.includes(suggestion)
     );
     setFilteredStations(filtered);
   };
 
+  // Render loading, error, or station list
+  if (loading) return <div className="loading-message">Loading charging stations...</div>;
+  if (error) return <div className="error-message">{error}</div>;
+
   return (
     <div className="home-container">
       <div className="main-content">
-        
-        {/* Added "Search Charging Stations" title above the search bar */}
         <h2 className="search-title">Search Charging Stations</h2>
 
+        {/* Search bar */}
         <div className="search-bar-container">
           <input
             type="text"
@@ -97,39 +95,35 @@ function Home() {
           )}
         </div>
 
+        {/* Station list */}
         <div className="station-list">
-  {filteredStations.length > 0 ? (
-    filteredStations.map((station) => (
-      <div key={station.id} className="station-card">
-        <h3 className="station-name">{station.name}</h3>
-        <p className="station-address">{station.address}</p>
-        <p className={`station-status ${station.status.toLowerCase()}`}>
-          {station.status === 'Available' ? 'Available' : 'Occupied'}
-        </p>
-        <p className="station-wait-time">
-          <strong>Wait time:</strong> {station.waitTime} people waiting
-        </p>
-        <a
-          href={`https://waze.com/ul?ll=${station.location.lat},${station.location.lng}&from=now&navigate=yes`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="navigate-to-station"
-        >
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Waze_logo.svg"
-            alt="Navigate with Waze"
-            className="waze-icon"
-          />
-          Navigate to station
-        </a>
-      </div>
-    ))
-  ) : (
-    <p className="no-stations-message">No charging stations found.</p>
-  )}
-</div>
+          {filteredStations.length > 0 ? (
+            filteredStations.map((station) => (
+              <div key={station._id} className="station-card">
+                <h3 className="station-name">{station['Station Name']}</h3>
+                <p className="station-address">{station.Address}</p>
+                <p className="station-city">{station.City}</p>
+                <a
+                  href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="navigate-to-station"
+                >
+                  <img
+                    src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Waze_logo.svg"
+                    alt="Navigate with Waze"
+                    className="waze-icon"
+                  />
+                  Navigate to Station
+                </a>
+              </div>
+            ))
+          ) : (
+            <p className="no-stations-message">No charging stations found.</p>
+          )}
+        </div>
 
-        {/* Bottom fixed bar */}
+        {/* Bottom navigation */}
         <div className="bottom-bar">
           <Link to="/favorites" className="bottom-bar-button">Favorites</Link>
           <Link to="/personal-area" className="bottom-bar-button">Personal Area</Link>

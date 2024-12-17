@@ -1,11 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
-import shiraz from "./shiraz.jpg";
-import '../map.css';
+import axios from "axios";
+import "../map.css";
 
-// Fix for default marker icon not appearing
+// תיקון בעיות אייקון ברירת מחדל ב-Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -14,103 +14,154 @@ L.Icon.Default.mergeOptions({
 });
 
 const MapPage = () => {
-  const [location, setLocation] = useState([32.0853, 34.7818]); // Default location (Tel Aviv)
-  const [zoom, setZoom] = useState(13); // Initial zoom level
-  const [searchQuery, setSearchQuery] = useState('');
-  const [stations] = useState([
-    {
-      id: 1,
-      name: 'Station A',
-      location: { lat: 32.0853, lng: 34.7818 },
-    },
-    {
-      id: 2,
-      name: 'Station B',
-      location: { lat: 31.7683, lng: 35.2137 },
-    },
-    {
-      id: 3,
-      name: 'Station C',
-      location: { lat: 32.0707, lng: 34.7799 },
-    },
-  ]);
+  const [location, setLocation] = useState([32.0853, 34.7818]); // מיקום ברירת מחדל - תל אביב
+  const [zoom, setZoom] = useState(13);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [stations, setStations] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Function to fetch coordinates based on city name
-  const getCoordinatesFromCity = async (cityName) => {
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/search?city=${cityName}&format=json`);
-      const data = await response.json();
-      if (data && data.length > 0) {
-        return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-      } else {
-        throw new Error("No results found");
+  // שליפת תחנות מהשרת
+  useEffect(() => {
+    const fetchStations = async () => {
+      try {
+        const response = await axios.get("http://localhost:3001/api/stations");
+        setStations(response.data);
+        setLoading(false);
+      } catch (error) {
+        console.error("שגיאה בטעינת התחנות:", error);
+        setLoading(false);
       }
-    } catch (error) {
-      alert("Error finding location");
-      console.error(error);
-      return null;
-    }
-  };
+    };
+    fetchStations();
+  }, []);
 
-  const handleSearch = async () => {
-    // Fetch the coordinates for the search query (city name)
-    const coords = await getCoordinatesFromCity(searchQuery);
-    if (coords) {
-      setLocation(coords); // Update location with new coordinates
-      setZoom(15); // Zoom in when a location is found
-    } else {
-      alert("No location found for the search.");
-    }
-  };
-
-  // Custom funny icon
-  const funnyIcon = new L.Icon({
-    iconUrl: shiraz,
-    iconSize: [32, 32],
-    iconAnchor: [16, 32],
-    popupAnchor: [0, -32],
+  // הגדרת אייקון מותאם אישית עם HTML ו-CSS
+  const chargingIcon = L.divIcon({
+    className: "custom-charging-icon",
+    html: 
+      `<div style="
+        width: 30px; 
+        height: 40px; 
+        background: #4CAF50; 
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
+        position: relative;
+      ">
+        <div style="
+          color: white; 
+          font-size: 16px; /* גודל טקסט מותאם */
+          font-weight: bold;
+          font-family: Arial, sans-serif;
+        ">
+          <span style="color: white;">⚡</span>
+        </div>
+      </div>`,
+    iconSize: [30, 40], // שמירה על גודל האייקון כאליפסה יפה
+    iconAnchor: [15, 40],
+    popupAnchor: [0, -30],
   });
 
-  // Component to update the map view when location changes
+  // עדכון מיקום וזום במפה
   const MapUpdater = ({ location, zoom }) => {
     const map = useMap();
-    map.setView(location, zoom); // Set new center and zoom
+    map.setView(location, zoom);
     return null;
   };
 
+  // חיפוש עיר ועדכון המפה והתחנות
+  const handleSearch = async () => {
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?city=${searchQuery}&format=json`
+      );
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const cityLat = parseFloat(data[0].lat);
+        const cityLon = parseFloat(data[0].lon);
+
+        // עדכון מיקום וזום במפה לאחר חיפוש העיר
+        setLocation([cityLat, cityLon]);
+        setZoom(15); // שינוי רמת הזום
+      } else {
+        alert("לא נמצאה עיר עבור החיפוש.");
+      }
+    } catch (error) {
+      console.error("שגיאה במהלך החיפוש:", error);
+    }
+  };
+
+  // טיפולי סגירת ה-popup
+  const handleMarkerMouseOut = (marker) => {
+    marker.closePopup(); // סגור את ה-popup הקודם
+  };
+
+  const handleMarkerMouseOver = (marker) => {
+    marker.openPopup(); // פתח את ה-popup
+  };
+
+  if (loading) return <div>טעינת תחנות...</div>;
+
   return (
     <div className="map-page-container">
-      {/* Search Bar */}
+      {/* סרגל חיפוש */}
       <div className="search-bar-container">
         <input
           type="text"
-          placeholder="Search city..."
+          placeholder="חפש עיר..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-bar"
         />
-        <button onClick={handleSearch} className="search-button">Search</button>
+        <button onClick={handleSearch} className="search-button">
+          חפש
+        </button>
       </div>
 
-      <div style={{ width: "80%", height: "60vh", margin: "0 auto" }}> {/* Smaller map */}
-        <MapContainer 
-          center={location} 
-          zoom={zoom} 
-          style={{ height: "100%", width: "100%" }} 
-          zoomControl={false} // Disabling default zoom control
+      {/* מפה */}
+      <div style={{ width: "80%", height: "60vh", margin: "0 auto" }}>
+        <MapContainer
+          center={location}
+          zoom={zoom}
+          style={{ height: "100%", width: "100%" }}
+          zoomControl={false}
         >
+          {/* החזרת אריחי מפה של OpenStreetMap */}
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            attribution='&copy; OpenStreetMap contributors'
           />
+
+          {/* הצגת התחנות */}
           {stations.map((station) => (
-            <Marker key={station.id} position={station.location} icon={funnyIcon}>
-              <Popup>{station.name}</Popup>
+            <Marker
+              key={station._id}
+              position={[station.Latitude, station.Longitude]}
+              icon={chargingIcon} // שימוש באייקון המותאם
+              eventHandlers={{
+                mouseover: (e) => handleMarkerMouseOver(e.target), // על ריחוף מעל תחנה
+                mouseout: (e) => handleMarkerMouseOut(e.target), // על יציאה מעל תחנה
+              }}
+            >
+              <Popup>
+                <strong>{station["Station Name"]}</strong>
+                <br />
+                {station.Address}, {station.City}
+                <br />
+                <a
+                  href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  נווט באמצעות Waze
+                </a>
+              </Popup>
             </Marker>
           ))}
-          <ZoomControl position="topright" /> {/* Added zoom control on the top right */}
 
-          {/* Update the map when the location or zoom changes */}
+          <ZoomControl position="topright" />
           <MapUpdater location={location} zoom={zoom} />
         </MapContainer>
       </div>

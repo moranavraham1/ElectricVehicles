@@ -10,21 +10,21 @@ function VerifyCode() {
   const navigate = useNavigate();
   const email = searchParams.get('email');
   const [isResending, setIsResending] = useState(false);
-  const [timer, setTimer] = useState(60); // דקה = 60 שניות
+  const [timer, setTimer] = useState(60); 
   const [intervalId, setIntervalId] = useState(null);
 
   useEffect(() => {
     startTimer();
 
-    return () => clearInterval(intervalId); // ניקוי הטיימר כאשר הקומפוננטה יורדת
+    return () => clearInterval(intervalId); 
   }, []);
 
   const startTimer = () => {
-    if (intervalId) clearInterval(intervalId); // מניעת ריבוי אינטרוולים
+    if (intervalId) clearInterval(intervalId); 
     const newIntervalId = setInterval(() => {
       setTimer((prev) => {
         if (prev > 0) return prev - 1;
-        clearInterval(newIntervalId); // עצירת הטיימר כשהוא מגיע ל-0
+        clearInterval(newIntervalId); 
         return 0;
       });
     }, 1000);
@@ -45,8 +45,8 @@ function VerifyCode() {
 
   const handleResend = async () => {
     setIsResending(true);
-    setTimer(60); // איפוס הטיימר ל-60 שניות
-    startTimer(); // התחלת הספירה מחדש
+    setTimer(60); 
+    startTimer(); 
 
     try {
       const response = await axios.post('http://localhost:3001/api/auth/resend-verification-code', { email });

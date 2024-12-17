@@ -3,6 +3,7 @@ const mongoose = require('./db');
 const cors = require('cors');
 const authRoutes = require('./authRoutes');
 const osmRoutes = require('./osmRoutes'); // Add this line
+const stationsRoutes = require('./routes/stations'); // Import stations routes
 require('dotenv').config();
 
 const app = express();
@@ -16,6 +17,8 @@ app.use(cors({
 
 app.use('/api/auth', authRoutes);
 app.use('/api/osm', osmRoutes); // Add OSM routes
+app.use('/api/stations', stationsRoutes); // Mount /api/stations route
+
 
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Server is up' });

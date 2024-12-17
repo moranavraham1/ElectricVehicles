@@ -11,24 +11,24 @@ form {
     background-color: #fff;
     border-radius: 15px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    width: 400px; /* גודל אחיד */
-    height: 600px; /* גובה אחיד */
+    width: 400px; 
+    height: 600px; 
     text-align: center;
     padding: 20px 30px;
     box-sizing: border-box;
 }
 /* Error message styling */
 .error-message {
-    color: #dc3545; /* צבע אדום לשגיאה */
-    font-size: 10px; /* גודל פונט קטן יותר */
-    width: auto; /* רוחב אוטומטי לפי התוכן */
-    max-width: 100%; /* הגבלת רוחב אלמנט השגיאה */
-    box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
-    margin: 0; /* ביטול רווחים מסביב לשגיאה */
-    padding: 3px 0; /* להוסיף רווחים פנימיים קטנים למניעת חפיפות */
-    word-wrap: break-word; /* לפרוס טקסט ארוך כך שלא ייצא מגבולות הדף */
-    overflow: hidden; /* למנוע יציאה מגבולות הדף */
-    text-overflow: ellipsis; /* הצגת "..." אם הטקסט ארוך מדי */
-    line-height: 1.2; /* מרווח קטן יותר בין השורות */
+    color: #dc3545; 
+    font-size: 10px;
+    width: auto; 
+    max-width: 100%; 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 3px 0; 
+    word-wrap: break-word; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    line-height: 1.2; 
   }
   

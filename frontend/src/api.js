@@ -16,7 +16,6 @@ export const registerUser = async (fullName, email, password) => {
   }
 };
 
-// פונקציה להתחברות
 export const loginUser = async (email, password) => {
   try {
     const response = await axios.post(`${API_URL}/login`, {
@@ -29,7 +28,6 @@ export const loginUser = async (email, password) => {
   }
 };
 
-// פונקציה להתנתקות
 export const logoutUser = () => {
   localStorage.removeItem('token');
 };
