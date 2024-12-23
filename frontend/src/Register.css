@@ -1,34 +1,120 @@
+/* Register.css - התאמה מלאה לכל המכשירים */
+
+/* רקע מלא לדף הרשמה */
 .register-container {
+    margin: 0;
+    padding: 0;
+    font-family: Arial, sans-serif;
+    background: url('./assets/charging_background.jpg') no-repeat center center fixed;
+    background-size: cover;
+    height: 100vh;
+    width: 100vw;
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
-    background-color: #f4f4f4;
     overflow: hidden;
 }
 
-form {
-    background-color: #fff;
+/* טשטוש רקע מאחורי הטופס */
+.register-container form {
+    background: rgba(255, 255, 255, 0.1); /* שקיפות עדינה */
+    backdrop-filter: blur(10px); /* טשטוש רקע */
     border-radius: 15px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    width: 400px; 
-    height: 600px; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    padding: 30px;
+    width: 30vw;
+    min-width: 350px;
+    max-width: 500px;
     text-align: center;
-    padding: 20px 30px;
-    box-sizing: border-box;
+    z-index: 10;
 }
-/* Error message styling */
-.error-message {
-    color: #dc3545; 
-    font-size: 10px;
-    width: auto; 
-    max-width: 100%; 
-    box-sizing: border-box; 
-    margin: 0; 
-    padding: 3px 0; 
-    word-wrap: break-word; 
-    overflow: hidden; 
-    text-overflow: ellipsis; 
-    line-height: 1.2; 
-  }
-  
+
+/* עיצוב שדות הקלט */
+.register-container input {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+/* עיצוב הכפתור */
+.register-container button {
+    background-color: #007aff;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-size: 18px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 100%;
+}
+
+.register-container button:hover {
+    background-color: #005bb5;
+}
+
+/* כותרת */
+.register-container h1 {
+    color: #fff;
+    font-size: 28px;
+    margin-bottom: 20px;
+}
+
+/* קישורים */
+.register-container .login-link {
+    color: #007aff;
+    text-decoration: none;
+    font-weight: bold;
+    margin-top: 15px;
+    display: inline-block;
+}
+
+.register-container .login-link:hover {
+    text-decoration: underline;
+    color: #005bb5;
+}
+
+/* טקסט תחת הטופס */
+.register-container p {
+    font-size: 14px;
+    color: #fff;
+    margin-top: 15px;
+}
+
+/* התאמה למסכים קטנים (מובייל) */
+@media (max-width: 768px) {
+    .register-container form {
+        width: 80%;
+        padding: 20px;
+    }
+
+    .register-container h1 {
+        font-size: 22px;
+    }
+
+    .register-container input,
+    .register-container button {
+        font-size: 14px;
+        padding: 10px;
+    }
+}
+
+/* התאמה למסכים גדולים */
+@media (min-width: 1200px) {
+    .register-container form {
+        width: 25vw;
+        padding: 40px;
+    }
+
+    .register-container h1 {
+        font-size: 32px;
+    }
+
+    .register-container input,
+    .register-container button {
+        font-size: 18px;
+    }
+}
+
