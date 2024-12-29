@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../Register.css';
@@ -92,33 +91,45 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     const isValid = Object.keys(formData).every((field) =>
       validateField(field, formData[field])
     );
-
+  
     if (!isValid) {
       toast.error('Please correct the errors before submitting.');
       return;
     }
-
+  
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/register', {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
-        password: formData.password,
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+        }),
       });
-
-      toast.success(response.data.message);
+  
+      // Check if response status is ok
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Registration failed.');
+      }
+  
+      const data = await response.json(); // Parse response JSON
+      toast.success(data.message);
       navigate(`/verify-email?email=${formData.email}`);
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Registration failed.';
-      toast.error(errorMessage);
+      toast.error(error.message);
     }
   };
-
+  
   return (
     <div className="register-container">
       <form onSubmit={handleSubmit}>

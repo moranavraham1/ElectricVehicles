@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { loginUser } from '../api'; // Ensure the loginUser function is correctly imported
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -12,6 +11,9 @@ function Login() {
   const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
+
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+  console.log(BACKEND_URL);
 
   // Validate form fields
   const validateForm = () => {
@@ -35,32 +37,51 @@ function Login() {
     if (!validateForm()) return;
 
     try {
-      const data = await loginUser(email, password);
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'An error occurred. Please try again.');
+      }
+
+      const data = await response.json();
       localStorage.setItem('token', data.token);
       toast.success('Login successful!');
       navigate('/home');
     } catch (error) {
-      if (error.response) {
-        toast.error(error.response.data?.message || 'An error occurred. Please try again.');
-      } else if (error.request) {
-        toast.error(error.request);
-      } else {
-        toast.error(error.message);
-      }
+      toast.error(error.message);
     }
   };
 
   // Handle forgot password submission
-  const handleForgotPassword = () => {
+  const handleForgotPassword = async () => {
     if (!forgotPasswordEmail || !/\S+@\S+\.\S+/.test(forgotPasswordEmail)) {
       toast.error('Please enter a valid email address for password reset.');
       return;
     }
 
-    // Simulate API call
-    toast.success(`Password reset link sent to ${forgotPasswordEmail}`);
-    setShowForgotPassword(false);
-    setForgotPasswordEmail('');
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send password reset link.');
+      }
+
+      toast.success(`Password reset link sent to ${forgotPasswordEmail}`);
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   return (

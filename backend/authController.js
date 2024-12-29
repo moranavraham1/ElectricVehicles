@@ -52,12 +52,14 @@ exports.register = async (req, res) => {
       text: `Your verification code is: ${verificationCode}`,
     });
 
-    res.status(201).json({ message: 'User registered. Please verify your email.', email });
+    // Ensure proper success response
+    res.status(201).json({ message: 'User registered successfully. Please verify your email.', email });
   } catch (error) {
     console.error('Error during registration:', error);
     res.status(500).json({ message: 'Error registering user. Please try again later.' });
   }
 };
+
 
 // Verify Code Endpoint
 exports.verifyCode = async (req, res) => {
@@ -224,7 +226,7 @@ exports.resetPasswordPage = async (req, res) => {
 // Reset Password Endpoint
 exports.resetPassword = async (req, res) => {
   const { token } = req.params;
-  const { password } = req.body;
+  const { password, confirmPassword } = req.body;
 
   try {
     const user = await User.findOne({
@@ -236,21 +238,32 @@ exports.resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired password reset token.' });
     }
 
-    // בדיקת חוזק הסיסמה
+    // Validate that password and confirmPassword match
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: 'Passwords do not match.' });
+    }
+
+    // Validate password strength
     if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
       return res.status(400).json({
         message: 'Password must be at least 8 characters, include one uppercase letter, and one number.',
       });
     }
 
-    // הצפנת סיסמה חדשה
+    // Ensure the new password is not the same as the old password
+    const isSamePassword = await bcrypt.compare(password, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({ message: 'New password cannot be the same as the old password.' });
+    }
+
+    // Hash the new password
     user.password = await bcrypt.hash(password, 10);
     user.resetPasswordToken = null;
     user.resetPasswordExpires = null;
 
     await user.save();
 
-    // שליחת הודעת הצלחה
+    // Send success email
     await transporter.sendMail({
       from: process.env.EMAIL,
       to: user.email,
@@ -264,4 +277,3 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Error resetting password.' });
   }
 };
-
