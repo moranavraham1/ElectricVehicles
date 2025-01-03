@@ -10,6 +10,8 @@ import MapPage from './pages/MapPage'; // Map page
 import Favorites from './pages/Favorites'; // Favorites page
 import PersonalArea from './pages/PersonalArea'; // Personal Area page
 import VerifyCode from './pages/VerifyCode';
+import ResetPassword from './pages/ResetPassword';
+
 
 function App() {
   return (
@@ -23,6 +25,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/home" element={<Home />} />
+          <Route path="/reset-password/:token" element={<ResetPassword />} />
           <Route path="/map" element={<MapPage />} /> {/* Route for the map page */}
           <Route path="/favorites" element={<Favorites />} /> {/* Route for favorites */}
           <Route path="/personal-area" element={<PersonalArea />} /> {/* Route for personal area */}

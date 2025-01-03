@@ -9,6 +9,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   verified: { type: Boolean, default: false },
   verificationCode: { type: String }, // Added field for verification code
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
 });
 
 userSchema.methods.comparePassword = function (password) {

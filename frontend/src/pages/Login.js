@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { loginUser } from '../api'; // Ensure the loginUser function is correctly imported
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -9,7 +8,12 @@ function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
+  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
+
+  const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+  console.log(BACKEND_URL);
 
   // Validate form fields
   const validateForm = () => {
@@ -30,25 +34,53 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // If there are validation errors, do not proceed
     if (!validateForm()) return;
 
     try {
-      const data = await loginUser(email, password);
-      localStorage.setItem('token', data.token); // Store the token locally
-      toast.success('Login successful!'); // Display a success message
-      navigate('/home'); // Redirect to the home page after successful login
-    } catch (error) {
-      // Check if the error has a response object
-      if (error.response) {
-        toast.error(error.response.data?.message || 'An error occurred. Please try again.');
-      } else if (error.request) {
-        // If no response was received
-        toast.error(error.request);
-      } else {
-        // If something else caused the error
-        toast.error(error.message);
+      const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'An error occurred. Please try again.');
       }
+
+      const data = await response.json();
+      localStorage.setItem('token', data.token);
+      toast.success('Login successful!');
+      navigate('/home');
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  // Handle forgot password submission
+  const handleForgotPassword = async () => {
+    if (!forgotPasswordEmail || !/\S+@\S+\.\S+/.test(forgotPasswordEmail)) {
+      toast.error('Please enter a valid email address for password reset.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: forgotPasswordEmail }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to send password reset link.');
+      }
+
+      toast.success(`Password reset link sent to ${forgotPasswordEmail}`);
+      setShowForgotPassword(false);
+      setForgotPasswordEmail('');
+    } catch (error) {
+      toast.error(error.message);
     }
   };
 
@@ -82,6 +114,15 @@ function Login() {
         {/* Login Button */}
         <button type="submit">Login</button>
 
+        {/* Forgot Password Button */}
+        <button
+          type="button"
+          className="forgot-password-btn"
+          onClick={() => setShowForgotPassword(true)}
+        >
+          Forgot Password?
+        </button>
+
         {/* Link to Registration Page */}
         <p>
           Not registered?{' '}
@@ -90,6 +131,36 @@ function Login() {
           </Link>
         </p>
       </form>
+
+      {/* Forgot Password Modal */}
+      {showForgotPassword && (
+        <div className="forgot-password-modal">
+          <div className="modal-content">
+            {/* Close Button */}
+            <button
+              className="close-modal"
+              onClick={() => setShowForgotPassword(false)}
+            >
+              &times;
+            </button>
+            <h3>Reset Your Password</h3>
+            <p>Enter your email address below, and we'll send you a link to reset your password.</p>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={forgotPasswordEmail}
+              onChange={(e) => setForgotPasswordEmail(e.target.value)}
+            />
+            {forgotPasswordEmail && !/\S+@\S+\.\S+/.test(forgotPasswordEmail) && (
+              <small style={{ color: 'red' }}>Please enter a valid email address.</small>
+            )}
+            <div className="modal-buttons">
+              <button onClick={handleForgotPassword}>Send Reset Link</button>
+              <button onClick={() => setShowForgotPassword(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
