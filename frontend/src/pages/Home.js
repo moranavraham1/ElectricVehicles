@@ -95,33 +95,35 @@ function Home() {
           )}
         </div>
 
-        {/* Station list */}
-        <div className="station-list">
-          {filteredStations.length > 0 ? (
-            filteredStations.map((station) => (
-              <div key={station._id} className="station-card">
-                <h3 className="station-name">{station['Station Name']}</h3>
-                <p className="station-address">{station.Address}</p>
-                <p className="station-city">{station.City}</p>
-                <a
-                  href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="navigate-to-station"
-                >
-                  <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Waze_logo.svg"
-                    alt="Navigate with Waze"
-                    className="waze-icon"
-                  />
-                  Navigate to Station
-                </a>
-              </div>
-            ))
-          ) : (
-            <p className="no-stations-message">No charging stations found.</p>
-          )}
-        </div>
+{/* Station list */}
+<div className="station-list">
+  {filteredStations.length > 0 ? (
+    filteredStations.map((station) => (
+      <div key={station._id} className="station-card">
+        <h3 className="station-name">{station['Station Name']}</h3>
+        <p className="station-address">{station.Address}</p>
+        <p className="station-city">{station.City}</p>
+        <p className="station-duplicate-count">Charging stations: {station['Duplicate Count']}</p>
+        <a
+          href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="navigate-to-station"
+        >
+          <img
+            src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Waze_logo.svg"
+            alt="Navigate with Waze"
+            className="waze-icon"
+          />
+          Navigate to Station
+        </a>
+      </div>
+    ))
+  ) : (
+    <p className="no-stations-message">No charging stations found.</p>
+  )}
+</div>
+
 
         {/* Bottom navigation */}
         <div className="bottom-bar">
