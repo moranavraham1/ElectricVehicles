@@ -1,443 +1,221 @@
-/* Title styling for the header */
-h1.title {
-  color: #007aff;
-  font-size: 24px;
-  margin-bottom: 20px;
-  margin-top: 40px;
-  text-align: center;
+/* === תוכן מרכזי === */
+.main-content {
+  flex: 0 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+/* === רשימת תחנות === */
+.station-list {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 10px;
+  height: calc(100vh - 160px); /* גובה דינמי בהתאם לסרגלים */
   padding: 0 10px;
-  width: 100%;
   box-sizing: border-box;
-  line-height: 1.4;
 }
 
-/* Title styling for the search section */
-h2.search-title {
-  color: #333;
-  font-size: 20px;
-  margin-bottom: 15px;
+/* === עיצוב כרטיס תחנה מורחב === */
+.station-card {
+  width: 95%;
+  max-width: 900px;
+  margin-bottom: 20px; /* רווח בין כרטיסים */
+  padding: 25px; /* ריפוד פנימי מוגדל */
+  background: #f9f9f9;
+  border-radius: 12px; /* פינות מעוגלות */
+  border: 1px solid #ccc; /* קו גבול ברור */
+  display: flex;
+  flex-direction: column; /* כל פרט בשורה נפרדת */
+  align-items: flex-start; /* יישור לשמאל */
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* הצללה */
+  font-size: 16px;
+  text-align: left;
+  gap: 15px; /* רווח בין השורות */
+}
+
+/* === אפקט צף בהעברת העכבר על הכרטיס === */
+.station-card:hover {
+  transform: scale(1.03); /* הגדלה עדינה */
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* הצללה חזקה */
+}
+
+/* === כותרת תחנה === */
+.station-card h3 {
+  font-size: 22px; /* גודל כותרת מוגדל */
   font-weight: bold;
-  padding-top: 20px;
-  text-align: center;
-  width: 100%;
-  box-sizing: border-box;
-  display: block;
+  margin-bottom: 5px;
+  color: #333;
 }
 
-/* Search bar styling */
+/* === טקסט פרטי התחנה === */
+.station-card p {
+  font-size: 16px; /* טקסט קריא וברור */
+  color: #555;
+  margin: 5px 0;
+  width: 100%; /* תופס שורה מלאה */
+}
+
+/* === הדגשת תוויות === */
+.station-card p strong {
+  font-weight: bold;
+  color: #333;
+}
+
+/* === ניווט עם Waze === */
+.navigate-to-station {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #007aff;
+  font-weight: bold;
+  font-size: 16px;
+}
+
+.navigate-to-station img {
+  width: 32px;
+  height: 32px;
+}
+
+/* === כותרת ראשית === */
+h2.search-title {
+  text-align: center;
+  font-size: 24px;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+/* === סרגל חיפוש === */
 .search-bar-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  gap: 10px;
   margin-bottom: 20px;
 }
 
 .search-bar {
   flex: 1;
-  padding: 12px;
-  border-radius: 5px;
+  padding: 10px;
   border: 1px solid #ccc;
-  font-size: 16px;
-}
-
-/* Stations list styling */
-.station-list {
-  margin-top: 20px;
-  text-align: left;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 10px;
-}
-
-/* Station card styling */
-.station-card {
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  background: white;
-  margin-bottom: 10px;
-}
-
-.station-name {
-  font-size: 18px;
-  margin-bottom: 5px;
-  color: #333;
-}
-
-.station-address {
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-
-.station-status {
-  font-weight: bold;
-}
-
-.station-status.available {
-  color: #28a745;
-}
-
-.station-status.occupied {
-  color: #dc3545;
-}
-
-.station-wait-time {
-  font-size: 14px;
-}
-
-/* Bottom bar styling */
-.bottom-bar {
-  position: sticky;
-  bottom: 0;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  background-color: transparent;
-  padding: 12px 0;
-  box-shadow: none;
-  width: 100%;
-  z-index: 10;
-}
-
-/* Bottom bar buttons styling */
-.bottom-bar-button {
-  background-color: white;
-  color: #007bff;
-  border: none;
   border-radius: 5px;
-  padding: 8px 12px;
   font-size: 14px;
-  font-weight: bold;
-  text-align: center;
-  text-decoration: none;
-  flex: 1;
-  margin: 0 5px;
 }
 
-.bottom-bar-button:hover {
-  background-color: #0056b3;
-  color: white;
-}
-
-/* Map button styling */
 .map-button {
-  background-color: #007bff;
+  background-color: #007aff;
   color: white;
-  border: none;
+  padding: 10px 15px;
   border-radius: 5px;
-  padding: 12px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  text-align: center;
   text-decoration: none;
-  margin-left: 10px;
+  font-weight: bold;
 }
 
 .map-button:hover {
   background-color: #0056b3;
 }
 
-/* Error message styling */
-.error-message {
-  color: #dc3545;
-  font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-  margin: 2px 0;
-  word-wrap: break-word;
-}
-
-/* Responsive adjustments */
-@media screen and (max-width: 768px) {
-  .search-bar-container {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .search-bar {
-    margin-bottom: 10px;
-  }
-
-  .bottom-bar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .bottom-bar-button {
-    margin-bottom: 10px;
-    width: 100%;
-  }
-
-  .map-button {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 10px;
-  }
-}
-
-@media screen and (max-width: 480px) {
-  h1.title {
-    font-size: 20px;
-  }
-
-  h2.search-title {
-    font-size: 18px;
-  }
-
-  .station-card {
-    padding: 10px;
-  }
-
-  .station-name {
-    font-size: 16px;
-  }
-
-  .station-address {
-    font-size: 12px;
-  }
-}
-.waze-icon {
-  width: 40px; /* גודל התמונה */
-  height: 40px;
-  margin-right: 10px; /* רווח בין התמונה לבין הטקסט */
-}
-
-.navigate-text {
-  display: inline; /* לשמור על הטקסט באותו שורה */
-}
-.navigate-to-station {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* זה ימקם את הטקסט מצד שמאל */
-  text-decoration: none;
-  font-weight: bold;
-  color: #007bff;
-}
-
-.waze-icon {
-  width: 40px; /* גודל התמונה */
-  height: 40px;
-  margin-left: 10px; /* רווח בין הטקסט לתמונה */
-}
-
-.navigate-text {
-  display: inline; /* לשמור על הטקסט באותו שורה */
-}
-/* Title styling for the header */
-h1.title {
-  color: #007aff;
-  font-size: 24px;
-  margin-bottom: 20px;
-  margin-top: 40px;
-  text-align: center;
-  padding: 0 10px;
-  width: 100%;
-  box-sizing: border-box;
-  line-height: 1.4;
-}
-
-/* Title styling for the search section */
-h2.search-title {
-  color: #333;
-  font-size: 20px;
-  margin-bottom: 15px;
-  font-weight: bold;
-  padding-top: 20px;
-  text-align: center;
-  width: 100%;
-  box-sizing: border-box;
-  display: block;
-}
-
-/* Search bar styling */
-.search-bar-container {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.search-bar {
-  flex: 1;
-  padding: 12px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 16px;
-}
-
-/* Stations list styling */
-.station-list {
-  margin-top: 20px;
-  text-align: left;
-  max-height: 400px;
-  overflow-y: auto;
-  padding-right: 10px;
-}
-
-/* Station card styling */
-.station-card {
-  padding: 15px;
-  border: 1px solid #ddd;
-  border-radius: 10px;
-  background: white;
-  margin-bottom: 10px;
-}
-
-.station-name {
-  font-size: 18px;
-  margin-bottom: 5px;
-  color: #333;
-}
-
-.station-address {
-  font-size: 14px;
-  margin-bottom: 5px;
-}
-
-.station-status {
-  font-weight: bold;
-}
-
-.station-status.available {
-  color: #28a745;
-}
-
-.station-status.occupied {
-  color: #dc3545;
-}
-
-.station-wait-time {
-  font-size: 14px;
-}
-
-/* Bottom bar styling */
+/* === תחתית האתר === */
 .bottom-bar {
-  position: sticky;
+  position: fixed;
   bottom: 0;
+  left: 0;
+  width: 100%;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background-color: transparent;
-  padding: 12px 0;
-  box-shadow: none;
-  width: 100%;
-  z-index: 10;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  padding: 8px 0;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
 }
 
-/* Bottom bar buttons styling */
 .bottom-bar-button {
-  background-color: white;
-  color: #007bff;
-  border: none;
-  border-radius: 5px;
-  padding: 8px 12px;
-  font-size: 14px;
-  font-weight: bold;
   text-align: center;
   text-decoration: none;
   flex: 1;
-  margin: 0 5px;
-}
-
-.bottom-bar-button:hover {
-  background-color: #0056b3;
-  color: white;
-}
-
-/* Map button styling */
-.map-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 12px 20px;
-  font-size: 16px;
+  color: #333;
+  font-size: 12px;
   font-weight: bold;
-  text-align: center;
-  text-decoration: none;
-  margin-left: 10px;
 }
 
-.map-button:hover {
-  background-color: #0056b3;
+.bottom-bar-button i {
+  font-size: 24px;
+  margin-bottom: 5px;
 }
 
-/* Error message styling */
-.error-message {
-  color: #dc3545;
-  font-size: 14px;
-  width: 100%;
-  box-sizing: border-box;
-  margin: 2px 0;
-  word-wrap: break-word;
+/* === אייקונים === */
+.bottom-bar-button.map i {
+  color: #007aff; /* כחול */
 }
 
-/* Responsive adjustments */
+.bottom-bar-button.favorites i {
+  color: #ff4d4f; /* אדום */
+}
+
+.bottom-bar-button.personal i {
+  color: #28a745; /* ירוק */
+}
+
+.bottom-bar-button.logout i {
+  color: #d9534f; /* אדום כהה */
+}
+
+/* === הדגשת כפתור פעיל === */
+.bottom-bar-button:hover {
+  background-color: #e0f7fa;
+  color: #007aff;
+  border-radius: 10px;
+  transform: scale(1.05);
+}
+
+/* === כפתור התנתקות - הדגשה ייחודית === */
+.bottom-bar-button.logout:hover {
+  background-color: #ffe6e6;
+  color: #d9534f;
+  border-radius: 10px;
+  transform: scale(1.05);
+}
+
+/* === התאמה למובייל וטאבלט === */
 @media screen and (max-width: 768px) {
-  .search-bar-container {
-    flex-direction: column;
-    align-items: stretch;
+  .station-card {
+    width: 95%;
+    padding: 20px;
   }
 
-  .search-bar {
-    margin-bottom: 10px;
+  .station-card h3 {
+    font-size: 20px;
   }
 
-  .bottom-bar {
-    flex-direction: column;
-    align-items: stretch;
+  .station-card p {
+    font-size: 14px;
   }
 
-  .bottom-bar-button {
-    margin-bottom: 10px;
-    width: 100%;
-  }
-
-  .map-button {
-    width: 100%;
-    margin-left: 0;
-    margin-top: 10px;
+  .navigate-to-station img {
+    width: 28px;
+    height: 28px;
   }
 }
 
 @media screen and (max-width: 480px) {
-  h1.title {
-    font-size: 20px;
+  .station-card {
+    width: 100%;
+    padding: 15px;
   }
 
-  h2.search-title {
+  .station-card h3 {
     font-size: 18px;
   }
 
-  .station-card {
-    padding: 10px;
-  }
-
-  .station-name {
-    font-size: 16px;
-  }
-
-  .station-address {
+  .station-card p {
     font-size: 12px;
   }
-}
 
-/* Navigate to Station styling */
-.navigate-to-station {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start; /* This will align text to the left */
-  text-decoration: none;
-  font-weight: bold;
-  color: #007bff;
+  .navigate-to-station img {
+    width: 24px;
+    height: 24px;
+  }
 }
-
-.waze-icon {
-  width: 30px; /* Image size */
-  height: 30px;
-  margin-left: 10px; /* Space between text and image */
-}
-
-.navigate-text {
-  display: inline; /* Keep the text in the same line */
-} 

@@ -12,6 +12,7 @@ import PersonalArea from './pages/PersonalArea'; // Personal Area page
 import VerifyCode from './pages/VerifyCode';
 import ResetPassword from './pages/ResetPassword';
 
+import '@fortawesome/fontawesome-free/css/all.min.css';
 
 function App() {
   return (

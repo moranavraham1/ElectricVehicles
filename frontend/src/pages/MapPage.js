@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl } from "react-leaflet";
+import React, { useState, useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Tooltip, ZoomControl } from "react-leaflet";
+import { Link } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
 import "../map.css";
+import WazeLogo from "../assets/WAZE.jpg"; // Import the Waze logo
 
-// אייקוני ברירת מחדל של Leaflet
+// Default Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -14,114 +16,96 @@ L.Icon.Default.mergeOptions({
 });
 
 const MapPage = () => {
-  const [location, setLocation] = useState(null); // ללא מיקום ברירת מחדל
+  const [location, setLocation] = useState([32.0853, 34.7818]); // Default Tel Aviv
   const [zoom, setZoom] = useState(13);
   const [searchQuery, setSearchQuery] = useState("");
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedStationId, setSelectedStationId] = useState(null);
+  const [hoveredStationId, setHoveredStationId] = useState(null);
+  const mapRef = useRef();
+
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
   useEffect(() => {
     const fetchStations = async () => {
       try {
-        const response = await axios.get("http://localhost:3001/api/stations");
+        const response = await axios.get(`${backendUrl}/api/stations`);
         setStations(response.data);
         setLoading(false);
+
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition((position) => {
-            const userLat = position.coords.latitude;
-            const userLon = position.coords.longitude;
-            setLocation([userLat, userLon]);
+            setLocation([position.coords.latitude, position.coords.longitude]);
             setZoom(15);
-            const nearestStation = response.data.reduce((prev, curr) => {
-              const prevDistance = Math.sqrt(
-                Math.pow(prev.Latitude - userLat, 2) + Math.pow(prev.Longitude - userLon, 2)
-              );
-              const currDistance = Math.sqrt(
-                Math.pow(curr.Latitude - userLat, 2) + Math.pow(curr.Longitude - userLon, 2)
-              );
-              return currDistance < prevDistance ? curr : prev;
-            });
-            setSelectedStationId(nearestStation._id);
           });
         }
       } catch (error) {
-        console.error("שגיאה בטעינת התחנות:", error);
+        console.error("Error loading stations:", error);
         setLoading(false);
       }
     };
     fetchStations();
-  }, []);
+  }, [backendUrl]);
+
+  const handleSearch = () => {
+    const foundStation = stations.find(
+      (station) =>
+        station.City.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station.Address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station["Station Name"].toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (foundStation) {
+      setZoom(15);
+      if (mapRef.current) {
+        mapRef.current.setView([foundStation.Latitude, foundStation.Longitude], 15);
+      }
+    } else {
+      alert("No station found matching your search.");
+    }
+  };
 
   const chargingIconGreen = L.divIcon({
     className: "custom-charging-icon-green",
-    html: `
-      <div style="
-        width: 30px; 
-        height: 40px; 
-        background: #4CAF50; 
-        border-radius: 50%; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
-      ">
-        <div style="color: white; font-size: 16px; font-weight: bold;">⚡</div>
-      </div>`,
+    html: `<div style="width: 30px; height: 40px; background: #4CAF50; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0px 2px 6px rgba(0,0,0,0.3);"><div style="color: white; font-size: 16px; font-weight: bold;">⚡</div></div>`,
     iconSize: [30, 40],
     iconAnchor: [15, 40],
     popupAnchor: [0, -30],
   });
 
-  const chargingIconRed = L.divIcon({
-    className: "custom-charging-icon-red",
-    html: `
-      <div style="
-        width: 30px; 
-        height: 40px; 
-        background: #FF0000; 
-        border-radius: 50%; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
-      ">
-        <div style="color: white; font-size: 16px; font-weight: bold;">⚡</div>
-      </div>`,
-    iconSize: [30, 40],
-    iconAnchor: [15, 40],
-    popupAnchor: [0, -30],
-  });
-
-  const handleMarkerClick = (stationId) => {
-    setSelectedStationId(stationId);
-  };
-
-  if (loading || !location) return <div>טעינת תחנות...</div>;
+  if (loading) return <div>Loading stations...</div>;
 
   return (
     <div className="map-page-container">
-      {/* סרגל חיפוש */}
+      {/* Back to Home Button */}
+      <div className="home-button-container">
+        <Link to="/home" className="home-button">
+          ← Back to Home Page
+        </Link>
+      </div>
+
+      {/* Search Bar */}
       <div className="search-bar-container">
         <input
           type="text"
-          placeholder="חפש עיר..."
+          placeholder="Search city, address, or station name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-bar"
         />
-        <button onClick={() => handleSearch()} className="search-button">
-          חפש
+        <button onClick={handleSearch} className="search-button">
+          Search
         </button>
       </div>
 
-      {/* מפה */}
-      <div style={{ width: "80%", height: "60vh", margin: "0 auto" }}>
+      {/* Map */}
+      <div style={{ width: "100%", height: "100vh" }}>
         <MapContainer
           center={location}
           zoom={zoom}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
+          ref={mapRef}
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -132,27 +116,49 @@ const MapPage = () => {
             <Marker
               key={station._id}
               position={[station.Latitude, station.Longitude]}
-              icon={
-                selectedStationId === station._id ? chargingIconRed : chargingIconGreen
-              }
+              icon={chargingIconGreen}
               eventHandlers={{
-                click: () => handleMarkerClick(station._id),
+                mouseover: () => setHoveredStationId(station._id),
+                mouseout: () => setHoveredStationId(null),
               }}
             >
-              {selectedStationId === station._id && (
-                <Popup autoClose={false} closeOnClick={false}>
-                  <strong>{station["Station Name"]}</strong>
-                  <br />
-                  {station.Address}, {station.City}
-                  <br />
-                  <a
-                    href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    נווט באמצעות Waze
-                  </a>
-                </Popup>
+              {hoveredStationId === station._id && (
+                <Tooltip
+                  direction="top"
+                  offset={[0, -30]}
+                  permanent
+                  interactive
+                >
+                  <div style={{ textAlign: "center" }}>
+                    <strong>{station["Station Name"]}</strong>
+                    <br />
+                    {station.Address}, {station.City}
+                    <br />
+                    {/* Waze Navigation Button */}
+                    <a
+                      href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "5px",
+                        marginTop: "5px",
+                        textDecoration: "none",
+                        color: "blue",
+                      }}
+                    >
+                      <span>Navigate with Waze</span>
+                      <img
+                        src={WazeLogo}
+                        alt="Navigate with Waze"
+                        style={{ width: "24px", height: "24px" }}
+                      />
+                    </a>
+                  </div>
+                </Tooltip>
               )}
             </Marker>
           ))}

@@ -1,51 +1,256 @@
-/* Container for the map */
+/* === General container styling === */
 .map-page-container {
-    text-align: center;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* === Map styling - Fullscreen map === */
+div.leaflet-container {
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+}
+
+/* === Title Styling === */
+.map-title {
+  position: absolute;
+  top: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  z-index: 1000;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+/* === Search bar styling === */
+.search-bar-container {
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 50%;
+  max-width: 600px;
+  z-index: 1000;
+  display: flex;
+  gap: 10px;
+}
+
+.search-bar {
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  width: calc(100% - 90px);
+  font-size: 16px;
+}
+
+.search-button {
+  padding: 10px 15px;
+  border: none;
+  border-radius: 5px;
+  background-color: #007bff;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.search-button:hover {
+  background-color: #0056b3;
+}
+
+.search-bar::placeholder {
+  color: #888;
+}
+
+/* === Home button styling === */
+.home-button-container {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+}
+
+.home-button {
+  background-color: #4CAF50;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.home-button:hover {
+  background-color: #388E3C;
+}
+
+/* === Station Details Styling === */
+.station-card {
+  width: 100%;
+  margin: 10px 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: center;
+  background: #f9f9f9;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+.station-card h3 {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+.station-card p {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 5px;
+  text-align: left;
+}
+
+.navigate-to-station {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  text-decoration: none;
+  color: #007aff;
+  font-weight: bold;
+}
+
+.navigate-to-station img {
+  width: 24px;
+  height: 24px;
+}
+
+/* === Bottom Bar Styling === */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: #fff;
+  border-top: 1px solid #ddd;
+  padding: 5px 0;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.bottom-bar-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  color: #333;
+  font-size: 12px;
+  font-weight: bold;
+  padding: 5px;
+  transition: all 0.3s ease;
+  border-radius: 5px;
+}
+
+/* אייקונים */
+.bottom-bar-button i {
+  font-size: 20px;
+  margin-bottom: 3px;
+}
+
+/* הדגשת כפתור במעבר עכבר */
+.bottom-bar-button:hover {
+  background-color: #e0f7fa;
+  color: #007aff;
+  transform: scale(1.05);
+}
+
+/* הדגשת כפתור פעיל */
+.bottom-bar-button.active {
+  background-color: #e0f7fa;
+  color: #007aff;
+  border-radius: 5px;
+  font-weight: bold;
+}
+
+/* === התאמה למובייל וטאבלט === */
+@media (max-width: 768px) {
+  .map-title {
+    font-size: 20px;
   }
-  
-  /* Map styling */
-  div.leaflet-container {
-    width: 100%;
-    height: 70vh; /* Increased map height */
-    border-radius: 10px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  }
-  
-  /* Search bar styling */
+
   .search-bar-container {
-    margin-bottom: 20px;
-    width: 80%; /* Align search bar with map */
+    width: 80%;
+    top: 60px;
   }
-  
-  .search-bar {
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    width: calc(100% - 80px); /* For full-width search bar */
+
+  .station-card h3 {
     font-size: 16px;
-    margin-right: 10px;
   }
-  
-  .search-button {
-    padding: 10px 15px;
-    border: none;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: white;
+
+  .station-card p {
+    font-size: 12px;
+  }
+
+  .navigate-to-station img {
+    width: 20px;
+    height: 20px;
+  }
+
+  .bottom-bar-button i {
+    font-size: 18px;
+  }
+
+  .bottom-bar-button {
+    font-size: 10px;
+    padding: 4px;
+  }
+}
+
+@media (max-width: 480px) {
+  .map-title {
+    font-size: 18px;
+  }
+
+  .search-bar-container {
+    width: 90%;
+    top: 70px;
+  }
+
+  .station-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .station-card h3 {
+    font-size: 14px;
+  }
+
+  .station-card p {
+    font-size: 12px;
+  }
+
+  .bottom-bar-button i {
     font-size: 16px;
-    cursor: pointer;
   }
-  
-  .search-button:hover {
-    background-color: #0056b3;
+
+  .bottom-bar-button {
+    font-size: 9px;
+    padding: 3px;
   }
-  
-  .search-bar::placeholder {
-    color: #888;
-  }
-  
-  
+}
