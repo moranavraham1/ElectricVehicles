@@ -1,30 +1,28 @@
-
 /* Title styling for the header */
 h1.title {
-  color: #007aff; /* צבע הכותרת */
-  font-size: 24px; /* גודל הפונט */
-  margin-bottom: 20px; /* רווח מתחת לכותרת */
-  margin-top: 40px; /* הוספת רווח מעל הכותרת */
-  text-align: center; /* מרכז את הכותרת */
-  padding: 0 10px; /* הוספת ריפוד שמונע חפיפות */
-  width: 100%; /* הכותרת תופס את כל רוחב המיכל */
-  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
-  line-height: 1.4; /* להבטיח שיש מספיק מרווח בין השורות */
+  color: #007aff;
+  font-size: 24px;
+  margin-bottom: 20px;
+  margin-top: 40px;
+  text-align: center;
+  padding: 0 10px;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.4;
 }
 
 /* Title styling for the search section */
 h2.search-title {
-  color: #333; /* צבע הטקסט */
-  font-size: 20px; /* גודל הפונט */
-  margin-bottom: 15px; /* רווח מתחת לכותרת */
-  font-weight: bold; /* טקסט מודגש */
-  padding-top: 20px; /* הוספת רווח מעל */
-  text-align: center; /* מרכז את הטקסט */
-  width: 100%; /* הכותרת תופס את כל רוחב המיכל */
-  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
-  display: block; /* לוודא שהאלמנט יתנהג כמו בלוק */
+  color: #333;
+  font-size: 20px;
+  margin-bottom: 15px;
+  font-weight: bold;
+  padding-top: 20px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
 }
-
 
 /* Search bar styling */
 .search-bar-container {
@@ -46,8 +44,12 @@ h2.search-title {
 .station-list {
   margin-top: 20px;
   text-align: left;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
 }
 
+/* Station card styling */
 .station-card {
   padding: 15px;
   border: 1px solid #ddd;
@@ -83,20 +85,19 @@ h2.search-title {
   font-size: 14px;
 }
 
-/* Bottom bar styling - transparent background */
+/* Bottom bar styling */
 .bottom-bar {
   position: sticky;
   bottom: 0;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  background-color: transparent; 
+  background-color: transparent;
   padding: 12px 0;
-  box-shadow: none; 
+  box-shadow: none;
   width: 100%;
   z-index: 10;
 }
-
 
 /* Bottom bar buttons styling */
 .bottom-bar-button {
@@ -104,12 +105,12 @@ h2.search-title {
   color: #007bff;
   border: none;
   border-radius: 5px;
-  padding: 8px 12px; /* גודל כפתור */
-  font-size: 14px; /* גודל הפונט של הכפתור */
+  padding: 8px 12px;
+  font-size: 14px;
   font-weight: bold;
   text-align: center;
   text-decoration: none;
-  flex: 1; /* נותן לכל כפתור לקחת מקום שווה */
+  flex: 1;
   margin: 0 5px;
 }
 
@@ -117,7 +118,6 @@ h2.search-title {
   background-color: #0056b3;
   color: white;
 }
-
 
 /* Map button styling */
 .map-button {
@@ -137,19 +137,307 @@ h2.search-title {
   background-color: #0056b3;
 }
 
+/* Error message styling */
+.error-message {
+  color: #dc3545;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 2px 0;
+  word-wrap: break-word;
+}
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .search-bar-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-bar {
+    margin-bottom: 10px;
+  }
+
+  .bottom-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bottom-bar-button {
+    margin-bottom: 10px;
+    width: 100%;
+  }
+
+  .map-button {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 10px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  h1.title {
+    font-size: 20px;
+  }
+
+  h2.search-title {
+    font-size: 18px;
+  }
+
+  .station-card {
+    padding: 10px;
+  }
+
+  .station-name {
+    font-size: 16px;
+  }
+
+  .station-address {
+    font-size: 12px;
+  }
+}
+.waze-icon {
+  width: 40px; /* גודל התמונה */
+  height: 40px;
+  margin-right: 10px; /* רווח בין התמונה לבין הטקסט */
+}
+
+.navigate-text {
+  display: inline; /* לשמור על הטקסט באותו שורה */
+}
+.navigate-to-station {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* זה ימקם את הטקסט מצד שמאל */
+  text-decoration: none;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.waze-icon {
+  width: 40px; /* גודל התמונה */
+  height: 40px;
+  margin-left: 10px; /* רווח בין הטקסט לתמונה */
+}
+
+.navigate-text {
+  display: inline; /* לשמור על הטקסט באותו שורה */
+}
+/* Title styling for the header */
+h1.title {
+  color: #007aff;
+  font-size: 24px;
+  margin-bottom: 20px;
+  margin-top: 40px;
+  text-align: center;
+  padding: 0 10px;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.4;
+}
+
+/* Title styling for the search section */
+h2.search-title {
+  color: #333;
+  font-size: 20px;
+  margin-bottom: 15px;
+  font-weight: bold;
+  padding-top: 20px;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+  display: block;
+}
+
+/* Search bar styling */
+.search-bar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.search-bar {
+  flex: 1;
+  padding: 12px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+/* Stations list styling */
 .station-list {
   margin-top: 20px;
   text-align: left;
-  max-height: 400px; 
-  overflow-y: auto; 
-  padding-right: 10px; 
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px;
 }
+
+/* Station card styling */
+.station-card {
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  background: white;
+  margin-bottom: 10px;
+}
+
+.station-name {
+  font-size: 18px;
+  margin-bottom: 5px;
+  color: #333;
+}
+
+.station-address {
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.station-status {
+  font-weight: bold;
+}
+
+.station-status.available {
+  color: #28a745;
+}
+
+.station-status.occupied {
+  color: #dc3545;
+}
+
+.station-wait-time {
+  font-size: 14px;
+}
+
+/* Bottom bar styling */
+.bottom-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background-color: transparent;
+  padding: 12px 0;
+  box-shadow: none;
+  width: 100%;
+  z-index: 10;
+}
+
+/* Bottom bar buttons styling */
+.bottom-bar-button {
+  background-color: white;
+  color: #007bff;
+  border: none;
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  flex: 1;
+  margin: 0 5px;
+}
+
+.bottom-bar-button:hover {
+  background-color: #0056b3;
+  color: white;
+}
+
+/* Map button styling */
+.map-button {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  padding: 12px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  margin-left: 10px;
+}
+
+.map-button:hover {
+  background-color: #0056b3;
+}
+
 /* Error message styling */
 .error-message {
-  color: #dc3545; /* צבע אדום לשגיאה */
-  font-size: 14px; /* גודל פונט קטן */
-  width: 100%; /* לוודא שהשגיאה תופסת את כל הרוחב */
-  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
-  margin: 2px 0; /* רווחים מסביב לשגיאה */
-  word-wrap: break-word; /* לפרוס טקסט ארוך כך שלא ייצא מגבולות הדף */
+  color: #dc3545;
+  font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 2px 0;
+  word-wrap: break-word;
 }
+
+/* Responsive adjustments */
+@media screen and (max-width: 768px) {
+  .search-bar-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .search-bar {
+    margin-bottom: 10px;
+  }
+
+  .bottom-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .bottom-bar-button {
+    margin-bottom: 10px;
+    width: 100%;
+  }
+
+  .map-button {
+    width: 100%;
+    margin-left: 0;
+    margin-top: 10px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  h1.title {
+    font-size: 20px;
+  }
+
+  h2.search-title {
+    font-size: 18px;
+  }
+
+  .station-card {
+    padding: 10px;
+  }
+
+  .station-name {
+    font-size: 16px;
+  }
+
+  .station-address {
+    font-size: 12px;
+  }
+}
+
+/* Navigate to Station styling */
+.navigate-to-station {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* This will align text to the left */
+  text-decoration: none;
+  font-weight: bold;
+  color: #007bff;
+}
+
+.waze-icon {
+  width: 30px; /* Image size */
+  height: 30px;
+  margin-left: 10px; /* Space between text and image */
+}
+
+.navigate-text {
+  display: inline; /* Keep the text in the same line */
+} 

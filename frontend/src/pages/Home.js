@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import WazeLogo from '../assets/WAZE.jpg'; // Import the image
 import '../Home.css';
 
 function Home() {
   const [stations, setStations] = useState([]); // All stations from the API
   const [filteredStations, setFilteredStations] = useState([]); // Filtered stations for display
   const [searchQuery, setSearchQuery] = useState(''); // Search input
-  const [suggestions, setSuggestions] = useState([]); // City suggestions
   const [loading, setLoading] = useState(true); // Loading state
   const [error, setError] = useState(null); // Error state
+  const [distance, setDistance] = useState(1); // Default to 1km distance
+  const [userLocation, setUserLocation] = useState(null); // User's location
 
   // Fetch stations from the backend
   useEffect(() => {
@@ -18,7 +20,6 @@ function Home() {
         setLoading(true);
         const response = await axios.get('http://localhost:3001/api/stations'); // Fetch stations from backend
         setStations(response.data); // Store stations in state
-        setFilteredStations(response.data); // Display all stations initially
         setLoading(false);
       } catch (err) {
         console.error('Error fetching stations:', err);
@@ -30,35 +31,73 @@ function Home() {
     fetchStations();
   }, []);
 
+  // Get user location (using geolocation API)
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((position) => {
+        setUserLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+      }, (err) => {
+        setError('Could not get user location. Please enable location services.');
+      });
+    }
+  }, []);
+
+  // Calculate distance between two points using Haversine formula
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth radius in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) *
+        Math.cos(lat2 * (Math.PI / 180)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
+  };
+
+  // Filter and sort stations by distance from user's location
+  useEffect(() => {
+    if (userLocation && userLocation.latitude !== 0 && userLocation.longitude !== 0) {
+      const filteredStations = stations
+        .map(station => {
+          const distanceToStation = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            station.Latitude,
+            station.Longitude
+          );
+          return { ...station, distance: distanceToStation };
+        })
+        .filter(station => station.distance <= distance) // Filter stations within the set distance
+        .sort((a, b) => a.distance - b.distance); // Sort stations by distance (ascending order)
+
+      setFilteredStations(filteredStations);
+    }
+  }, [stations, userLocation, distance]);
+
   // Handle search input changes
   const handleSearch = (query) => {
     setSearchQuery(query);
 
-    // Generate city suggestions
-    const matches = stations
-      .map((station) => station.City)
-      .filter((city, index, array) => array.indexOf(city) === index) // Remove duplicates
-      .filter((city) => city.toLowerCase().includes(query.toLowerCase()));
-
-    setSuggestions(matches);
-
-    // Filter stations based on city or address
+    // Filter stations based on city, address, or station name
     const filtered = stations.filter(
       (station) =>
         station.City.toLowerCase().includes(query.toLowerCase()) ||
-        station.Address.toLowerCase().includes(query.toLowerCase())
+        station.Address.toLowerCase().includes(query.toLowerCase()) ||
+        station['Station Name'].toLowerCase().includes(query.toLowerCase())
     );
     setFilteredStations(filtered);
   };
 
-  // Handle suggestion click
-  const handleSuggestionClick = (suggestion) => {
-    setSearchQuery(suggestion);
-    setSuggestions([]);
-    const filtered = stations.filter(
-      (station) => station.City === suggestion || station.Address.includes(suggestion)
-    );
-    setFilteredStations(filtered);
+  // Handle distance slider change
+  const handleDistanceChange = (event) => {
+    const newDistance = event.target.value;
+    setDistance(newDistance);
   };
 
   // Render loading, error, or station list
@@ -74,56 +113,58 @@ function Home() {
         <div className="search-bar-container">
           <input
             type="text"
-            placeholder="Search city or address..."
+            placeholder="Search city, address, or station name..."
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
             className="search-bar"
           />
           <Link to="/map" className="map-button">Search on Map</Link>
-          {suggestions.length > 0 && (
-            <ul className="suggestions-list">
-              {suggestions.map((suggestion, index) => (
-                <li
-                  key={index}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="suggestion-item"
-                >
-                  {suggestion}
-                </li>
-              ))}
-            </ul>
-          )}
         </div>
 
-{/* Station list */}
-<div className="station-list">
-  {filteredStations.length > 0 ? (
-    filteredStations.map((station) => (
-      <div key={station._id} className="station-card">
-        <h3 className="station-name">{station['Station Name']}</h3>
-        <p className="station-address">{station.Address}</p>
-        <p className="station-city">{station.City}</p>
-        <p className="station-duplicate-count">Charging stations: {station['Duplicate Count']}</p>
-        <a
-          href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="navigate-to-station"
-        >
-          <img
-            src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Waze_logo.svg"
-            alt="Navigate with Waze"
-            className="waze-icon"
+        {/* Distance slider */}
+        <div className="distance-slider">
+          <label>Max Distance: {distance} km</label>
+          <input
+            type="range"
+            min="1"
+            max="50"
+            step="1"
+            value={distance}
+            onChange={handleDistanceChange}
+            className="slider"
           />
-          Navigate to Station
-        </a>
-      </div>
-    ))
-  ) : (
-    <p className="no-stations-message">No charging stations found.</p>
-  )}
-</div>
+        </div>
 
+        {/* Station list */}
+        <div className="station-list">
+          {filteredStations.length > 0 ? (
+            filteredStations.map((station) => (
+              <div key={station._id} className="station-card">
+                <h3 className="station-name">{station['Station Name']}</h3>
+                <p className="station-address">{station.Address}</p>
+                <p className="station-city">{station.City}</p>
+                <p className="station-duplicate-count">Charging stations: {station['Duplicate Count']}</p>
+
+                {/* Waze logo and navigate button */}
+                <a
+                  href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="navigate-to-station"
+                >
+                  <span className="navigate-text">Navigate to Station</span>
+                  <img
+                    src={WazeLogo} // Use the uploaded Waze image
+                    alt="Navigate with Waze"
+                    className="waze-icon"
+                  />
+                </a>
+              </div>
+            ))
+          ) : (
+            <p className="no-stations-message">No charging stations found.</p>
+          )}
+        </div>
 
         {/* Bottom navigation */}
         <div className="bottom-bar">
