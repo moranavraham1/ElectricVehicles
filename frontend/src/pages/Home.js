@@ -78,20 +78,24 @@ function Home() {
         {filteredStations.length > 0 ? (
           filteredStations.map((station) => (
             <div key={station._id} className="station-card">
-              <h3>{station['Station Name']}</h3>
-              <p><strong>Address:</strong> {station.Address}</p>
-              <p><strong>City:</strong> {station.City}</p>
-              <p><strong>Charging stations:</strong> {station['Duplicate Count']}</p>
-              <a
-                href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="navigate-to-station"
-              >
-                <img src={WazeLogo} alt="Waze" />
-                <span>Navigate to Station</span>
-              </a>
-            </div>
+  <div className="station-details">
+  <h3 className="station-name">{station['Station Name']}</h3>
+
+    <p><strong>Address:</strong> {station.Address}</p>
+    <p><strong>City:</strong> {station.City}</p>
+    <p><strong>Charging stations:</strong> {station['Duplicate Count']}</p>
+    <a
+      href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="navigate-to-station"
+    >
+      <img src={WazeLogo} alt="Waze" />
+      <span>Navigate to Station</span>
+    </a>
+  </div>
+</div>
+
           ))
         ) : (
           <p>No charging stations match your search criteria.</p>
