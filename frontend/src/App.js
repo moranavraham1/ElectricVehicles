@@ -11,6 +11,7 @@ import Favorites from './pages/Favorites'; // Favorites page
 import PersonalArea from './pages/PersonalArea'; // Personal Area page
 import VerifyCode from './pages/VerifyCode';
 import ResetPassword from './pages/ResetPassword';
+import './index.css';
 
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
