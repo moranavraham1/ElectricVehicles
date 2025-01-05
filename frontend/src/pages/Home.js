@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../Home.css';
-import wazeIcon from '../assets/WAZE.jpg'; // תמונת ה-Waze
+import wazeIcon from '../assets/WAZE.jpg'; 
 
 const Home = () => {
     const [userLocation, setUserLocation] = useState('');
