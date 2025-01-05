@@ -5,7 +5,16 @@ import '../Home.css';
 import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
 
+<<<<<<< HEAD
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+=======
+
+import wazeIcon from '../assets/WAZE.jpg'; // תמונת ה-Waze
+
+
+import logo from '../assets/logo.jpg'; // ייבוא הלוגו
+
+>>>>>>> f36f2fcf (WIP: save local changes)
 
 const Home = () => {
   const [userLocation, setUserLocation] = useState('');
