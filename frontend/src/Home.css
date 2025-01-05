@@ -49,11 +49,19 @@ body, .home-container {
   background: linear-gradient(135deg, #388e3c, #2e7d32);
 }
 
+<<<<<<< HEAD
 .home-search-bar-container {
   margin-top: 10vh;
   width: 100vw !important; 
   max-width: 100vw !important; 
   padding: 0 20px;
+=======
+
+/* שורת החיפוש מתחת למיקום */
+.search-bar-container {
+  margin-top: 210px; /* מרווח אחרי כפתור הרענון */
+  width: 100%;
+>>>>>>> 51f1ed20 (logo-p)
   display: flex;
   justify-content: center;
   align-items: center;
