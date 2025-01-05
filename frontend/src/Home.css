@@ -1,267 +1,169 @@
-/* === תוכן מרכזי === */
-.main-content {
-  flex: 0 0 auto;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-/* === רשימת תחנות === */
-.station-list {
-  flex: 1;
-  overflow-y: auto;
-  margin-top: 10px;
-  height: calc(100vh - 160px); /* גובה דינמי בהתאם לסרגלים */
-  padding: 0 10px;
-  box-sizing: border-box;
-}
-
-/* === עיצוב כרטיס תחנה מורחב === */
-.station-card {
-  width: 95%;
-  max-width: 900px;
-  margin-bottom: 20px; /* רווח בין כרטיסים */
-  padding: 25px; /* ריפוד פנימי מוגדל */
-  background: #f9f9f9;
-  border-radius: 12px; /* פינות מעוגלות */
-  border: 1px solid #ccc; /* קו גבול ברור */
-  display: flex;
-  flex-direction: column; /* כל פרט בשורה נפרדת */
-  align-items: flex-start; /* יישור לשמאל */
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15); /* הצללה */
-  font-size: 16px;
-  text-align: left;
-  gap: 15px; /* רווח בין השורות */
-}
-
-/* === אפקט צף בהעברת העכבר על הכרטיס === */
-.station-card:hover {
-  transform: scale(1.03); /* הגדלה עדינה */
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2); /* הצללה חזקה */
-}
-
-/* === כותרת תחנה === */
-.station-card h3 {
-  font-size: 22px; /* גודל כותרת מוגדל */
-  font-weight: bold;
-  margin-bottom: 5px;
+/* === סגנון כללי עם צבעים רכים וקומפקטיים === */
+body, .home-container {
+  font-family: 'Poppins', Arial, sans-serif;
+  padding: 0;
+  margin: 0;
+  background-color: #f5f7fa;
   color: #333;
+  line-height: 1.5;
+  font-size: 14px; /* טקסט מוקטן */
 }
 
-/* === טקסט פרטי התחנה === */
-.station-card p {
-  font-size: 16px; /* טקסט קריא וברור */
-  color: #555;
-  margin: 5px 0;
-  width: 100%; /* תופס שורה מלאה */
-}
-
-/* === הדגשת תוויות === */
-.station-card p strong {
-  font-weight: bold;
-  color: #333;
-}
-
-/* === ניווט עם Waze === */
-.navigate-to-station {
-  margin-top: 10px;
+/* === סרגל עליון קומפקטי === */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(135deg, #1b5e20, #4caf50);
+  color: white;
+  padding: 10px;
+  font-size: 14px; 
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  color: #007aff;
-  font-weight: bold;
-  font-size: 16px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  z-index: 1000;
 }
 
-.navigate-to-station img {
-  width: 32px;
-  height: 32px;
+.refresh-location-button {
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px; /* קטן יותר */
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-/* === כותרת ראשית === */
-h2.search-title {
-  text-align: center;
-  font-size: 24px;
-  color: #333;
-  margin-bottom: 20px;
+.refresh-location-button:hover {
+  background: #388e3c;
 }
 
-/* === סרגל חיפוש === */
+/* === שדה חיפוש מצומצם === */
 .search-bar-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 20px;
+  padding: 15px;
+  text-align: center;
 }
 
 .search-bar {
-  flex: 1;
+  width: 85%;
   padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  border: 2px solid #4caf50;
+  border-radius: 20px;
   font-size: 14px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  outline: none;
+  transition: all 0.3s ease-in-out;
 }
 
-.map-button {
-  background-color: #007aff;
+.search-bar:focus {
+  border-color: #1b5e20;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* === רשימת תחנות קומפקטית === */
+.station-list {
+  padding: 15px;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* === כרטיס תחנה מוקטן === */
+.station-card {
+  border: 1px solid #ddd;
+  border-radius: 15px;
+  padding: 15px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  position: relative;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.station-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* === תגית המרחק מצומצמת === */
+.distance-badge {
+  background: #1b5e20;
   color: white;
-  padding: 10px 15px;
-  border-radius: 5px;
-  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 14px;
   font-weight: bold;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 60px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-.map-button:hover {
-  background-color: #0056b3;
+/* === כפתור Waze מוקטן === */
+.waze-container {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-start;
 }
 
-/* === תחתית האתר === */
+.waze-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #00a8ff;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  width: 50px;  /* מוקטן */
+  height: 50px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.waze-button img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
+}
+
+.waze-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* === תפריט תחתון מעוצב ומוקטן === */
 .bottom-bar {
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
+  background: linear-gradient(135deg, #1b5e20, #4caf50);
+  padding: 12px;
   display: flex;
   justify-content: space-around;
-  align-items: center;
-  background: #fff;
-  border-top: 1px solid #ddd;
-  padding: 8px 0;
-  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-  z-index: 1000;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
 }
 
 .bottom-bar-button {
   text-align: center;
+  color: white;
+  font-size: 14px;
   text-decoration: none;
-  flex: 1;
-  color: #333;
-  font-size: 12px;
-  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .bottom-bar-button i {
-  font-size: 24px;
+  font-size: 20px;
   margin-bottom: 5px;
 }
-
-/* === אייקונים === */
-.bottom-bar-button.map i {
-  color: #007aff; /* כחול */
-}
-
-.bottom-bar-button.favorites i {
-  color: #ff4d4f; /* אדום */
-}
-
-.bottom-bar-button.personal i {
-  color: #28a745; /* ירוק */
-}
-
-.bottom-bar-button.logout i {
-  color: #d9534f; /* אדום כהה */
-}
-
-/* === הדגשת כפתור פעיל === */
-.bottom-bar-button:hover {
-  background-color: #e0f7fa;
-  color: #007aff;
-  border-radius: 10px;
-  transform: scale(1.05);
-}
-
-/* === כפתור התנתקות - הדגשה ייחודית === */
-.bottom-bar-button.logout:hover {
-  background-color: #ffe6e6;
-  color: #d9534f;
-  border-radius: 10px;
-  transform: scale(1.05);
-}
-
-/* === התאמה למובייל וטאבלט === */
-@media screen and (max-width: 768px) {
-  .station-card {
-    width: 95%;
-    padding: 20px;
-  }
-
-  .station-card h3 {
-    font-size: 20px;
-  }
-
-  .station-card p {
-    font-size: 14px;
-  }
-
-  .navigate-to-station img {
-    width: 28px;
-    height: 28px;
-  }
-}
-
-@media screen and (max-width: 480px) {
-  .station-card {
-    width: 100%;
-    padding: 15px;
-  }
-
-  .station-card h3 {
-    font-size: 18px;
-  }
-
-  .station-card p {
-    font-size: 12px;
-  }
-
-  .navigate-to-station img {
-    width: 24px;
-    height: 24px;
-  }
-}
-.station-card {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 16px;
-  margin: 16px 0;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  background-color: #fff;
-}
-
-.station-name {
-  font-size: 1.5rem;
-  font-weight: bold;
-  margin-bottom: 12px;
-  color: #333;
-  text-align: center;
-}
-
-.station-details {
-  font-size: 1rem;
-  color: #555;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  text-align: left;
-}
-
-.station-details p {
-  margin: 4px 0;
-}
-
-.navigate-to-station {
-  margin-top: auto; /* מצמיד את הכפתור לתחתית הכרטיס */
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  color: #007aff;
-  font-weight: 500;
-  align-self: flex-start; /* מבטיח יישור לשמאל */
-}
-.navigate-to-station img {
-  width: 20px;
-  height: 20px;
-}
-
-
