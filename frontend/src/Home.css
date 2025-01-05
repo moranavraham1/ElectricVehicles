@@ -51,7 +51,7 @@ body, .home-container {
 
 /* שורת החיפוש מתחת למיקום */
 .search-bar-container {
-  margin-top: 200px; /* מרווח אחרי כפתור הרענון */
+  margin-top: 210px; /* מרווח אחרי כפתור הרענון */
   width: 100%;
   display: flex;
   justify-content: center;
@@ -197,7 +197,7 @@ body, .home-container {
 }
 
 .logo {
-  max-width: 150px;
+  max-width: 900px;
   height: auto;
   filter: drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.1));
   mix-blend-mode: multiply; /* התאמה לצבעי הרקע */
