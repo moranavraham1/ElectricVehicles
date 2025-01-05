@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../Home.css';
 import wazeIcon from '../assets/WAZE.jpg'; 
+import logo from '../assets/logo.jpg'; // ייבוא הלוגו
 
 const Home = () => {
     const [userLocation, setUserLocation] = useState('');
@@ -78,24 +79,31 @@ const Home = () => {
 
     return (
         <div className="home-container">
-           <div className="top-bar">
-    <p>📍 {loadingLocation ? 'Loading...' : userLocation}</p>
-    <button className="refresh-location-button" onClick={fetchUserLocation}>
-        🔄 Refresh Location
-    </button>
-</div>
+            {/* הלוגו במרכז למעלה */}
+            <div className="logo-container">
+                <img src={logo} alt="EVision Logo" className="logo" />
+            </div>
 
+            {/* שורת המיקום והכפתור מתחת ללוגו */}
+            <div className="location-bar">
+                <p>{loadingLocation ? 'Loading...' : userLocation}📍 </p>
+                <button className="refresh-location-button" onClick={fetchUserLocation}>
+                    🔄 Refresh Location
+                </button>
+            </div>
 
+            {/* שורת החיפוש הוזזה מתחת לכפתור */}
             <div className="search-bar-container">
                 <input
                     type="text"
                     className="search-bar"
-                    placeholder="חפש תחנות לפי כתובת..."
+                    placeholder="Search stations by address..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
             </div>
 
+            {/* הצגת תחנות טעינה */}
             <div className="station-list">
                 {sortedStations.map((station, index) => (
                     <div key={index} className="station-card">
@@ -122,7 +130,7 @@ const Home = () => {
                 ))}
             </div>
 
-            {/* תפריט תחתון עם אייקונים מתוקנים */}
+            {/* תפריט תחתון */}
             <div className="bottom-bar">
                 <Link to="/logout" className="bottom-bar-button logout">
                     <i className="fas fa-sign-out-alt"></i> Logout
