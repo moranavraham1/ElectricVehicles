@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, ZoomControl, useMap } from "react-leaflet";
+import React, { useState, useEffect, useRef } from "react";
+import { MapContainer, TileLayer, Marker, Tooltip, ZoomControl } from "react-leaflet";
+import { Link } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
 import "../map.css";
+import WazeLogo from "../assets/WAZE.jpg"; // Import the Waze logo
 
-// תיקון בעיות אייקון ברירת מחדל ב-Leaflet
+// Default Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -14,155 +16,153 @@ L.Icon.Default.mergeOptions({
 });
 
 const MapPage = () => {
-  const [location, setLocation] = useState([32.0853, 34.7818]); // מיקום ברירת מחדל - תל אביב
+  const [location, setLocation] = useState([32.0853, 34.7818]); // Default Tel Aviv
   const [zoom, setZoom] = useState(13);
   const [searchQuery, setSearchQuery] = useState("");
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hoveredStationId, setHoveredStationId] = useState(null);
+  const mapRef = useRef();
 
-  // שליפת תחנות מהשרת
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
+
   useEffect(() => {
     const fetchStations = async () => {
       try {
-        const response = await axios.get("http://localhost:3001/api/stations");
+        const response = await axios.get(`${backendUrl}/api/stations`);
         setStations(response.data);
         setLoading(false);
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition((position) => {
+            setLocation([position.coords.latitude, position.coords.longitude]);
+            setZoom(15);
+          });
+        }
       } catch (error) {
-        console.error("שגיאה בטעינת התחנות:", error);
+        console.error("Error loading stations:", error);
         setLoading(false);
       }
     };
     fetchStations();
-  }, []);
+  }, [backendUrl]);
 
-  // הגדרת אייקון מותאם אישית עם HTML ו-CSS
-  const chargingIcon = L.divIcon({
-    className: "custom-charging-icon",
-    html: 
-      `<div style="
-        width: 30px; 
-        height: 40px; 
-        background: #4CAF50; 
-        border-radius: 50%; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
-        position: relative;
-      ">
-        <div style="
-          color: white; 
-          font-size: 16px; /* גודל טקסט מותאם */
-          font-weight: bold;
-          font-family: Arial, sans-serif;
-        ">
-          <span style="color: white;">⚡</span>
-        </div>
-      </div>`,
-    iconSize: [30, 40], // שמירה על גודל האייקון כאליפסה יפה
+  const handleSearch = () => {
+    const foundStation = stations.find(
+      (station) =>
+        station.City.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station.Address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station["Station Name"].toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    if (foundStation) {
+      setZoom(15);
+      if (mapRef.current) {
+        mapRef.current.setView([foundStation.Latitude, foundStation.Longitude], 15);
+      }
+    } else {
+      alert("No station found matching your search.");
+    }
+  };
+
+  const chargingIconGreen = L.divIcon({
+    className: "custom-charging-icon-green",
+    html: `<div style="width: 30px; height: 40px; background: #4CAF50; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0px 2px 6px rgba(0,0,0,0.3);"><div style="color: white; font-size: 16px; font-weight: bold;">⚡</div></div>`,
+    iconSize: [30, 40],
     iconAnchor: [15, 40],
     popupAnchor: [0, -30],
   });
 
-  // עדכון מיקום וזום במפה
-  const MapUpdater = ({ location, zoom }) => {
-    const map = useMap();
-    map.setView(location, zoom);
-    return null;
-  };
-
-  // חיפוש עיר ועדכון המפה והתחנות
-  const handleSearch = async () => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?city=${searchQuery}&format=json`
-      );
-      const data = await response.json();
-      if (data && data.length > 0) {
-        const cityLat = parseFloat(data[0].lat);
-        const cityLon = parseFloat(data[0].lon);
-
-        // עדכון מיקום וזום במפה לאחר חיפוש העיר
-        setLocation([cityLat, cityLon]);
-        setZoom(15); // שינוי רמת הזום
-      } else {
-        alert("לא נמצאה עיר עבור החיפוש.");
-      }
-    } catch (error) {
-      console.error("שגיאה במהלך החיפוש:", error);
-    }
-  };
-
-  // טיפולי סגירת ה-popup
-  const handleMarkerMouseOut = (marker) => {
-    marker.closePopup(); // סגור את ה-popup הקודם
-  };
-
-  const handleMarkerMouseOver = (marker) => {
-    marker.openPopup(); // פתח את ה-popup
-  };
-
-  if (loading) return <div>טעינת תחנות...</div>;
+  if (loading) return <div>Loading stations...</div>;
 
   return (
     <div className="map-page-container">
-      {/* סרגל חיפוש */}
+      {/* Back to Home Button */}
+      <div className="home-button-container">
+        <Link to="/home" className="home-button">
+          ← Back to Home Page
+        </Link>
+      </div>
+
+      {/* Search Bar */}
       <div className="search-bar-container">
         <input
           type="text"
-          placeholder="חפש עיר..."
+          placeholder="Search city, address, or station name..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-bar"
         />
         <button onClick={handleSearch} className="search-button">
-          חפש
+          Search
         </button>
       </div>
 
-      {/* מפה */}
-      <div style={{ width: "80%", height: "60vh", margin: "0 auto" }}>
+      {/* Map */}
+      <div style={{ width: "100%", height: "100vh" }}>
         <MapContainer
           center={location}
           zoom={zoom}
           style={{ height: "100%", width: "100%" }}
           zoomControl={false}
+          ref={mapRef}
         >
-          {/* החזרת אריחי מפה של OpenStreetMap */}
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; OpenStreetMap contributors'
           />
 
-          {/* הצגת התחנות */}
           {stations.map((station) => (
             <Marker
               key={station._id}
               position={[station.Latitude, station.Longitude]}
-              icon={chargingIcon} // שימוש באייקון המותאם
+              icon={chargingIconGreen}
               eventHandlers={{
-                mouseover: (e) => handleMarkerMouseOver(e.target), // על ריחוף מעל תחנה
-                mouseout: (e) => handleMarkerMouseOut(e.target), // על יציאה מעל תחנה
+                mouseover: () => setHoveredStationId(station._id),
+                mouseout: () => setHoveredStationId(null),
               }}
             >
-              <Popup>
-                <strong>{station["Station Name"]}</strong>
-                <br />
-                {station.Address}, {station.City}
-                <br />
-                <a
-                  href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-                  target="_blank"
-                  rel="noopener noreferrer"
+              {hoveredStationId === station._id && (
+                <Tooltip
+                  direction="top"
+                  offset={[0, -30]}
+                  permanent
+                  interactive
                 >
-                  נווט באמצעות Waze
-                </a>
-              </Popup>
+                  <div style={{ textAlign: "center" }}>
+                    <strong>{station["Station Name"]}</strong>
+                    <br />
+                    {station.Address}, {station.City}
+                    <br />
+                    {/* Waze Navigation Button */}
+                    <a
+                      href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: "5px",
+                        marginTop: "5px",
+                        textDecoration: "none",
+                        color: "blue",
+                      }}
+                    >
+                      <span>Navigate with Waze</span>
+                      <img
+                        src={WazeLogo}
+                        alt="Navigate with Waze"
+                        style={{ width: "24px", height: "24px" }}
+                      />
+                    </a>
+                  </div>
+                </Tooltip>
+              )}
             </Marker>
           ))}
-
           <ZoomControl position="topright" />
-          <MapUpdater location={location} zoom={zoom} />
         </MapContainer>
       </div>
     </div>

@@ -2,135 +2,143 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../Home.css';
+import wazeIcon from '../assets/WAZE.jpg'; // תמונת ה-Waze
 
-function Home() {
-  const [stations, setStations] = useState([]); // All stations from the API
-  const [filteredStations, setFilteredStations] = useState([]); // Filtered stations for display
-  const [searchQuery, setSearchQuery] = useState(''); // Search input
-  const [suggestions, setSuggestions] = useState([]); // City suggestions
-  const [loading, setLoading] = useState(true); // Loading state
-  const [error, setError] = useState(null); // Error state
+const Home = () => {
+    const [userLocation, setUserLocation] = useState('');
+    const [loadingLocation, setLoadingLocation] = useState(false);
+    const [stations, setStations] = useState([]);
+    const [latitude, setLatitude] = useState(null);
+    const [longitude, setLongitude] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch stations from the backend
-  useEffect(() => {
-    const fetchStations = async () => {
-      try {
-        setLoading(true);
-        const response = await axios.get('http://localhost:3001/api/stations'); // Fetch stations from backend
-        setStations(response.data); // Store stations in state
-        setFilteredStations(response.data); // Display all stations initially
-        setLoading(false);
-      } catch (err) {
-        console.error('Error fetching stations:', err);
-        setError('Failed to fetch charging stations. Please try again later.');
-        setLoading(false);
-      }
+    useEffect(() => {
+        fetchUserLocation();
+        fetchStations();
+    }, []);
+
+    const fetchUserLocation = () => {
+        setLoadingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setLatitude(latitude);
+                setLongitude(longitude);
+                reverseGeocode(latitude, longitude);
+            },
+            (error) => {
+                console.error('Error fetching location:', error);
+                setLoadingLocation(false);
+            }
+        );
     };
 
-    fetchStations();
-  }, []);
+    const reverseGeocode = async (lat, lon) => {
+        try {
+            const response = await axios.get(
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+            );
+            setUserLocation(response.data.display_name);
+        } catch (error) {
+            console.error('Error:', error);
+        } finally {
+            setLoadingLocation(false);
+        }
+    };
 
-  // Handle search input changes
-  const handleSearch = (query) => {
-    setSearchQuery(query);
+    const fetchStations = async () => {
+        try {
+            const response = await axios.get('http://localhost:3001/api/stations');
+            setStations(response.data);
+        } catch (error) {
+            console.error('Error fetching stations:', error);
+        }
+    };
 
-    // Generate city suggestions
-    const matches = stations
-      .map((station) => station.City)
-      .filter((city, index, array) => array.indexOf(city) === index) // Remove duplicates
-      .filter((city) => city.toLowerCase().includes(query.toLowerCase()));
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return 'N/A';
+        const R = 6371;
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) *
+                Math.cos(lat2 * (Math.PI / 180)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = (R * c).toFixed(2);
+        return distance;
+    };
 
-    setSuggestions(matches);
+    const sortedStations = [...stations].sort((a, b) => {
+        const distanceA = calculateDistance(latitude, longitude, a.Latitude, a.Longitude);
+        const distanceB = calculateDistance(latitude, longitude, b.Latitude, b.Longitude);
+        return distanceA - distanceB;
+    });
 
-    // Filter stations based on city or address
-    const filtered = stations.filter(
-      (station) =>
-        station.City.toLowerCase().includes(query.toLowerCase()) ||
-        station.Address.toLowerCase().includes(query.toLowerCase())
+    return (
+        <div className="home-container">
+           <div className="top-bar">
+    <p>📍 {loadingLocation ? 'Loading...' : userLocation}</p>
+    <button className="refresh-location-button" onClick={fetchUserLocation}>
+        🔄 Refresh Location
+    </button>
+</div>
+
+
+            <div className="search-bar-container">
+                <input
+                    type="text"
+                    className="search-bar"
+                    placeholder="חפש תחנות לפי כתובת..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
+
+            <div className="station-list">
+                {sortedStations.map((station, index) => (
+                    <div key={index} className="station-card">
+                        <div>
+                            <h3>{station['Station Name']}</h3>
+                            <p><strong>Address:</strong> {station.Address}</p>
+                            <p><strong>City:</strong> {station.City}</p>
+                            <p><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
+                            <div className="waze-container">
+                                <a
+                                    href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="waze-button"
+                                >
+                                    <img src={wazeIcon} alt="Waze" />
+                                </a>
+                            </div>
+                        </div>
+                        <div className="distance-badge">
+                            {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {/* תפריט תחתון עם אייקונים מתוקנים */}
+            <div className="bottom-bar">
+                <Link to="/logout" className="bottom-bar-button logout">
+                    <i className="fas fa-sign-out-alt"></i> Logout
+                </Link>
+                <Link to="/favorites" className="bottom-bar-button favorites">
+                    <i className="fas fa-heart"></i> Favorites
+                </Link>
+                <Link to="/personal-area" className="bottom-bar-button personal">
+                    <i className="fas fa-user"></i> Personal Area
+                </Link>
+                <Link to="/map" className="bottom-bar-button map">
+                    <i className="fas fa-map-marked-alt"></i> Search on Map
+                </Link>
+            </div>
+        </div>
     );
-    setFilteredStations(filtered);
-  };
-
-  // Handle suggestion click
-  const handleSuggestionClick = (suggestion) => {
-    setSearchQuery(suggestion);
-    setSuggestions([]);
-    const filtered = stations.filter(
-      (station) => station.City === suggestion || station.Address.includes(suggestion)
-    );
-    setFilteredStations(filtered);
-  };
-
-  // Render loading, error, or station list
-  if (loading) return <div className="loading-message">Loading charging stations...</div>;
-  if (error) return <div className="error-message">{error}</div>;
-
-  return (
-    <div className="home-container">
-      <div className="main-content">
-        <h2 className="search-title">Search Charging Stations</h2>
-
-        {/* Search bar */}
-        <div className="search-bar-container">
-          <input
-            type="text"
-            placeholder="Search city or address..."
-            value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="search-bar"
-          />
-          <Link to="/map" className="map-button">Search on Map</Link>
-          {suggestions.length > 0 && (
-            <ul className="suggestions-list">
-              {suggestions.map((suggestion, index) => (
-                <li
-                  key={index}
-                  onClick={() => handleSuggestionClick(suggestion)}
-                  className="suggestion-item"
-                >
-                  {suggestion}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        {/* Station list */}
-        <div className="station-list">
-          {filteredStations.length > 0 ? (
-            filteredStations.map((station) => (
-              <div key={station._id} className="station-card">
-                <h3 className="station-name">{station['Station Name']}</h3>
-                <p className="station-address">{station.Address}</p>
-                <p className="station-city">{station.City}</p>
-                <a
-                  href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="navigate-to-station"
-                >
-                  <img
-                    src="https://upload.wikimedia.org/wikipedia/commons/e/e3/Waze_logo.svg"
-                    alt="Navigate with Waze"
-                    className="waze-icon"
-                  />
-                  Navigate to Station
-                </a>
-              </div>
-            ))
-          ) : (
-            <p className="no-stations-message">No charging stations found.</p>
-          )}
-        </div>
-
-        {/* Bottom navigation */}
-        <div className="bottom-bar">
-          <Link to="/favorites" className="bottom-bar-button">Favorites</Link>
-          <Link to="/personal-area" className="bottom-bar-button">Personal Area</Link>
-        </div>
-      </div>
-    </div>
-  );
-}
+};
 
 export default Home;

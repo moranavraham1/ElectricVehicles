@@ -1,155 +1,169 @@
-
-/* Title styling for the header */
-h1.title {
-  color: #007aff; /* צבע הכותרת */
-  font-size: 24px; /* גודל הפונט */
-  margin-bottom: 20px; /* רווח מתחת לכותרת */
-  margin-top: 40px; /* הוספת רווח מעל הכותרת */
-  text-align: center; /* מרכז את הכותרת */
-  padding: 0 10px; /* הוספת ריפוד שמונע חפיפות */
-  width: 100%; /* הכותרת תופס את כל רוחב המיכל */
-  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
-  line-height: 1.4; /* להבטיח שיש מספיק מרווח בין השורות */
+/* === סגנון כללי עם צבעים רכים וקומפקטיים === */
+body, .home-container {
+  font-family: 'Poppins', Arial, sans-serif;
+  padding: 0;
+  margin: 0;
+  background-color: #f5f7fa;
+  color: #333;
+  line-height: 1.5;
+  font-size: 14px; /* טקסט מוקטן */
 }
 
-/* Title styling for the search section */
-h2.search-title {
-  color: #333; /* צבע הטקסט */
-  font-size: 20px; /* גודל הפונט */
-  margin-bottom: 15px; /* רווח מתחת לכותרת */
-  font-weight: bold; /* טקסט מודגש */
-  padding-top: 20px; /* הוספת רווח מעל */
-  text-align: center; /* מרכז את הטקסט */
-  width: 100%; /* הכותרת תופס את כל רוחב המיכל */
-  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
-  display: block; /* לוודא שהאלמנט יתנהג כמו בלוק */
-}
-
-
-/* Search bar styling */
-.search-bar-container {
+/* === סרגל עליון קומפקטי === */
+.top-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(135deg, #1b5e20, #4caf50);
+  color: white;
+  padding: 10px;
+  font-size: 14px; 
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
+
+.refresh-location-button {
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px; /* קטן יותר */
+  cursor: pointer;
+  font-size: 14px;
+  transition: background 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.refresh-location-button:hover {
+  background: #388e3c;
+}
+
+/* === שדה חיפוש מצומצם === */
+.search-bar-container {
+  padding: 15px;
+  text-align: center;
 }
 
 .search-bar {
-  flex: 1;
-  padding: 12px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  font-size: 16px;
+  width: 85%;
+  padding: 10px;
+  border: 2px solid #4caf50;
+  border-radius: 20px;
+  font-size: 14px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  outline: none;
+  transition: all 0.3s ease-in-out;
 }
 
-/* Stations list styling */
+.search-bar:focus {
+  border-color: #1b5e20;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* === רשימת תחנות קומפקטית === */
 .station-list {
-  margin-top: 20px;
-  text-align: left;
-}
-
-.station-card {
   padding: 15px;
+  max-height: calc(100vh - 250px);
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* === כרטיס תחנה מוקטן === */
+.station-card {
   border: 1px solid #ddd;
-  border-radius: 10px;
+  border-radius: 15px;
+  padding: 15px;
   background: white;
-  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  position: relative;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
-.station-name {
-  font-size: 18px;
-  margin-bottom: 5px;
-  color: #333;
+.station-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
-.station-address {
+/* === תגית המרחק מצומצמת === */
+.distance-badge {
+  background: #1b5e20;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 20px;
   font-size: 14px;
-  margin-bottom: 5px;
-}
-
-.station-status {
   font-weight: bold;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  min-width: 60px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
-.station-status.available {
-  color: #28a745;
+/* === כפתור Waze מוקטן === */
+.waze-container {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-start;
 }
 
-.station-status.occupied {
-  color: #dc3545;
+.waze-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #00a8ff;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  width: 50px;  /* מוקטן */
+  height: 50px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
 }
 
-.station-wait-time {
-  font-size: 14px;
+.waze-button img {
+  width: 70%;
+  height: 70%;
+  object-fit: contain;
 }
 
-/* Bottom bar styling - transparent background */
+.waze-button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* === תפריט תחתון מעוצב ומוקטן === */
 .bottom-bar {
-  position: sticky;
+  position: fixed;
   bottom: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(135deg, #1b5e20, #4caf50);
+  padding: 12px;
   display: flex;
   justify-content: space-around;
-  align-items: center;
-  background-color: transparent; 
-  padding: 12px 0;
-  box-shadow: none; 
-  width: 100%;
-  z-index: 10;
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
 }
 
-
-/* Bottom bar buttons styling */
 .bottom-bar-button {
-  background-color: white;
-  color: #007bff;
-  border: none;
-  border-radius: 5px;
-  padding: 8px 12px; /* גודל כפתור */
-  font-size: 14px; /* גודל הפונט של הכפתור */
-  font-weight: bold;
   text-align: center;
-  text-decoration: none;
-  flex: 1; /* נותן לכל כפתור לקחת מקום שווה */
-  margin: 0 5px;
-}
-
-.bottom-bar-button:hover {
-  background-color: #0056b3;
   color: white;
-}
-
-
-/* Map button styling */
-.map-button {
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  padding: 12px 20px;
-  font-size: 16px;
-  font-weight: bold;
-  text-align: center;
+  font-size: 14px;
   text-decoration: none;
-  margin-left: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.map-button:hover {
-  background-color: #0056b3;
-}
-
-.station-list {
-  margin-top: 20px;
-  text-align: left;
-  max-height: 400px; 
-  overflow-y: auto; 
-  padding-right: 10px; 
-}
-/* Error message styling */
-.error-message {
-  color: #dc3545; /* צבע אדום לשגיאה */
-  font-size: 14px; /* גודל פונט קטן */
-  width: 100%; /* לוודא שהשגיאה תופסת את כל הרוחב */
-  box-sizing: border-box; /* לכלול את הריפוד והמרווחים בחישוב הרוחב */
-  margin: 2px 0; /* רווחים מסביב לשגיאה */
-  word-wrap: break-word; /* לפרוס טקסט ארוך כך שלא ייצא מגבולות הדף */
+.bottom-bar-button i {
+  font-size: 20px;
+  margin-bottom: 5px;
 }

@@ -16,6 +16,10 @@ router.post('/logout', authController.logout);
 router.post('/verify-code', authController.verifyCode);
 router.post('/resend-verification-code',authController.resendVerificationCode);
 
+// Password Reset Routes
+router.post('/forgot-password', authController.forgotPassword); // שליחת קישור איפוס למייל
+router.get('/reset-password/:token', authController.resetPasswordPage); // הצגת עמוד האיפוס
+router.post('/reset-password/:token', authController.resetPassword); // עדכון הסיסמה החדשה
 
 
 module.exports = router;
