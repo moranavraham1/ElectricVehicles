@@ -238,4 +238,19 @@ body, .home-container {
 }
 
 
+/* Heart Icon for Station Card */
+.heart-icon {
+  position: absolute;
+  top: 10px;
+  right: 90px;
+  
+  font-size: 24px;
+  color: #ccc; /* צבע ברירת מחדל */
+  cursor: pointer;
+  transition: color 0.3s ease;
+  z-index: 10;
+}
 
+.heart-icon.active {
+  color: red; /* צבע הלב כשהוא נבחר */
+}

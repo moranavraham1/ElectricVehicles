@@ -1,0 +1,169 @@
+/* 🌟 מכולת העמוד הראשית - מסך מלא */
+.favorites-container {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(to bottom, #e8f5e9, #c8e6c9);
+    color: #2e7d32;
+    width: 100vw; /* 100% מרוחב המסך */
+    height: 100vh; /* 100% מגובה המסך */
+    margin: 0;
+    padding: 30px;
+    box-sizing: border-box;
+    overflow-y: auto; /* גלילה במקרה של תוכן רב */
+}
+
+/* 🌟 כותרת העמוד */
+.favorites-container h2 {
+    text-align: center;
+    font-size: 32px;
+    margin-bottom: 25px;
+    color: #1b5e20;
+    font-weight: bold;
+}
+
+/* 🌟 רשימת תחנות */
+.favorites-container .station-card {
+    background: #ffffff;
+    border: 1px solid #a5d6a7;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    transition: box-shadow 0.3s, transform 0.2s;
+}
+
+.favorites-container .station-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.favorites-container .station-card h3 {
+    font-size: 20px;
+    color: #388e3c;
+    margin: 0;
+    font-weight: bold;
+}
+
+.favorites-container .station-card p {
+    margin: 5px 0;
+    font-size: 14px;
+    color: #4caf50;
+}
+
+.favorites-container .station-card p strong {
+    color: #2e7d32;
+}
+
+/* 🌟 כפתור הסרה - אייקון איקס בתוך ריבוע */
+.remove-button {
+    margin-top: 5px;
+    background-color: #ce0e0e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    line-height: 24px;
+    display: inline-block;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.remove-button:hover {
+    background-color: #c70e0e;
+    transform: scale(1.1);
+}
+
+/* 🌟 הודעת אין מועדפים */
+.favorites-container .no-favorites {
+    text-align: center;
+    font-size: 16px;
+    color: #757575;
+    margin-top: 20px;
+}
+
+/* 🌟 כפתור חזרה לדף הבית */
+.favorites-container .back-button {
+    display: block;
+    text-align: center;
+    margin: 30px auto 0;
+    width: 200px;
+    padding: 12px;
+    font-size: 16px;
+    color: #ffffff;
+    background: linear-gradient(to right, #66bb6a, #388e3c);
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.favorites-container .back-button:hover {
+    background: linear-gradient(to right, #43a047, #2e7d32);
+    transform: scale(1.05);
+}
+
+/* 🎯 רספונסיביות - מסכים קטנים */
+@media (max-width: 768px) {
+    .favorites-container {
+        padding: 15px;
+        border-radius: 0;
+    }
+
+    .favorites-container h2 {
+        font-size: 24px;
+    }
+
+    .favorites-container .station-card {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+        padding: 15px;
+    }
+
+    .favorites-container .station-card h3 {
+        font-size: 18px;
+    }
+
+    .favorites-container .station-card p {
+        font-size: 12px;
+    }
+
+    .remove-button {
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
+        line-height: 20px;
+    }
+
+    .favorites-container .back-button {
+        width: 160px;
+        padding: 10px;
+        font-size: 14px;
+    }
+}
+
+/* 🎯 רספונסיביות - מסכים גדולים במיוחד */
+@media (min-width: 1200px) {
+    .favorites-container {
+        padding: 50px;
+    }
+
+    .favorites-container .station-card {
+        padding: 25px;
+    }
+
+    .favorites-container .station-card h3 {
+        font-size: 22px;
+    }
+
+    .favorites-container .station-card p {
+        font-size: 16px;
+    }
+}
