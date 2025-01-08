@@ -71,7 +71,15 @@ const Home = () => {
         return distance;
     };
 
-    const sortedStations = [...stations].sort((a, b) => {
+    // סינון לפי שורת חיפוש
+    const filteredStations = stations.filter((station) =>
+        station['Station Name'].toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station.City.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station.Address.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    // מיון התחנות לפי מרחק
+    const sortedStations = [...filteredStations].sort((a, b) => {
         const distanceA = calculateDistance(latitude, longitude, a.Latitude, a.Longitude);
         const distanceB = calculateDistance(latitude, longitude, b.Latitude, b.Longitude);
         return distanceA - distanceB;
@@ -92,12 +100,12 @@ const Home = () => {
                 </button>
             </div>
 
-            {/* שורת החיפוש הוזזה מתחת לכפתור */}
+            {/* שורת החיפוש */}
             <div className="search-bar-container">
                 <input
                     type="text"
                     className="search-bar"
-                    placeholder="Search stations by address..."
+                    placeholder="Search stations by name, city, or address..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
