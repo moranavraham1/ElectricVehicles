@@ -13,6 +13,9 @@ import VerifyCode from './pages/VerifyCode';
 import ResetPassword from './pages/ResetPassword';
 import './index.css';
 
+
+
+
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 function App() {
@@ -31,6 +34,7 @@ function App() {
           <Route path="/map" element={<MapPage />} /> {/* Route for the map page */}
           <Route path="/favorites" element={<Favorites />} /> {/* Route for favorites */}
           <Route path="/personal-area" element={<PersonalArea />} /> {/* Route for personal area */}
+          <Route path="/favorites" element={<Favorites />} />
         </Routes>
       </div>
     </Router>

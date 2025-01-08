@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../Home.css';
-import wazeIcon from '../assets/WAZE.jpg'; 
-import logo from '../assets/logo.jpg'; // ייבוא הלוגו
+import wazeIcon from '../assets/WAZE.jpg';
+import logo from '../assets/logo.jpg';
 
 const Home = () => {
     const [userLocation, setUserLocation] = useState('');
@@ -12,6 +12,7 @@ const Home = () => {
     const [latitude, setLatitude] = useState(null);
     const [longitude, setLongitude] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [favorites, setFavorites] = useState([]);
 
     useEffect(() => {
         fetchUserLocation();
@@ -51,6 +52,7 @@ const Home = () => {
         try {
             const response = await axios.get('http://localhost:3001/api/stations');
             setStations(response.data);
+            setFavorites(Array(response.data.length).fill(false));
         } catch (error) {
             console.error('Error fetching stations:', error);
         }
@@ -67,18 +69,38 @@ const Home = () => {
                 Math.cos(lat2 * (Math.PI / 180)) *
                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = (R * c).toFixed(2);
-        return distance;
+        return (R * c).toFixed(2);
     };
 
-    // סינון לפי שורת חיפוש
+    const toggleFavorite = (index) => {
+        setFavorites((prevFavorites) => {
+            const newFavorites = [...prevFavorites];
+            newFavorites[index] = !newFavorites[index];
+    
+            // שמירת המועדפים ב-localStorage
+            const favoriteStations = stations.filter((_, i) => newFavorites[i]);
+            localStorage.setItem('favorites', JSON.stringify(favoriteStations));
+    
+            return newFavorites;
+        });
+    };
+    
+    // טעינת המועדפים מה-localStorage בעת הטעינה
+    useEffect(() => {
+        const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        const initialFavorites = stations.map((station) =>
+            savedFavorites.some((fav) => fav['Station Name'] === station['Station Name'])
+        );
+        setFavorites(initialFavorites);
+    }, [stations]);
+    
+
     const filteredStations = stations.filter((station) =>
         station['Station Name'].toLowerCase().includes(searchQuery.toLowerCase()) ||
         station.City.toLowerCase().includes(searchQuery.toLowerCase()) ||
         station.Address.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // מיון התחנות לפי מרחק
     const sortedStations = [...filteredStations].sort((a, b) => {
         const distanceA = calculateDistance(latitude, longitude, a.Latitude, a.Longitude);
         const distanceB = calculateDistance(latitude, longitude, b.Latitude, b.Longitude);
@@ -87,20 +109,20 @@ const Home = () => {
 
     return (
         <div className="home-container">
-            {/* הלוגו במרכז למעלה */}
+            {/* לוגו */}
             <div className="logo-container">
                 <img src={logo} alt="EVision Logo" className="logo" />
             </div>
 
-            {/* שורת המיקום והכפתור מתחת ללוגו */}
+            {/* מיקום */}
             <div className="location-bar">
-                <p>{loadingLocation ? 'Loading...' : userLocation}📍 </p>
+                <p>{loadingLocation ? 'Loading...' : userLocation} 📍</p>
                 <button className="refresh-location-button" onClick={fetchUserLocation}>
                     🔄 Refresh Location
                 </button>
             </div>
 
-            {/* שורת החיפוש */}
+            {/* חיפוש */}
             <div className="search-bar-container">
                 <input
                     type="text"
@@ -111,7 +133,7 @@ const Home = () => {
                 />
             </div>
 
-            {/* הצגת תחנות טעינה */}
+            {/* רשימת תחנות */}
             <div className="station-list">
                 {sortedStations.map((station, index) => (
                     <div key={index} className="station-card">
@@ -131,17 +153,30 @@ const Home = () => {
                                 </a>
                             </div>
                         </div>
-                        <div className="distance-badge">
-                            {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
+                        <div className="distance-container">
+                            <div className="distance-badge">
+                                {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
+                            </div>
+                            {/* כפתור לב */}
+                            <div 
+                                className={`heart-icon ${favorites[index] ? 'active' : ''}`} 
+                                onClick={() => toggleFavorite(index)}
+                            >
+                                <i className={`fa-${favorites[index] ? 'solid' : 'regular'} fa-heart`}></i>
+                            </div>
                         </div>
                     </div>
                 ))}
             </div>
 
             {/* תפריט תחתון */}
+            
             <div className="bottom-bar">
-                <Link to="/logout" className="bottom-bar-button logout">
+                 <Link to="/logout" className="bottom-bar-button logout">
                     <i className="fas fa-sign-out-alt"></i> Logout
+                </Link>
+                <Link to="/home" className="bottom-bar-button home">
+                    <i className="fas fa-home"></i> Home
                 </Link>
                 <Link to="/favorites" className="bottom-bar-button favorites">
                     <i className="fas fa-heart"></i> Favorites
@@ -152,6 +187,8 @@ const Home = () => {
                 <Link to="/map" className="bottom-bar-button map">
                     <i className="fas fa-map-marked-alt"></i> Search on Map
                 </Link>
+
+               
             </div>
         </div>
     );
