@@ -290,7 +290,20 @@ input[type="text"] {
   color: red; /* לב פעיל */
 }
 
+/* Heart Icon for Station Card */
+.heart-icon {
+  position: absolute;
+  top: 10px;
+  right: 90px;
+  
+  font-size: 24px;
+  color: #ccc; /* צבע ברירת מחדל */
+  cursor: pointer;
+  transition: color 0.3s ease;
+  z-index: 10;
+}
 
+<<<<<<< HEAD
 .station-list {
   max-height: calc(100vh - 35vh);
 }
@@ -317,4 +330,8 @@ input[type="text"] {
 .suggestion-item:hover {
   background-color: #f7f7f7; 
   color: #333; 
+=======
+.heart-icon.active {
+  color: red; /* צבע הלב כשהוא נבחר */
+>>>>>>> 95979c7d (Adding stations to favorites)
 }

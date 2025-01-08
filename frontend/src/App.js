@@ -13,6 +13,13 @@ import ResetPassword from './pages/ResetPassword';
 import ProtectedRoute from './components/ProtectedRoute'; 
 import Logout from './pages/Logout'; 
 import './index.css';
+<<<<<<< HEAD
+=======
+
+
+
+
+>>>>>>> 95979c7d (Adding stations to favorites)
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 function App() {
@@ -27,6 +34,7 @@ function App() {
           <Route path="/login" element={<Login />} /> {/* ✅ תיקון הוספת נתיב התחברות */}
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+<<<<<<< HEAD
 
 
           <Route
@@ -66,6 +74,12 @@ function App() {
           
 
           <Route path="*" element={<Login />} />
+=======
+          <Route path="/map" element={<MapPage />} /> {/* Route for the map page */}
+          <Route path="/favorites" element={<Favorites />} /> {/* Route for favorites */}
+          <Route path="/personal-area" element={<PersonalArea />} /> {/* Route for personal area */}
+          <Route path="/favorites" element={<Favorites />} />
+>>>>>>> 95979c7d (Adding stations to favorites)
         </Routes>
       </div>
     </Router>

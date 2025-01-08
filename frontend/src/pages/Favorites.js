@@ -6,6 +6,7 @@ const Favorites = () => {
     const [favoriteStations, setFavoriteStations] = useState([]);
 
     useEffect(() => {
+<<<<<<< HEAD
         const fetchFavorites = async () => {
             const loggedInUser = localStorage.getItem('loggedInUser');
             const token = localStorage.getItem('token');
@@ -72,6 +73,21 @@ const Favorites = () => {
         }
     };
     
+=======
+        const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        setFavoriteStations(savedFavorites);
+    }, []);
+
+    // פונקציה להסרת תחנה מהמועדפים
+    const removeFromFavorites = (stationName) => {
+        const updatedFavorites = favoriteStations.filter(
+            (station) => station['Station Name'] !== stationName
+        );
+        setFavoriteStations(updatedFavorites);
+        localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+    };
+
+>>>>>>> 95979c7d (Adding stations to favorites)
     return (
         <div className="favorites-container">
             {/* סיכום המועדפים */}
@@ -87,6 +103,7 @@ const Favorites = () => {
                 favoriteStations.map((station, index) => (
                     <div key={index} className="station-card">
                         <h3>{station['Station Name']}</h3>
+<<<<<<< HEAD
                         <p><strong>Address:</strong> {station.Address || 'N/A'}</p>
                         <p><strong>City:</strong> {station.City || 'N/A'}</p>
                         <p><strong>Charging Stations:</strong> {station['Duplicate Count'] || 'N/A'}</p>
@@ -94,6 +111,15 @@ const Favorites = () => {
                         <button
                             className="remove-button"
                             onClick={() => removeFromFavorites(station)}
+=======
+                        <p><strong>Address:</strong> {station.Address}</p>
+                        <p><strong>City:</strong> {station.City}</p>
+                        <p><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
+                        {/* כפתור הסרה */}
+                        <button
+                            className="remove-button"
+                            onClick={() => removeFromFavorites(station['Station Name'])}
+>>>>>>> 95979c7d (Adding stations to favorites)
                         >
                             ❌ 
                         </button>
