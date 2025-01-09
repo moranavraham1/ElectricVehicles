@@ -38,16 +38,30 @@ const Home = () => {
     const reverseGeocode = async (lat, lon) => {
         try {
             const response = await axios.get(
-                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json`
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`
             );
-            setUserLocation(response.data.display_name);
+    
+            const { address } = response.data;
+    
+            // שליפת נתונים רלוונטיים
+            const road = address.road || 'Address not available'; // כתובת
+            const city = address.city || address.town || address.village || 'City not available'; // עיר
+            const region = address.state || 'Region not available'; // מחוז
+            const postcode = address.postcode || 'Postcode not available'; // מיקוד
+            const country = address.country || 'Country not available'; // ארץ
+    
+            // יצירת מחרוזת בפורמט הרצוי
+            const formattedLocation = `${road}, ${city}, ${region}, ${postcode}, ${country}`;
+    
+            setUserLocation(formattedLocation.trim());
         } catch (error) {
             console.error('Error:', error);
         } finally {
             setLoadingLocation(false);
         }
     };
-
+    
+    
     const fetchStations = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/stations');
