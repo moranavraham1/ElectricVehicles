@@ -46,6 +46,17 @@ const MapPage = () => {
     fetchStations();
   }, [backendUrl]);
 
+  // ביצוע חיפוש אוטומטי בעת ההקלדה עם עיכוב (debounce)
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (searchQuery.trim() !== "") {
+        handleSearch();
+      }
+    }, 500); // מבצע חיפוש רק לאחר 500ms של חוסר הקלדה
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]); // מאזין לשינויים בשורת החיפוש בלבד
+
   const handleSearch = () => {
     const foundStation = stations.find(
       (station) =>
@@ -59,8 +70,6 @@ const MapPage = () => {
       if (mapRef.current) {
         mapRef.current.setView([foundStation.Latitude, foundStation.Longitude], 15);
       }
-    } else {
-      alert("No station found matching your search.");
     }
   };
 
@@ -92,9 +101,6 @@ const MapPage = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-bar"
         />
-        <button onClick={handleSearch} className="search-button">
-          Search
-        </button>
       </div>
 
       {/* Map */}
@@ -122,12 +128,7 @@ const MapPage = () => {
               }}
             >
               {hoveredStationId === station._id && (
-                <Tooltip
-                  direction="top"
-                  offset={[0, -30]}
-                  permanent
-                  interactive
-                >
+                <Tooltip direction="top" offset={[0, -30]} permanent interactive>
                   <div style={{ textAlign: "center" }}>
                     <strong>{station["Station Name"]}</strong>
                     <br />
@@ -138,7 +139,6 @@ const MapPage = () => {
                       href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -150,11 +150,7 @@ const MapPage = () => {
                       }}
                     >
                       <span>Navigate with Waze</span>
-                      <img
-                        src={WazeLogo}
-                        alt="Navigate with Waze"
-                        style={{ width: "24px", height: "24px" }}
-                      />
+                      <img src={WazeLogo} alt="Navigate with Waze" style={{ width: "24px", height: "24px" }} />
                     </a>
                   </div>
                 </Tooltip>
