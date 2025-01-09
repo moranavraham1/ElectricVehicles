@@ -5,9 +5,8 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
 import "../map.css";
-import WazeLogo from "../assets/WAZE.jpg"; // Import the Waze logo
+import WazeLogo from "../assets/WAZE.jpg"; 
 
-// Default Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -16,7 +15,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const MapPage = () => {
-  const [location, setLocation] = useState([32.0853, 34.7818]); // Default Tel Aviv
+  const [location, setLocation] = useState([32.0853, 34.7818]); 
   const [zoom, setZoom] = useState(13);
   const [searchQuery, setSearchQuery] = useState("");
   const [stations, setStations] = useState([]);
@@ -85,7 +84,7 @@ const MapPage = () => {
       </div>
 
       {/* Search Bar */}
-      <div className="search-bar-container">
+      <div className="map-search-bar-container">
         <input
           type="text"
           placeholder="Search city, address, or station name..."
@@ -99,7 +98,7 @@ const MapPage = () => {
       </div>
 
       {/* Map */}
-      <div style={{ width: "100%", height: "100vh" }}>
+      <div style={{ width: "100%", height: "100vh", position: "relative", zIndex: "1" }}>
         <MapContainer
           center={location}
           zoom={zoom}
@@ -109,7 +108,7 @@ const MapPage = () => {
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap contributors'
+            attribution="&copy; OpenStreetMap contributors"
           />
 
           {stations.map((station) => (

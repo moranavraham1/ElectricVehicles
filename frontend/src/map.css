@@ -33,7 +33,7 @@ div.leaflet-container {
 }
 
 /* === Search bar styling === */
-.search-bar-container {
+.map-search-bar-container {
   position: absolute;
   top: 50px;
   left: 50%;
