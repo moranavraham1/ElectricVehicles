@@ -1,12 +1,13 @@
-const express = require('express');
 const mongoose = require('./db'); 
 const cors = require('cors');
 const authRoutes = require('./authRoutes');
 const osmRoutes = require('./osmRoutes'); // Add this line
 const stationsRoutes = require('./routes/stations'); // Import stations routes
 require('dotenv').config();
-
+const express = require('express');
+const authMiddleware = require('./authMiddleware'); // middleware לאימות
 const app = express();
+const router = express.Router();
 
 app.use(express.json());
 app.use(cors({
@@ -26,3 +27,5 @@ app.get('/', (req, res) => {
 
 const PORT = process.env.PORT;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+
