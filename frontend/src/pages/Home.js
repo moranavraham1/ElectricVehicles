@@ -4,7 +4,7 @@ import '../Home.css';
 import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
 
-// טעינת מפתח Google Maps API
+// טעינת מפתח Google Maps API מהמפתח שהוגדר בקובץ .env
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const Home = () => {
@@ -63,8 +63,8 @@ const Home = () => {
     };
 
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
-        if (!lat1 || !lon1 || !lat2 || !lon2) return 'N/A';
-        const R = 6371;
+        if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity; // שימוש באינסוף כדי לא לשבש מיון
+        const R = 6371; // רדיוס כדור הארץ בק"מ
         const dLat = (lat2 - lat1) * (Math.PI / 180);
         const dLon = (lon2 - lon1) * (Math.PI / 180);
         const a =
@@ -73,17 +73,7 @@ const Home = () => {
             Math.cos(lat2 * (Math.PI / 180)) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return (R * c).toFixed(2);
-    };
-
-    const toggleFavorite = (index) => {
-        setFavorites((prevFavorites) => {
-            const newFavorites = [...prevFavorites];
-            newFavorites[index] = !newFavorites[index];
-            const favoriteStations = stations.filter((_, i) => newFavorites[i]);
-            localStorage.setItem('favorites', JSON.stringify(favoriteStations));
-            return newFavorites;
-        });
+        return parseFloat((R * c).toFixed(2));
     };
 
     const filteredStations = stations.filter((station) =>
@@ -92,6 +82,7 @@ const Home = () => {
         station.Address.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // מיון לפי מרחק מהמשתמש
     const sortedStations = [...filteredStations].sort((a, b) => {
         const distanceA = calculateDistance(latitude, longitude, a.Latitude, a.Longitude);
         const distanceB = calculateDistance(latitude, longitude, b.Latitude, b.Longitude);
@@ -124,7 +115,6 @@ const Home = () => {
             <div className="station-list">
                 {sortedStations.map((station, index) => (
                     <div key={index} className="station-card">
-                        {/* מרחק מוצג בצורה קבועה בפינה הימנית העליונה */}
                         <div className="distance-badge">
                             {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
                         </div>
@@ -146,15 +136,22 @@ const Home = () => {
                             </div>
                         </div>
 
-                        {/* תמונה ממוזערת מימין */}
-                        <img
-                            src={`https://maps.googleapis.com/maps/api/streetview?size=150x150&location=${encodeURIComponent(station.Address + ', ' + station.City)}&fov=80&heading=70&pitch=0&key=${GOOGLE_MAPS_API_KEY}`}
-                            alt={`Street View of ${station['Station Name']}`}
+                        {/* Google Maps Street View Interactive */}
+                        <iframe
+                            title={`Street View of ${station['Station Name']}`}
                             className="station-image-small"
+                            width="250"
+                            height="150"
+                            style={{ borderRadius: '10px', border: 'none', marginLeft: 'auto' }}
+                            src={`https://www.google.com/maps/embed/v1/streetview?location=${station.Latitude},${station.Longitude}&key=${GOOGLE_MAPS_API_KEY}&language=en&region=US`}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
                             onError={(e) => {
-                                e.target.src = 'https://placehold.co/150x150?text=No+Image';
+                                e.target.src = 'https://placehold.co/250x150?text=No+Image';
                             }}
-                        />
+                        ></iframe>
+
                     </div>
                 ))}
             </div>
