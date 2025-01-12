@@ -32,45 +32,85 @@ div.leaflet-container {
   margin-bottom: 10px;
 }
 
-/* === Search bar styling === */
-.search-bar-container {
+
+.map-search-bar-container {
   position: absolute;
   top: 50px;
   left: 50%;
   transform: translateX(-50%);
-  width: 50%;
-  max-width: 600px;
+  width: 60%;
+  max-width: 700px;
   z-index: 1000;
   display: flex;
   gap: 10px;
+  border-radius: 50px;
+  background-color: white;
+  padding: 5px;
+  border: none; 
+  box-shadow: none; 
 }
 
-.search-bar {
-  padding: 10px;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  width: calc(100% - 90px);
-  font-size: 16px;
+
+.map-search-bar,
+input[type="text"] {
+  flex: 1;
+  padding: 12px 20px;
+  border: none; 
+  border-radius: 50px;
+  font-size: 14px;
+  outline: none;
+  box-shadow: none;
+  transition: transform 0.2s ease;
 }
 
-.search-button {
-  padding: 10px 15px;
+
+.map-search-bar:focus,
+input[type="text"]:focus {
   border: none;
-  border-radius: 5px;
-  background-color: #007bff;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1); 
+  transform: scale(1.02);
+}
+
+
+.map-search-button,
+button[type="submit"] {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 50px;
+  background: linear-gradient(135deg, #28a745, #218838);
   color: white;
   font-size: 16px;
+  font-weight: bold;
   cursor: pointer;
+  box-shadow: none; 
+  transition: all 0.3s ease;
 }
 
-.search-button:hover {
-  background-color: #0056b3;
+.map-search-button:hover,
+button[type="submit"]:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: scale(1.1);
 }
 
-.search-bar::placeholder {
+.map-search-bar::placeholder {
   color: #888;
+  font-style: italic;
 }
 
+/* התאמות למובייל */
+@media (max-width: 768px) {
+  .map-search-bar-container {
+      width: 85%;
+  }
+
+  .map-search-bar {
+      font-size: 16px;
+  }
+
+  .map-search-button {
+      font-size: 16px;
+  }
+}
 /* === Home button styling === */
 .home-button-container {
   position: absolute;
