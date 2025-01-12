@@ -5,9 +5,8 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
 import "../map.css";
-import WazeLogo from "../assets/WAZE.jpg"; // Import the Waze logo
+import WazeLogo from "../assets/WAZE.jpg"; 
 
-// Default Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -16,7 +15,7 @@ L.Icon.Default.mergeOptions({
 });
 
 const MapPage = () => {
-  const [location, setLocation] = useState([32.0853, 34.7818]); // Default Tel Aviv
+  const [location, setLocation] = useState([32.0853, 34.7818]); 
   const [zoom, setZoom] = useState(13);
   const [searchQuery, setSearchQuery] = useState("");
   const [stations, setStations] = useState([]);
@@ -47,6 +46,17 @@ const MapPage = () => {
     fetchStations();
   }, [backendUrl]);
 
+  // ביצוע חיפוש אוטומטי בעת ההקלדה עם עיכוב (debounce)
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      if (searchQuery.trim() !== "") {
+        handleSearch();
+      }
+    }, 500); // מבצע חיפוש רק לאחר 500ms של חוסר הקלדה
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchQuery]); // מאזין לשינויים בשורת החיפוש בלבד
+
   const handleSearch = () => {
     const foundStation = stations.find(
       (station) =>
@@ -60,8 +70,6 @@ const MapPage = () => {
       if (mapRef.current) {
         mapRef.current.setView([foundStation.Latitude, foundStation.Longitude], 15);
       }
-    } else {
-      alert("No station found matching your search.");
     }
   };
 
@@ -85,7 +93,7 @@ const MapPage = () => {
       </div>
 
       {/* Search Bar */}
-      <div className="search-bar-container">
+      <div className="map-search-bar-container">
         <input
           type="text"
           placeholder="Search city, address, or station name..."
@@ -93,13 +101,10 @@ const MapPage = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-bar"
         />
-        <button onClick={handleSearch} className="search-button">
-          Search
-        </button>
       </div>
 
       {/* Map */}
-      <div style={{ width: "100%", height: "100vh" }}>
+      <div style={{ width: "100%", height: "100vh", position: "relative", zIndex: "1" }}>
         <MapContainer
           center={location}
           zoom={zoom}
@@ -109,7 +114,7 @@ const MapPage = () => {
         >
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution='&copy; OpenStreetMap contributors'
+            attribution="&copy; OpenStreetMap contributors"
           />
 
           {stations.map((station) => (
@@ -123,12 +128,7 @@ const MapPage = () => {
               }}
             >
               {hoveredStationId === station._id && (
-                <Tooltip
-                  direction="top"
-                  offset={[0, -30]}
-                  permanent
-                  interactive
-                >
+                <Tooltip direction="top" offset={[0, -30]} permanent interactive>
                   <div style={{ textAlign: "center" }}>
                     <strong>{station["Station Name"]}</strong>
                     <br />
@@ -139,7 +139,6 @@ const MapPage = () => {
                       href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -151,11 +150,7 @@ const MapPage = () => {
                       }}
                     >
                       <span>Navigate with Waze</span>
-                      <img
-                        src={WazeLogo}
-                        alt="Navigate with Waze"
-                        style={{ width: "24px", height: "24px" }}
-                      />
+                      <img src={WazeLogo} alt="Navigate with Waze" style={{ width: "24px", height: "24px" }} />
                     </a>
                   </div>
                 </Tooltip>
