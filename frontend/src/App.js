@@ -4,7 +4,6 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Dashboard from './Dashboard';
 import Home from './pages/Home';
 import MapPage from './pages/MapPage';
 import Favorites from './pages/Favorites';
@@ -27,15 +26,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
 
-          {/* נתיבים מוגנים */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <Dashboard />
-              </ProtectedRoute>
-            }
-          />
+
           <Route
             path="/home"
             element={
