@@ -140,17 +140,24 @@ const Home = () => {
                         <iframe
                             title={`Street View of ${station['Station Name']}`}
                             className="station-image-small"
-                            width="250"
-                            height="150"
-                            style={{ borderRadius: '10px', border: 'none', marginLeft: 'auto' }}
+                            style={{ 
+                                borderRadius: '10px', 
+                                border: 'none', 
+                                marginLeft: 'auto',
+                                width: '100%',         // המפה תתפוס את כל הרוחב
+                                maxWidth: '400px',     // גבול רוחב מקסימלי
+                                height: '180px'        // גובה מוגדר אך דינמי
+                            }}
                             src={`https://www.google.com/maps/embed/v1/streetview?location=${station.Latitude},${station.Longitude}&key=${GOOGLE_MAPS_API_KEY}&language=en&region=US`}
                             allowFullScreen
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
                             onError={(e) => {
-                                e.target.src = 'https://placehold.co/250x150?text=No+Image';
+                                console.error('Error loading street view:', e);
+                                e.target.src = 'https://placehold.co/400x250?text=No+Image';
                             }}
                         ></iframe>
+
 
                     </div>
                 ))}
