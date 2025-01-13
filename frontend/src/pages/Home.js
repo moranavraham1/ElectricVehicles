@@ -19,6 +19,10 @@ const Home = () => {
     useEffect(() => {
         fetchUserLocation();
         fetchStations();
+
+        // Load favorites from localStorage
+        const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        setFavorites(savedFavorites.map((station) => station['Station Name']));
     }, []);
 
     const fetchUserLocation = () => {
@@ -43,12 +47,10 @@ const Home = () => {
                 `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`
             );
             const { address } = response.data;
-    
-            // שליפת נתונים רלוונטיים עם בדיקות
+
             const road = address.road || 'Address not available';
             const city = address.city || address.town || address.village || 'City not available';
-    
-            // עדכון הכתובת המלאה
+
             const formattedLocation = `${road}, ${city}`;
             setUserLocation(formattedLocation.trim());
         } catch (error) {
@@ -58,12 +60,11 @@ const Home = () => {
             setLoadingLocation(false);
         }
     };
-    
+
     const fetchStations = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/stations');
             setStations(response.data);
-            setFavorites(Array(response.data.length).fill(false));
         } catch (error) {
             console.error('Error fetching stations:', error);
         }
@@ -81,6 +82,28 @@ const Home = () => {
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return parseFloat((R * c).toFixed(2));
+    };
+
+    const toggleFavorite = (stationName) => {
+        setFavorites((prevFavorites) => {
+            let updatedFavorites = [...prevFavorites];
+
+            if (updatedFavorites.includes(stationName)) {
+                // Remove from favorites
+                updatedFavorites = updatedFavorites.filter((name) => name !== stationName);
+            } else {
+                // Add to favorites
+                updatedFavorites.push(stationName);
+            }
+
+            // Update localStorage
+            const favoriteStations = stations.filter((station) =>
+                updatedFavorites.includes(station['Station Name'])
+            );
+            localStorage.setItem('favorites', JSON.stringify(favoriteStations));
+
+            return updatedFavorites;
+        });
     };
 
     const filteredStations = stations.filter((station) =>
@@ -142,6 +165,13 @@ const Home = () => {
                             </div>
                         </div>
 
+                        <div 
+                            className={`heart-icon ${favorites.includes(station['Station Name']) ? 'active' : ''}`}
+                            onClick={() => toggleFavorite(station['Station Name'])}
+                        >
+                            <i className={`fa-${favorites.includes(station['Station Name']) ? 'solid' : 'regular'} fa-heart`}></i>
+                        </div>
+
                         <iframe
                             title={`Street View of ${station['Station Name']}`}
                             className="station-image-small"
@@ -166,7 +196,6 @@ const Home = () => {
                 ))}
             </div>
 
-            {/* תפריט תחתון */}
             <div className="bottom-bar">
                 <Link to="/logout" className="bottom-bar-button logout">
                     <i className="fas fa-sign-out-alt"></i> Logout
