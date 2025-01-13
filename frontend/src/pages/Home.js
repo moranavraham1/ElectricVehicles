@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import '../Home.css';
 import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
 
-// טעינת מפתח Google Maps API מהמפתח שהוגדר בקובץ .env
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const Home = () => {
@@ -43,15 +43,22 @@ const Home = () => {
                 `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`
             );
             const { address } = response.data;
-            const formattedLocation = `${address.road || 'Address not available'}, ${address.city || 'City not available'}`;
+    
+            // שליפת נתונים רלוונטיים עם בדיקות
+            const road = address.road || 'Address not available';
+            const city = address.city || address.town || address.village || 'City not available';
+    
+            // עדכון הכתובת המלאה
+            const formattedLocation = `${road}, ${city}`;
             setUserLocation(formattedLocation.trim());
         } catch (error) {
             console.error('Error:', error);
+            setUserLocation('Location not available');
         } finally {
             setLoadingLocation(false);
         }
     };
-
+    
     const fetchStations = async () => {
         try {
             const response = await axios.get('http://localhost:3001/api/stations');
@@ -63,8 +70,8 @@ const Home = () => {
     };
 
     const calculateDistance = (lat1, lon1, lat2, lon2) => {
-        if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity; // שימוש באינסוף כדי לא לשבש מיון
-        const R = 6371; // רדיוס כדור הארץ בק"מ
+        if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+        const R = 6371;
         const dLat = (lat2 - lat1) * (Math.PI / 180);
         const dLon = (lon2 - lon1) * (Math.PI / 180);
         const a =
@@ -82,7 +89,6 @@ const Home = () => {
         station.Address.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // מיון לפי מרחק מהמשתמש
     const sortedStations = [...filteredStations].sort((a, b) => {
         const distanceA = calculateDistance(latitude, longitude, a.Latitude, a.Longitude);
         const distanceB = calculateDistance(latitude, longitude, b.Latitude, b.Longitude);
@@ -136,7 +142,6 @@ const Home = () => {
                             </div>
                         </div>
 
-                        {/* Google Maps Street View Interactive */}
                         <iframe
                             title={`Street View of ${station['Station Name']}`}
                             className="station-image-small"
@@ -144,9 +149,9 @@ const Home = () => {
                                 borderRadius: '10px', 
                                 border: 'none', 
                                 marginLeft: 'auto',
-                                width: '100%',         // המפה תתפוס את כל הרוחב
-                                maxWidth: '400px',     // גבול רוחב מקסימלי
-                                height: '180px'        // גובה מוגדר אך דינמי
+                                width: '100%',
+                                maxWidth: '400px',
+                                height: '180px'
                             }}
                             src={`https://www.google.com/maps/embed/v1/streetview?location=${station.Latitude},${station.Longitude}&key=${GOOGLE_MAPS_API_KEY}&language=en&region=US`}
                             allowFullScreen
@@ -157,10 +162,27 @@ const Home = () => {
                                 e.target.src = 'https://placehold.co/400x250?text=No+Image';
                             }}
                         ></iframe>
-
-
                     </div>
                 ))}
+            </div>
+
+            {/* תפריט תחתון */}
+            <div className="bottom-bar">
+                <Link to="/logout" className="bottom-bar-button logout">
+                    <i className="fas fa-sign-out-alt"></i> Logout
+                </Link>
+                <Link to="/home" className="bottom-bar-button home">
+                    <i className="fas fa-home"></i> Home
+                </Link>
+                <Link to="/favorites" className="bottom-bar-button favorites">
+                    <i className="fas fa-heart"></i> Favorites
+                </Link>
+                <Link to="/personal-area" className="bottom-bar-button personal">
+                    <i className="fas fa-user"></i> Personal Area
+                </Link>
+                <Link to="/map" className="bottom-bar-button map">
+                    <i className="fas fa-map-marked-alt"></i> Search on Map
+                </Link>
             </div>
         </div>
     );
