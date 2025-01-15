@@ -51,8 +51,8 @@ body, .home-container {
 
 .home-search-bar-container {
   margin-top: 10vh;
-  width: 100vw !important; /* תופס 100% מרוחב המסך */
-  max-width: 100vw !important; /* גם במסכים גדולים */
+  width: 100vw !important; 
+  max-width: 100vw !important; 
   padding: 0 20px;
   display: flex;
   justify-content: center;
@@ -63,35 +63,31 @@ body, .home-container {
   background: white;
   border: 2px solid #4caf50;
   box-sizing: border-box;
-  flex-wrap: nowrap; /* מונע שבירת שורה */
+  flex-wrap: nowrap; 
   overflow: hidden;
   position: relative;
 }
 
 
-/* סגנון השדה עצמו - ימלא את כל הרוחב */
 .home-search-input, 
 input[type="text"] {
-    flex: 1 1 100% !important; /* תופס 100% מהרוחב */
+    flex: 1 1 100% !important;
     padding: 18px 25px;
     border: none;
     border-radius: 50px;
     font-size: 20px;
     outline: none;
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
-    width: 60vw !important; /* תופס את כל המסך */
+    width: 60vw !important; 
     box-sizing: border-box;
     min-width: 0;
 }
 
-/* כאשר מתמקדים בשדה */
 .home-search-input:focus {
   border: 2px solid #1b5e20;
   box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.3);
   transform: scale(1.02);
 }
-
-
 
 
 .station-list {
@@ -109,7 +105,7 @@ input[type="text"] {
   box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
   display: flex;
-  justify-content: space-between; /* הפרדה בין תוכן לתמונה */
+  justify-content: space-between; 
   align-items: center;
   border-left: 5px solid #4caf50;
   transition: transform 0.2s ease-in-out;
@@ -118,20 +114,20 @@ input[type="text"] {
 }
 
 .station-details {
-  flex: 1; /* הפרטים תופסים את רוב הרוחב */
+  flex: 1; 
   padding-right: 10px;
 }
 
 .station-image-small {
-  width: 170px; /* תמונה קטנה יותר */
+  width: 170px; 
   height: 150px;
   border-radius: 10px;
   object-fit: cover;
   border: 1px solid #ddd;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease-in-out;
-  margin-left: 10px; 
-  margin-right: 100px;
+  margin-left: 1px;
+  margin-right: 110px; 
 
 }
 
@@ -156,17 +152,19 @@ input[type="text"] {
 .distance-badge {
   background: #1b5e20;
   color: white;
-  padding: 8px 12px;
-  border-radius: 20px;
-  font-size: 14px;
+  padding: 4px 8px; /* גודל קטן יותר */
+  border-radius: 15px; /* שמירה על צורה עגולה יותר */
+  font-size: 12px; /* גודל פונט קטן יותר */
   font-weight: bold;
   position: absolute;
   top: 10px;
   right: 10px;
-  min-width: 60px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  min-width: 50px; /* גודל מינימלי אחיד */
+  text-align: center; /* ממרכז את התוכן */
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   z-index: 10;
 }
+
 
 .waze-container {
   margin-top: 10px;
@@ -290,4 +288,28 @@ input[type="text"] {
 
 .station-list {
   max-height: calc(100vh - 35vh);
+}
+.suggestions-list {
+  position: absolute;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  width: 80%;
+  margin: 0 auto;
+  left: 10%; 
+  margin-top: 5px;
+  z-index: 1000;
+  max-height: 150px; 
+  overflow-y: auto;
+  font-size: 14px;
+}
+
+.suggestion-item {
+  padding: 6px 8px; 
+  cursor: pointer;
+}
+
+.suggestion-item:hover {
+  background-color: #f7f7f7; 
+  color: #333; 
 }
