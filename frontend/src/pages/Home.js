@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../Home.css';
 import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
@@ -16,11 +16,22 @@ const Home = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [favorites, setFavorites] = useState([]);
 
+    const navigate = useNavigate();
+
+    // ✅ התנתקות מתוקנת
+    const handleLogout = () => {
+        try {
+            localStorage.clear();
+            alert('You have been logged out successfully!');
+            navigate('/login'); // חזרה למסך ההתחברות
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    };
+
     useEffect(() => {
         fetchUserLocation();
         fetchStations();
-
-        // Load favorites from localStorage
         const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
         setFavorites(savedFavorites.map((station) => station['Station Name']));
     }, []);
@@ -47,12 +58,9 @@ const Home = () => {
                 `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`
             );
             const { address } = response.data;
-
             const road = address.road || 'Address not available';
             const city = address.city || address.town || address.village || 'City not available';
-
-            const formattedLocation = `${road}, ${city}`;
-            setUserLocation(formattedLocation.trim());
+            setUserLocation(`${road}, ${city}`);
         } catch (error) {
             console.error('Error:', error);
             setUserLocation('Location not available');
@@ -87,21 +95,12 @@ const Home = () => {
     const toggleFavorite = (stationName) => {
         setFavorites((prevFavorites) => {
             let updatedFavorites = [...prevFavorites];
-
             if (updatedFavorites.includes(stationName)) {
-                // Remove from favorites
                 updatedFavorites = updatedFavorites.filter((name) => name !== stationName);
             } else {
-                // Add to favorites
                 updatedFavorites.push(stationName);
             }
-
-            // Update localStorage
-            const favoriteStations = stations.filter((station) =>
-                updatedFavorites.includes(station['Station Name'])
-            );
-            localStorage.setItem('favorites', JSON.stringify(favoriteStations));
-
+            localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
             return updatedFavorites;
         });
     };
@@ -165,19 +164,13 @@ const Home = () => {
                             </div>
                         </div>
 
-                        <div 
-                            className={`heart-icon ${favorites.includes(station['Station Name']) ? 'active' : ''}`}
-                            onClick={() => toggleFavorite(station['Station Name'])}
-                        >
-                            <i className={`fa-${favorites.includes(station['Station Name']) ? 'solid' : 'regular'} fa-heart`}></i>
-                        </div>
-
+                        {/* ✅ החזרת Google Street View */}
                         <iframe
                             title={`Street View of ${station['Station Name']}`}
                             className="station-image-small"
-                            style={{ 
-                                borderRadius: '10px', 
-                                border: 'none', 
+                            style={{
+                                borderRadius: '10px',
+                                border: 'none',
                                 marginLeft: 'auto',
                                 width: '100%',
                                 maxWidth: '400px',
@@ -187,19 +180,16 @@ const Home = () => {
                             allowFullScreen
                             loading="lazy"
                             referrerPolicy="no-referrer-when-downgrade"
-                            onError={(e) => {
-                                console.error('Error loading street view:', e);
-                                e.target.src = 'https://placehold.co/400x250?text=No+Image';
-                            }}
                         ></iframe>
                     </div>
                 ))}
             </div>
 
+            {/* ✅ עדכון כפתור התנתקות */}
             <div className="bottom-bar">
-                <Link to="/logout" className="bottom-bar-button logout">
+                <button className="bottom-bar-button logout" onClick={handleLogout}>
                     <i className="fas fa-sign-out-alt"></i> Logout
-                </Link>
+                </button>
                 <Link to="/home" className="bottom-bar-button home">
                     <i className="fas fa-home"></i> Home
                 </Link>
