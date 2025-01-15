@@ -10,7 +10,8 @@ import Favorites from './pages/Favorites';
 import PersonalArea from './pages/PersonalArea';
 import VerifyCode from './pages/VerifyCode';
 import ResetPassword from './pages/ResetPassword';
-import ProtectedRoute from './components/ProtectedRoute'; // ייבוא ProtectedRoute
+import ProtectedRoute from './components/ProtectedRoute'; 
+import Logout from './pages/Logout'; 
 import './index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
@@ -19,10 +20,11 @@ function App() {
     <Router>
       <div className="App">
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar />
+        
         <Routes>
-          {/* נתיבים ציבוריים */}
+         
           <Route path="/verify-email" element={<VerifyCode />} />
-          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} /> {/* ✅ תיקון הוספת נתיב התחברות */}
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
 
@@ -59,6 +61,11 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/logout" element={<Logout />} />
+          
+
+          <Route path="*" element={<Login />} />
         </Routes>
       </div>
     </Router>

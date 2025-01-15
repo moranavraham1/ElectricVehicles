@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../Home.css';
 import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
@@ -19,12 +19,34 @@ const Home = () => {
   const [suggestions, setSuggestions] = useState([]);
   const suggestionsRef = useRef(null);
 
+<<<<<<< HEAD
   useEffect(() => {
     fetchUserLocation();
     fetchStations();
 
     const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
     setFavorites(savedFavorites.map((station) => station['Station Name']));
+=======
+    const navigate = useNavigate();
+
+    // ✅ התנתקות מתוקנת
+    const handleLogout = () => {
+        try {
+            localStorage.clear();
+            alert('You have been logged out successfully!');
+            navigate('/login'); // חזרה למסך ההתחברות
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    };
+
+    useEffect(() => {
+        fetchUserLocation();
+        fetchStations();
+        const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        setFavorites(savedFavorites.map((station) => station['Station Name']));
+    }, []);
+>>>>>>> 2313b18727667909532b5c29de563f290cdc2a0c
 
     const handleClickOutside = (event) => {
       if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
@@ -32,6 +54,7 @@ const Home = () => {
       }
     };
 
+<<<<<<< HEAD
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
@@ -62,6 +85,65 @@ const Home = () => {
         console.error('Error fetching location:', error);
         setLoadingLocation(false);
       }
+=======
+    const reverseGeocode = async (lat, lon) => {
+        try {
+            const response = await axios.get(
+                `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&accept-language=en`
+            );
+            const { address } = response.data;
+            const road = address.road || 'Address not available';
+            const city = address.city || address.town || address.village || 'City not available';
+            setUserLocation(`${road}, ${city}`);
+        } catch (error) {
+            console.error('Error:', error);
+            setUserLocation('Location not available');
+        } finally {
+            setLoadingLocation(false);
+        }
+    };
+
+    const fetchStations = async () => {
+        try {
+            const response = await axios.get('http://localhost:3001/api/stations');
+            setStations(response.data);
+        } catch (error) {
+            console.error('Error fetching stations:', error);
+        }
+    };
+
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+        const R = 6371;
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) *
+            Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return parseFloat((R * c).toFixed(2));
+    };
+
+    const toggleFavorite = (stationName) => {
+        setFavorites((prevFavorites) => {
+            let updatedFavorites = [...prevFavorites];
+            if (updatedFavorites.includes(stationName)) {
+                updatedFavorites = updatedFavorites.filter((name) => name !== stationName);
+            } else {
+                updatedFavorites.push(stationName);
+            }
+            localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+            return updatedFavorites;
+        });
+    };
+
+    const filteredStations = stations.filter((station) =>
+        station['Station Name'].toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station.City.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        station.Address.toLowerCase().includes(searchQuery.toLowerCase())
+>>>>>>> 2313b18727667909532b5c29de563f290cdc2a0c
     );
   };
 
@@ -255,6 +337,7 @@ const Home = () => {
         ))}
       </div>
 
+<<<<<<< HEAD
       <div className="bottom-bar">
         <Link to="/logout" className="bottom-bar-button logout">
           <i className="fas fa-sign-out-alt"></i> Logout
@@ -274,6 +357,66 @@ const Home = () => {
       </div>
     </div>
   );
+=======
+                        <div className="station-details">
+                            <h3>{station['Station Name']}</h3>
+                            <p><strong>Address:</strong> {station.Address}</p>
+                            <p><strong>City:</strong> {station.City}</p>
+                            <p><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
+                            <div className="waze-container">
+                                <a
+                                    href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="waze-button"
+                                >
+                                    <img src={wazeIcon} alt="Waze" />
+                                </a>
+                            </div>
+                        </div>
+
+                        {/* ✅ החזרת Google Street View */}
+                        <iframe
+                            title={`Street View of ${station['Station Name']}`}
+                            className="station-image-small"
+                            style={{
+                                borderRadius: '10px',
+                                border: 'none',
+                                marginLeft: 'auto',
+                                width: '100%',
+                                maxWidth: '400px',
+                                height: '180px'
+                            }}
+                            src={`https://www.google.com/maps/embed/v1/streetview?location=${station.Latitude},${station.Longitude}&key=${GOOGLE_MAPS_API_KEY}&language=en&region=US`}
+                            allowFullScreen
+                            loading="lazy"
+                            referrerPolicy="no-referrer-when-downgrade"
+                        ></iframe>
+                    </div>
+                ))}
+            </div>
+
+            {/* ✅ עדכון כפתור התנתקות */}
+            <div className="bottom-bar">
+                <button className="bottom-bar-button logout" onClick={handleLogout}>
+                    <i className="fas fa-sign-out-alt"></i> Logout
+                </button>
+                <Link to="/home" className="bottom-bar-button home">
+                    <i className="fas fa-home"></i> Home
+                </Link>
+                <Link to="/favorites" className="bottom-bar-button favorites">
+                    <i className="fas fa-heart"></i> Favorites
+                </Link>
+                <Link to="/personal-area" className="bottom-bar-button personal">
+                    <i className="fas fa-user"></i> Personal Area
+                </Link>
+                <Link to="/map" className="bottom-bar-button map">
+                    <i className="fas fa-map-marked-alt"></i> Search on Map
+                </Link>
+            </div>
+        </div>
+    );
+>>>>>>> 2313b18727667909532b5c29de563f290cdc2a0c
 };
 
 export default Home;
