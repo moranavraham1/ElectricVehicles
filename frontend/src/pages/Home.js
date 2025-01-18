@@ -30,37 +30,30 @@ const Home = () => {
     }
   };
 
+  // שלב ראשון: חישוב מיקום המשתמש
   useEffect(() => {
     fetchUserLocation();
-    fetchStations();
-
-    const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
-    setFavorites(savedFavorites.map((station) => station['Station Name']));
-
-    const handleClickOutside = (event) => {
-      if (suggestionsRef.current && !suggestionsRef.current.contains(event.target)) {
-        setSuggestions([]);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // שלב שני: לאחר המיקום, טוענים את התחנות
   useEffect(() => {
-    const loggedInUser = localStorage.getItem('loggedInUser'); // קבלת המייל של המשתמש המחובר
+    if (latitude && longitude) {
+      fetchStations();
+    }
+  }, [latitude, longitude]);
+
+  useEffect(() => {
+    const loggedInUser = localStorage.getItem('loggedInUser'); // קבלת המשתמש המחובר
     if (!loggedInUser) {
       alert('User not logged in!');
-      navigate('/login'); // חזרה לדף ההתחברות
+      navigate('/login');
     }
-    fetchUserLocation();
-    fetchStations();
-  
     const favoriteKey = `favorites_${loggedInUser}`;
     const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
     setFavorites(savedFavorites.map((station) => station['Station Name']));
-  }, []);
-  
+  }, [navigate]);
 
+  // מיון וסינון התחנות
   useEffect(() => {
     if (searchQuery) {
       const filtered = stations.filter(
@@ -110,8 +103,15 @@ const Home = () => {
   const fetchStations = async () => {
     try {
       const response = await axios.get('http://localhost:3001/api/stations');
-      setStations(response.data);
-      setFilteredStations(response.data);
+      const stationsWithDistance = response.data.map((station) => ({
+        ...station,
+        distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
+      }));
+
+      // מיון התחנות לפי מרחק בסדר עולה
+      const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
+      setStations(sortedStations);
+      setFilteredStations(sortedStations); // גם התחנות המסוננות צריכות להיות ממוינות
     } catch (error) {
       console.error('Error fetching stations:', error);
     }
@@ -261,14 +261,14 @@ const Home = () => {
             </div>
 
             <div
-              className={`heart-icon ${favorites.includes(station['Station Name']) ? 'active' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation(); // עצירת התרחשות קליק על הכרטיס
-                toggleFavorite(station); // מעדכן את המועדפים
-              }}
-            >
-              <i className={`fa-${favorites.includes(station['Station Name']) ? 'solid' : 'regular'} fa-heart`}></i>
-            </div>
+            className={`heart-icon ${favorites.includes(station['Station Name']) ? 'active' : ''}`}
+            onClick={(e) => {
+              e.stopPropagation(); // עצירת התרחשות קליק על הכרטיס
+              toggleFavorite(station); // מעדכן את המועדפים
+            }}
+          >
+            <i className={`fa-${favorites.includes(station['Station Name']) ? 'solid' : 'regular'} fa-heart`}></i>
+          </div>
 
             <iframe
               title={`Street View of ${station['Station Name']}`}
