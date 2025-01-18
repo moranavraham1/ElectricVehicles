@@ -46,6 +46,20 @@ const Home = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+  useEffect(() => {
+    const loggedInUser = localStorage.getItem('loggedInUser'); // קבלת המייל של המשתמש המחובר
+    if (!loggedInUser) {
+      alert('User not logged in!');
+      navigate('/login'); // חזרה לדף ההתחברות
+    }
+    fetchUserLocation();
+    fetchStations();
+  
+    const favoriteKey = `favorites_${loggedInUser}`;
+    const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
+    setFavorites(savedFavorites.map((station) => station['Station Name']));
+  }, []);
+  
 
   useEffect(() => {
     if (searchQuery) {
@@ -145,25 +159,42 @@ const Home = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return parseFloat((R * c).toFixed(2));
   };
+  const toggleFavorite = (station) => {
+    const loggedInUser = localStorage.getItem('loggedInUser');
+    if (!loggedInUser) {
+        alert('Please log in to manage favorites!');
+        return;
+    }
 
-  const toggleFavorite = (stationName) => {
-    setFavorites((prevFavorites) => {
-      let updatedFavorites = [...prevFavorites];
+    const favoriteKey = `favorites_${loggedInUser}`;
+    const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
 
-      if (updatedFavorites.includes(stationName)) {
-        updatedFavorites = updatedFavorites.filter((name) => name !== stationName);
-      } else {
-        updatedFavorites.push(stationName);
-      }
+    const isFavorite = savedFavorites.some((fav) => fav['Station Name'] === station['Station Name']);
+    let updatedFavorites;
 
-      const favoriteStations = stations.filter((station) =>
-        updatedFavorites.includes(station['Station Name'])
-      );
-      localStorage.setItem('favorites', JSON.stringify(favoriteStations));
+    if (isFavorite) {
+        // Remove from favorites
+        updatedFavorites = savedFavorites.filter((fav) => fav['Station Name'] !== station['Station Name']);
+    } else {
+        // Add to favorites
+        updatedFavorites = [...savedFavorites, station];
+    }
 
-      return updatedFavorites;
-    });
-  };
+    localStorage.setItem(favoriteKey, JSON.stringify(updatedFavorites));
+    setFavorites(updatedFavorites.map((fav) => fav['Station Name']));
+};
+
+
+  
+  useEffect(() => {
+    const loggedInUser = localStorage.getItem('loggedInUser'); // המשתמש המחובר
+    if (loggedInUser) {
+      const favoriteKey = `favorites_${loggedInUser}`; // מפתח המועדפים הייחודי
+      const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
+      setFavorites(savedFavorites.map((station) => station['Station Name']));
+    }
+  }, []);
+  
 
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
@@ -232,8 +263,8 @@ const Home = () => {
             <div
               className={`heart-icon ${favorites.includes(station['Station Name']) ? 'active' : ''}`}
               onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(station['Station Name']);
+                e.stopPropagation(); // עצירת התרחשות קליק על הכרטיס
+                toggleFavorite(station); // מעדכן את המועדפים
               }}
             >
               <i className={`fa-${favorites.includes(station['Station Name']) ? 'solid' : 'regular'} fa-heart`}></i>

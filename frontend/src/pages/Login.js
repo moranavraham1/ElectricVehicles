@@ -33,29 +33,31 @@ function Login() {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     if (!validateForm()) return;
-
+  
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'An error occurred. Please try again.');
       }
-
+  
       const data = await response.json();
       localStorage.setItem('token', data.token);
+      localStorage.setItem('loggedInUser', email); // שמירת המייל של המשתמש המחובר
       toast.success('Login successful!');
       navigate('/home');
     } catch (error) {
       toast.error(error.message);
     }
   };
+  
 
   // Handle forgot password submission
   const handleForgotPassword = async () => {
