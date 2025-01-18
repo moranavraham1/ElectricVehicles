@@ -272,19 +272,16 @@ input[type="text"] {
 }
 
 .heart-icon {
-  position: absolute;
-  top: 10px;
-  right: 90px;
-  font-size: 24px;
-  color: #ccc;
+  color: gray; /* לב שאינו פעיל */
   cursor: pointer;
-  transition: color 0.3s ease;
-  z-index: 10;
+  font-size: 1.5rem;
+  transition: color 0.2s;
 }
 
 .heart-icon.active {
-  color: red;
+  color: red; /* לב פעיל */
 }
+
 
 .station-list {
   max-height: calc(100vh - 35vh);

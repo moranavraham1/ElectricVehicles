@@ -6,17 +6,26 @@ const Favorites = () => {
     const [favoriteStations, setFavoriteStations] = useState([]);
 
     useEffect(() => {
-        const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
+        const loggedInUser = localStorage.getItem('loggedInUser'); // קבלת המשתמש המחובר
+        if (!loggedInUser) {
+            alert('Please log in to view favorites!');
+            return;
+        }
+
+        const favoriteKey = `favorites_${loggedInUser}`;
+        const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
         setFavoriteStations(savedFavorites);
     }, []);
 
     // פונקציה להסרת תחנה מהמועדפים
     const removeFromFavorites = (stationName) => {
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        const favoriteKey = `favorites_${loggedInUser}`;
         const updatedFavorites = favoriteStations.filter(
             (station) => station['Station Name'] !== stationName
         );
         setFavoriteStations(updatedFavorites);
-        localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+        localStorage.setItem(favoriteKey, JSON.stringify(updatedFavorites));
     };
 
     return (
@@ -34,9 +43,9 @@ const Favorites = () => {
                 favoriteStations.map((station, index) => (
                     <div key={index} className="station-card">
                         <h3>{station['Station Name']}</h3>
-                        <p><strong>Address:</strong> {station.Address}</p>
-                        <p><strong>City:</strong> {station.City}</p>
-                        <p><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
+                        <p><strong>Address:</strong> {station.Address || 'N/A'}</p>
+                        <p><strong>City:</strong> {station.City || 'N/A'}</p>
+                        <p><strong>Charging Stations:</strong> {station['Duplicate Count'] || 'N/A'}</p>
                         {/* כפתור הסרה */}
                         <button
                             className="remove-button"
