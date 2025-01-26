@@ -9,6 +9,7 @@ const authMiddleware = require('./authMiddleware'); // middleware לאימות
 const app = express();
 const router = express.Router();
 
+
 app.use(express.json());
 app.use(cors({
   origin: process.env.FRONTEND_URL,

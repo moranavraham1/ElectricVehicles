@@ -6,28 +6,72 @@ const Favorites = () => {
     const [favoriteStations, setFavoriteStations] = useState([]);
 
     useEffect(() => {
-        const loggedInUser = localStorage.getItem('loggedInUser'); // קבלת המשתמש המחובר
-        if (!loggedInUser) {
-            alert('Please log in to view favorites!');
+        const fetchFavorites = async () => {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            const token = localStorage.getItem('token');
+          
+            if (!loggedInUser || !token) {
+                alert('Please log in to view favorites!');
+                return;
+            }
+          
+            try {
+                const response = await fetch('http://localhost:3001/api/stations', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+          
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to fetch favorites.');
+                }
+          
+                const stations = await response.json();
+                // סינון התחנות שמכילות את המייל של המשתמש המחובר בשדה likedBy
+                const favoriteStations = stations.filter((station) =>
+                    station.likedBy.includes(loggedInUser.toLowerCase())
+                );
+                setFavoriteStations(favoriteStations);
+            } catch (error) {
+                console.error('Error fetching favorites:', error.message);
+            }
+        };
+          
+        fetchFavorites();
+    }, []);
+    
+    const removeFromFavorites = async (station) => {
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        const token = localStorage.getItem('token');
+    
+        if (!loggedInUser || !token) {
+            alert('Please log in to manage favorites!');
             return;
         }
-
-        const favoriteKey = `favorites_${loggedInUser}`;
-        const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
-        setFavoriteStations(savedFavorites);
-    }, []);
-
-    // פונקציה להסרת תחנה מהמועדפים
-    const removeFromFavorites = (stationName) => {
-        const loggedInUser = localStorage.getItem('loggedInUser');
-        const favoriteKey = `favorites_${loggedInUser}`;
-        const updatedFavorites = favoriteStations.filter(
-            (station) => station['Station Name'] !== stationName
-        );
-        setFavoriteStations(updatedFavorites);
-        localStorage.setItem(favoriteKey, JSON.stringify(updatedFavorites));
+    
+        try {
+            const response = await fetch(`http://localhost:3001/api/stations/${station._id}/unlike`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ email: loggedInUser.toLowerCase() }) // העברת המייל להסרה
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to remove from favorites.');
+            }
+    
+            // הסרת התחנה מהסטייט המקומי
+            setFavoriteStations((prevFavorites) =>
+                prevFavorites.filter((favStation) => favStation._id !== station._id)
+            );
+        } catch (error) {
+            console.error('Error removing favorite:', error);
+        }
     };
-
+    
     return (
         <div className="favorites-container">
             {/* סיכום המועדפים */}
@@ -49,7 +93,7 @@ const Favorites = () => {
                         {/* כפתור הסרה */}
                         <button
                             className="remove-button"
-                            onClick={() => removeFromFavorites(station['Station Name'])}
+                            onClick={() => removeFromFavorites(station)}
                         >
                             ❌ 
                         </button>

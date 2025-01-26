@@ -159,30 +159,51 @@ const Home = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return parseFloat((R * c).toFixed(2));
   };
-  const toggleFavorite = (station) => {
+  const toggleFavorite = async (station) => {
     const loggedInUser = localStorage.getItem('loggedInUser');
     if (!loggedInUser) {
         alert('Please log in to manage favorites!');
         return;
     }
 
-    const favoriteKey = `favorites_${loggedInUser}`;
-    const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
+    try {
+        const isFavorite = station.likedBy.includes(loggedInUser.toLowerCase());
+        if (isFavorite) {
+            // Remove from favorites
+            await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+                data: { user: loggedInUser.toLowerCase() },
+            });
 
-    const isFavorite = savedFavorites.some((fav) => fav['Station Name'] === station['Station Name']);
-    let updatedFavorites;
+            // עדכון רשימת המועדפים בתחנה
+            setStations((prevStations) =>
+                prevStations.map((s) =>
+                    s._id === station._id
+                        ? { ...s, likedBy: s.likedBy.filter((email) => email !== loggedInUser.toLowerCase()) }
+                        : s
+                )
+            );
+        } else {
+            // Add to favorites
+            await axios.post(`http://localhost:3001/api/stations/${station._id}/like`, 
+                { user: loggedInUser.toLowerCase() },
+                { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+            );
 
-    if (isFavorite) {
-        // Remove from favorites
-        updatedFavorites = savedFavorites.filter((fav) => fav['Station Name'] !== station['Station Name']);
-    } else {
-        // Add to favorites
-        updatedFavorites = [...savedFavorites, station];
+            // עדכון רשימת המועדפים בתחנה
+            setStations((prevStations) =>
+                prevStations.map((s) =>
+                    s._id === station._id
+                        ? { ...s, likedBy: [...s.likedBy, loggedInUser.toLowerCase()] }
+                        : s
+                )
+            );
+        }
+    } catch (error) {
+        console.error('Error updating favorites:', error);
     }
-
-    localStorage.setItem(favoriteKey, JSON.stringify(updatedFavorites));
-    setFavorites(updatedFavorites.map((fav) => fav['Station Name']));
 };
+
 
 
   
@@ -260,15 +281,18 @@ const Home = () => {
               </div>
             </div>
 
+            
             <div
-            className={`heart-icon ${favorites.includes(station['Station Name']) ? 'active' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation(); // עצירת התרחשות קליק על הכרטיס
-              toggleFavorite(station); // מעדכן את המועדפים
-            }}
-          >
-            <i className={`fa-${favorites.includes(station['Station Name']) ? 'solid' : 'regular'} fa-heart`}></i>
-          </div>
+    className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
+    onClick={(e) => {
+        e.stopPropagation(); // עצירת התרחשות קליק על הכרטיס
+        toggleFavorite(station); // עדכון המועדפים
+    }}
+>
+    <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
+</div>
+
+
 
             <iframe
               title={`Street View of ${station['Station Name']}`}
