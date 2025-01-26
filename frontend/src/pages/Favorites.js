@@ -6,19 +6,72 @@ const Favorites = () => {
     const [favoriteStations, setFavoriteStations] = useState([]);
 
     useEffect(() => {
-        const savedFavorites = JSON.parse(localStorage.getItem('favorites')) || [];
-        setFavoriteStations(savedFavorites);
+        const fetchFavorites = async () => {
+            const loggedInUser = localStorage.getItem('loggedInUser');
+            const token = localStorage.getItem('token');
+          
+            if (!loggedInUser || !token) {
+                alert('Please log in to view favorites!');
+                return;
+            }
+          
+            try {
+                const response = await fetch('http://localhost:3001/api/stations', {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+          
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.message || 'Failed to fetch favorites.');
+                }
+          
+                const stations = await response.json();
+                // סינון התחנות שמכילות את המייל של המשתמש המחובר בשדה likedBy
+                const favoriteStations = stations.filter((station) =>
+                    station.likedBy.includes(loggedInUser.toLowerCase())
+                );
+                setFavoriteStations(favoriteStations);
+            } catch (error) {
+                console.error('Error fetching favorites:', error.message);
+            }
+        };
+          
+        fetchFavorites();
     }, []);
-
-    // פונקציה להסרת תחנה מהמועדפים
-    const removeFromFavorites = (stationName) => {
-        const updatedFavorites = favoriteStations.filter(
-            (station) => station['Station Name'] !== stationName
-        );
-        setFavoriteStations(updatedFavorites);
-        localStorage.setItem('favorites', JSON.stringify(updatedFavorites));
+    
+    const removeFromFavorites = async (station) => {
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        const token = localStorage.getItem('token');
+    
+        if (!loggedInUser || !token) {
+            alert('Please log in to manage favorites!');
+            return;
+        }
+    
+        try {
+            const response = await fetch(`http://localhost:3001/api/stations/${station._id}/unlike`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ email: loggedInUser.toLowerCase() }) // העברת המייל להסרה
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || 'Failed to remove from favorites.');
+            }
+    
+            // הסרת התחנה מהסטייט המקומי
+            setFavoriteStations((prevFavorites) =>
+                prevFavorites.filter((favStation) => favStation._id !== station._id)
+            );
+        } catch (error) {
+            console.error('Error removing favorite:', error);
+        }
     };
-
+    
     return (
         <div className="favorites-container">
             {/* סיכום המועדפים */}
@@ -34,13 +87,13 @@ const Favorites = () => {
                 favoriteStations.map((station, index) => (
                     <div key={index} className="station-card">
                         <h3>{station['Station Name']}</h3>
-                        <p><strong>Address:</strong> {station.Address}</p>
-                        <p><strong>City:</strong> {station.City}</p>
-                        <p><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
+                        <p><strong>Address:</strong> {station.Address || 'N/A'}</p>
+                        <p><strong>City:</strong> {station.City || 'N/A'}</p>
+                        <p><strong>Charging Stations:</strong> {station['Duplicate Count'] || 'N/A'}</p>
                         {/* כפתור הסרה */}
                         <button
                             className="remove-button"
-                            onClick={() => removeFromFavorites(station['Station Name'])}
+                            onClick={() => removeFromFavorites(station)}
                         >
                             ❌ 
                         </button>

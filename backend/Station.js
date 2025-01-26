@@ -13,17 +13,17 @@ const stationSchema = new mongoose.Schema({
     required: true,
     default: 0,
     set: (value) => {
-      // בדיקה והמרה למספר שלם
       if (isNaN(value) || value === null || value === undefined) {
-        return 0; // ברירת מחדל במקרה של NaN
+        return 0;
       }
-      return Math.floor(value); // המרה למספר שלם
+      return Math.floor(value);
     },
     validate: {
       validator: (value) => Number.isInteger(value),
-      message: 'Duplicate Count must be an integer'
-    }
-  }
+      message: 'Duplicate Count must be an integer',
+    },
+  },
+  likedBy: { type: [String], default: [] }, // שדה למיילים של המשתמשים שאהבו
 });
 
 module.exports = mongoose.model('Station', stationSchema);

@@ -5,8 +5,9 @@ import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
 import "../map.css";
-import WazeLogo from "../assets/WAZE.jpg"; 
+import WazeLogo from "../assets/WAZE.jpg";
 
+// Configure Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -14,19 +15,43 @@ L.Icon.Default.mergeOptions({
   shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
 });
 
+const chargingIconGreen = L.divIcon({
+  className: "custom-charging-icon-green",
+  html: `<div style="width: 30px; height: 40px; background: #4CAF50; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0px 2px 6px rgba(0,0,0,0.3);"><div style="color: white; font-size: 16px; font-weight: bold;">⚡</div></div>`,
+  iconSize: [30, 40],
+  iconAnchor: [15, 40],
+  popupAnchor: [0, -30],
+});
+
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+  if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) *
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return parseFloat((R * c).toFixed(2));
+};
+
 const MapPage = () => {
-  const [location, setLocation] = useState([32.0853, 34.7818]); 
+  const [location, setLocation] = useState([32.0853, 34.7818]);
   const [zoom, setZoom] = useState(13);
   const [searchQuery, setSearchQuery] = useState("");
+  const [suggestions, setSuggestions] = useState([]);
   const [stations, setStations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [hoveredStationId, setHoveredStationId] = useState(null);
   const mapRef = useRef();
+  const searchContainerRef = useRef(); // Ref for detecting clicks outside
 
   const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
   useEffect(() => {
-    const fetchStations = async () => {
+    const fetchStationsAndSetMap = async () => {
       try {
         const response = await axios.get(`${backendUrl}/api/stations`);
         setStations(response.data);
@@ -34,66 +59,101 @@ const MapPage = () => {
 
         if (navigator.geolocation) {
           navigator.geolocation.getCurrentPosition((position) => {
-            setLocation([position.coords.latitude, position.coords.longitude]);
+            const userLat = position.coords.latitude;
+            const userLon = position.coords.longitude;
+
+            const nearestStation = response.data.reduce((closest, station) => {
+              const distanceToUser = calculateDistance(userLat, userLon, station.Latitude, station.Longitude);
+              return !closest || distanceToUser < closest.distance
+                ? { ...station, distance: distanceToUser }
+                : closest;
+            }, null);
+
+            setLocation([userLat, userLon]);
             setZoom(15);
+
+            if (nearestStation && mapRef.current) {
+              mapRef.current.setView([nearestStation.Latitude, nearestStation.Longitude], 15);
+            }
           });
         }
       } catch (error) {
-        console.error("Error loading stations:", error);
+        console.error("Error loading stations or location:", error);
         setLoading(false);
       }
     };
-    fetchStations();
+
+    fetchStationsAndSetMap();
   }, [backendUrl]);
 
-  // ביצוע חיפוש אוטומטי בעת ההקלדה עם עיכוב (debounce)
   useEffect(() => {
-    const delayDebounce = setTimeout(() => {
-      if (searchQuery.trim() !== "") {
-        handleSearch();
+    if (searchQuery.trim() !== "") {
+      const normalizedQuery = normalizeText(searchQuery);
+      const filteredSuggestions = stations.filter((station) => {
+        const normalizedCity = normalizeText(station.City);
+        const normalizedAddress = normalizeText(station.Address);
+        const normalizedName = normalizeText(station["Station Name"]);
+        return (
+          normalizedCity.includes(normalizedQuery) ||
+          normalizedAddress.includes(normalizedQuery) ||
+          normalizedName.includes(normalizedQuery)
+        );
+      });
+
+      setSuggestions(filteredSuggestions.slice(0, 5)); // Show up to 5 suggestions
+
+      if (filteredSuggestions.length > 0 && mapRef.current) {
+        const firstStation = filteredSuggestions[0];
+        mapRef.current.setView([firstStation.Latitude, firstStation.Longitude], 15); // Move map to first result
       }
-    }, 500); // מבצע חיפוש רק לאחר 500ms של חוסר הקלדה
-
-    return () => clearTimeout(delayDebounce);
-  }, [searchQuery]); // מאזין לשינויים בשורת החיפוש בלבד
-
-  const handleSearch = () => {
-    const foundStation = stations.find(
-      (station) =>
-        station.City.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        station.Address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        station["Station Name"].toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    if (foundStation) {
-      setZoom(15);
-      if (mapRef.current) {
-        mapRef.current.setView([foundStation.Latitude, foundStation.Longitude], 15);
-      }
+    } else {
+      setSuggestions([]);
     }
+  }, [searchQuery, stations]);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target)
+      ) {
+        setSuggestions([]); // Close suggestions dropdown
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const normalizeText = (text) => {
+    return text
+      .toLowerCase()
+      .replace(/[\u0590-\u05FF]/g, (char) => char)
+      .replace(/[^a-z0-9\u0590-\u05FF\s]/g, "");
   };
 
-  const chargingIconGreen = L.divIcon({
-    className: "custom-charging-icon-green",
-    html: `<div style="width: 30px; height: 40px; background: #4CAF50; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0px 2px 6px rgba(0,0,0,0.3);"><div style="color: white; font-size: 16px; font-weight: bold;">⚡</div></div>`,
-    iconSize: [30, 40],
-    iconAnchor: [15, 40],
-    popupAnchor: [0, -30],
-  });
+  const handleSearchSelect = (station) => {
+    setSearchQuery(station["Station Name"]);
+    setSuggestions([]);
+    setZoom(18);
+    if (mapRef.current) {
+      mapRef.current.setView([station.Latitude, station.Longitude], 18); // Focus on the selected station
+    }
+  };
 
   if (loading) return <div>Loading stations...</div>;
 
   return (
     <div className="map-page-container">
-      {/* Back to Home Button */}
       <div className="home-button-container">
         <Link to="/home" className="home-button">
           ← Back to Home Page
         </Link>
       </div>
 
-      {/* Search Bar */}
-      <div className="map-search-bar-container">
+      <div className="map-search-bar-container" ref={searchContainerRef}>
         <input
           type="text"
           placeholder="Search city, address, or station name..."
@@ -101,9 +161,21 @@ const MapPage = () => {
           onChange={(e) => setSearchQuery(e.target.value)}
           className="search-bar"
         />
+        {suggestions.length > 0 && (
+          <div className="suggestions-container">
+            {suggestions.map((station) => (
+              <div
+                key={station._id}
+                className="suggestion-item"
+                onClick={() => handleSearchSelect(station)}
+              >
+                {station["Station Name"]} - {station.Address}, {station.City}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Map */}
       <div style={{ width: "100%", height: "100vh", position: "relative", zIndex: "1" }}>
         <MapContainer
           center={location}
@@ -134,7 +206,6 @@ const MapPage = () => {
                     <br />
                     {station.Address}, {station.City}
                     <br />
-                    {/* Waze Navigation Button */}
                     <a
                       href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
                       target="_blank"

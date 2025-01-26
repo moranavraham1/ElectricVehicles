@@ -112,12 +112,12 @@ exports.login = async (req, res) => {
       return res.status(403).json({ message: 'Your email is not verified. Please verify your email to log in.' });
     }
 
-    // Generate JWT token
     const token = jwt.sign(
-      { id: user._id },
+      { id: user._id, email: user.email }, // הוספת המייל
       process.env.JWT_SECRET,
-      { expiresIn: '10s' }
-    );
+      { expiresIn: '1h' }
+  );
+  
 
     res.status(200).json({ message: 'Login successful', token });
   } catch (error) {
