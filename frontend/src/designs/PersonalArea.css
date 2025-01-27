@@ -1,0 +1,104 @@
+.personal-area-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    background: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .personal-area-container h1 {
+    font-size: 2rem;
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .personal-area-container p {
+    font-size: 1.2rem;
+    color: #555;
+    margin: 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .personal-area-container p span {
+    font-weight: bold;
+    color: #222;
+  }
+  
+  .editable-user-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    background: #fff;
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid #ddd;
+  }
+  
+  .editable-user-info h2 {
+    font-size: 1.8rem;
+    color: #444;
+    text-align: center;
+  }
+  
+  .editable-user-info input {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 1rem;
+  }
+  
+  .editable-user-info button {
+    padding: 10px 15px;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+  }
+  
+  .editable-user-info button:hover {
+    opacity: 0.9;
+  }
+  
+  .editable-user-info button:first-of-type {
+    background-color: #4caf50;
+    color: white;
+    border: none;
+  }
+  
+  .editable-user-info button:last-of-type {
+    background-color: #f44336;
+    color: white;
+    border: none;
+  }
+  
+  .personal-area-container button {
+    padding: 10px 15px;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 10px;
+    transition: background-color 0.3s;
+  }
+  
+  .personal-area-container button:hover {
+    background-color: #0056b3;
+  }
+  
+  .personal-area-container .loading-message,
+  .personal-area-container .error-message {
+    font-size: 1.5rem;
+    text-align: center;
+    color: #ff5722;
+    margin-top: 20px;
+  }
+  
