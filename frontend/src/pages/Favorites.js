@@ -1,9 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import '../designs/Favorites.css'; // ייבוא עיצוב ייחודי למועדפים
 
 const Favorites = () => {
     const [favoriteStations, setFavoriteStations] = useState([]);
+    const [loading, setLoading] = useState(true); // מצב טעינה
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        try {
+            localStorage.clear();
+            alert('You have been logged out successfully!');
+            navigate('/login');
+        } catch (error) {
+            console.error('Logout error:', error);
+        }
+    };
 
     useEffect(() => {
         const fetchFavorites = async () => {
@@ -12,6 +24,7 @@ const Favorites = () => {
           
             if (!loggedInUser || !token) {
                 alert('Please log in to view favorites!');
+                setLoading(false);
                 return;
             }
           
@@ -26,13 +39,14 @@ const Favorites = () => {
                 }
           
                 const stations = await response.json();
-                // סינון התחנות שמכילות את המייל של המשתמש המחובר בשדה likedBy
                 const favoriteStations = stations.filter((station) =>
                     station.likedBy.includes(loggedInUser.toLowerCase())
                 );
                 setFavoriteStations(favoriteStations);
             } catch (error) {
                 console.error('Error fetching favorites:', error.message);
+            } finally {
+                setLoading(false); // סיום הטעינה
             }
         };
           
@@ -55,7 +69,7 @@ const Favorites = () => {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ email: loggedInUser.toLowerCase() }) // העברת המייל להסרה
+                body: JSON.stringify({ email: loggedInUser.toLowerCase() })
             });
     
             if (!response.ok) {
@@ -63,7 +77,6 @@ const Favorites = () => {
                 throw new Error(errorData.message || 'Failed to remove from favorites.');
             }
     
-            // הסרת התחנה מהסטייט המקומי
             setFavoriteStations((prevFavorites) =>
                 prevFavorites.filter((favStation) => favStation._id !== station._id)
             );
@@ -71,40 +84,62 @@ const Favorites = () => {
             console.error('Error removing favorite:', error);
         }
     };
-    
+
     return (
         <div className="favorites-container">
-            {/* סיכום המועדפים */}
-            <div className="favorites-summary">
-                <h2>Favorite Charging Stations ❤️</h2>
-                <p>
-                    You have <strong>{favoriteStations.length}</strong> favorite station{favoriteStations.length !== 1 ? 's' : ''}.
-                </p>
-            </div>
-
-            {/* רשימת התחנות */}
-            {favoriteStations.length > 0 ? (
-                favoriteStations.map((station, index) => (
-                    <div key={index} className="station-card">
-                        <h3>{station['Station Name']}</h3>
-                        <p><strong>Address:</strong> {station.Address || 'N/A'}</p>
-                        <p><strong>City:</strong> {station.City || 'N/A'}</p>
-                        <p><strong>Charging Stations:</strong> {station['Duplicate Count'] || 'N/A'}</p>
-                        {/* כפתור הסרה */}
-                        <button
-                            className="remove-button"
-                            onClick={() => removeFromFavorites(station)}
-                        >
-                            ❌ 
-                        </button>
-                    </div>
-                ))
+            {/* בדיקת טעינה */}
+            {loading ? (
+                <div className="loading-message">Loading your favorite stations...</div>
             ) : (
-                <p className="no-favorites">No favorite stations added yet.</p>
-            )}
+                <>
+                    <div className="favorites-summary">
+                        <h2>Favorite Charging Stations ❤️</h2>
+                        <p>
+                            You have <strong>{favoriteStations.length}</strong> favorite station{favoriteStations.length !== 1 ? 's' : ''}.
+                        </p>
+                    </div>
 
-            {/* כפתור חזרה לדף הבית */}
-            <Link to="/home" className="back-button">⬅ Back to Home</Link>
+                    {favoriteStations.length > 0 ? (
+                        favoriteStations.map((station, index) => (
+                            <div key={index} className="station-card">
+                                <h3>{station['Station Name']}</h3>
+                                <p><strong>Address:</strong> {station.Address || 'N/A'}</p>
+                                <p><strong>City:</strong> {station.City || 'N/A'}</p>
+                                <p><strong>Charging Stations:</strong> {station['Duplicate Count'] || 'N/A'}</p>
+                                <button
+                                    className="remove-button"
+                                    onClick={() => removeFromFavorites(station)}
+                                >
+                                    ❌ 
+                                </button>
+                            </div>
+                        ))
+                    ) : (
+                        <p className="no-favorites">No favorite stations added yet.</p>
+                    )}
+
+                    <Link to="/home" className="back-button">⬅ Back to Home</Link>
+
+                    {/* תפריט תחתון */}
+                    <div className="bottom-bar">
+                        <button className="bottom-bar-button logout" onClick={handleLogout}>
+                            <i className="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                        <Link to="/personal-area" className="bottom-bar-button personal">
+                            <i className="fas fa-user"></i> Personal Area
+                        </Link>
+                        <Link to="/favorites" className="bottom-bar-button favorites">
+                            <i className="fas fa-heart"></i> Favorites
+                        </Link>
+                        <Link to="/home" className="bottom-bar-button home">
+                            <i className="fas fa-home"></i> Home
+                        </Link>
+                        <Link to="/map" className="bottom-bar-button map">
+                            <i className="fas fa-map-marked-alt"></i> Search on Map
+                        </Link>
+                    </div>
+                </>
+            )}
         </div>
     );
 };

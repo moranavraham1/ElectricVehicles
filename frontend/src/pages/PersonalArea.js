@@ -6,8 +6,8 @@ function PersonalArea() {
   const [userDetails, setUserDetails] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [editMode, setEditMode] = useState(false); // מצב עריכה
-  const [updatedDetails, setUpdatedDetails] = useState({}); // פרטים מעודכנים
+  const [editMode, setEditMode] = useState(false);
+  const [updatedDetails, setUpdatedDetails] = useState({});
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -40,7 +40,7 @@ function PersonalArea() {
 
         const data = await response.json();
         setUserDetails(data);
-        setUpdatedDetails(data); // הכנה לעריכה
+        setUpdatedDetails(data);
       } catch (err) {
         setError(err.message || 'Failed to load user details');
       } finally {
@@ -74,7 +74,7 @@ function PersonalArea() {
 
       const data = await response.json();
       setUserDetails(data);
-      setEditMode(false); // יציאה ממצב עריכה
+      setEditMode(false);
     } catch (err) {
       alert(`Error updating details: ${err.message}`);
     }
@@ -128,30 +128,43 @@ function PersonalArea() {
     <div className="personal-area-container">
       <h1>Personal Area</h1>
       {editMode ? (
-        <>
+        <div className="editable-user-info">
+          <h2>Edit Personal Information</h2>
           <input
             type="text"
+            name="firstName"
             value={updatedDetails.firstName}
             onChange={(e) => setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })}
+            placeholder="First Name"
           />
           <input
             type="text"
+            name="lastName"
             value={updatedDetails.lastName}
             onChange={(e) => setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })}
+            placeholder="Last Name"
           />
           <input
             type="email"
+            name="email"
             value={updatedDetails.email}
             onChange={(e) => setUpdatedDetails({ ...updatedDetails, email: e.target.value })}
+            placeholder="Email"
           />
           <input
             type="text"
+            name="phone"
             value={updatedDetails.phone}
             onChange={(e) => setUpdatedDetails({ ...updatedDetails, phone: e.target.value })}
+            placeholder="Phone"
           />
-          <button onClick={handleUpdate}>Save</button>
-          <button onClick={() => setEditMode(false)}>Cancel</button>
-        </>
+          <button onClick={handleUpdate}>
+            <i className="fas fa-save"></i> Save
+          </button>
+          <button onClick={() => setEditMode(false)}>
+            <i className="fas fa-times"></i> Cancel
+          </button>
+        </div>
       ) : (
         <>
           <p>
@@ -166,34 +179,33 @@ function PersonalArea() {
           <p>
             <span>Phone:</span> {userDetails.phone}
           </p>
-          <button onClick={() => setEditMode(true)}>Edit Info</button>
-          <button onClick={handleResetPassword}>Reset Password</button>
+          <button onClick={() => setEditMode(true)}>
+            <i className="fas fa-edit"></i> Edit Info
+          </button>
+          <button onClick={handleResetPassword}>
+            <i className="fas fa-lock"></i> Reset Password
+          </button>
         </>
       )}
 
-<div className="bottom-bar">
-  {/* כפתור Logout עם מחלקה ייחודית */}
-  <button className="bottom-bar-button logout-button" onClick={handleLogout}>
-    <i className="fas fa-sign-out-alt"></i> Logout
-  </button>
-  
-  {/* קישורים נוספים */}
-  <Link to="/personal-area" className="bottom-bar-button personal">
-    <i className="fas fa-user"></i> Personal Area
-  
-  </Link>
-  <Link to="/favorites" className="bottom-bar-button favorites">
-    <i className="fas fa-heart"></i> Favorites
-  </Link>
-  <Link to="/home" className="bottom-bar-button home">
-    <i className="fas fa-home"></i> Home
-  </Link>
- 
-  <Link to="/map" className="bottom-bar-button map">
-    <i className="fas fa-map-marked-alt"></i> Search on Map
-  </Link>
-</div>
-
+      {/* סרגל תחתון נשאר ללא שינוי */}
+      <div className="bottom-bar">
+        <button className="bottom-bar-button logout-button" onClick={handleLogout}>
+          <i className="fas fa-sign-out-alt"></i> Logout
+        </button>
+        <Link to="/personal-area" className="bottom-bar-button personal">
+          <i className="fas fa-user"></i> Personal Area
+        </Link>
+        <Link to="/favorites" className="bottom-bar-button favorites">
+          <i className="fas fa-heart"></i> Favorites
+        </Link>
+        <Link to="/home" className="bottom-bar-button home">
+          <i className="fas fa-home"></i> Home
+        </Link>
+        <Link to="/map" className="bottom-bar-button map">
+          <i className="fas fa-map-marked-alt"></i> Search on Map
+        </Link>
+      </div>
     </div>
   );
 }
