@@ -147,12 +147,6 @@ const MapPage = () => {
 
   return (
     <div className="map-page-container">
-      <div className="home-button-container">
-        <Link to="/home" className="home-button">
-          ← Back to Home Page
-        </Link>
-      </div>
-
       <div className="map-search-bar-container" ref={searchContainerRef}>
         <input
           type="text"
@@ -230,6 +224,24 @@ const MapPage = () => {
           ))}
           <ZoomControl position="topright" />
         </MapContainer>
+      </div>
+
+      <div className="bottom-bar">
+        <button className="bottom-bar-button logout">
+          <i className="fas fa-sign-out-alt"></i> Logout
+        </button>
+        <Link to="/personal-area" className="bottom-bar-button personal">
+          <i className="fas fa-user"></i> Personal Area
+        </Link>
+        <Link to="/favorites" className="bottom-bar-button favorites">
+          <i className="fas fa-heart"></i> Favorites
+        </Link>
+        <Link to="/home" className="bottom-bar-button home">
+          <i className="fas fa-home"></i> Home
+        </Link>
+        <Link to="/map" className="bottom-bar-button map">
+          <i className="fas fa-map-marked-alt"></i> Search on Map
+        </Link>
       </div>
     </div>
   );
