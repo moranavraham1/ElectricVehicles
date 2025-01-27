@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
-import "../map.css";
+import "../designs/map.css";
 import WazeLogo from "../assets/WAZE.jpg";
 
 // Configure Leaflet icons

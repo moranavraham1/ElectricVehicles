@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { Link, useNavigate } from 'react-router-dom';
-import '../Home.css';
+import '../designs/Home.css';
 import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
 
