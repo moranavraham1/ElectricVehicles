@@ -2,17 +2,17 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Home from './pages/Home';
-import MapPage from './pages/MapPage';
-import Favorites from './pages/Favorites';
-import PersonalArea from './pages/PersonalArea';
-import VerifyCode from './pages/VerifyCode';
-import ResetPassword from './pages/ResetPassword';
-import ProtectedRoute from './components/ProtectedRoute'; 
-import Logout from './pages/Logout'; 
-import './index.css';
+import Login from './Login';
+import Register from './Register';
+import Home from './Home';
+import MapPage from './MapPage';
+import Favorites from './Favorites';
+import PersonalArea from './PersonalArea';
+import VerifyCode from './VerifyCode';
+import ResetPassword from './ResetPassword';
+import ProtectedRoute from '../components/ProtectedRoute'; 
+import Logout from './Logout'; 
+import '../designs/index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 function App() {

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import '../VerifyCode.css';
+import '../designs/VerifyCode.css';
 
 function VerifyCode() {
   const [code, setCode] = useState('');

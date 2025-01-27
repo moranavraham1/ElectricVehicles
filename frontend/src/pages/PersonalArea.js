@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import '../PersonalArea.css';
+import '../designs/PersonalArea.css';
 
 function PersonalArea() {
   const [userDetails, setUserDetails] = useState(null);

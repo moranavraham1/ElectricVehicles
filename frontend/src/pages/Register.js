@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import '../Register.css';
+import '../designs/Register.css';
 
 function Register() {
   const [formData, setFormData] = useState({

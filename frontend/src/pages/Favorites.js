@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import '../Favorites.css'; // ייבוא עיצוב ייחודי למועדפים
+import '../designs/Favorites.css'; // ייבוא עיצוב ייחודי למועדפים
 
 const Favorites = () => {
     const [favoriteStations, setFavoriteStations] = useState([]);
