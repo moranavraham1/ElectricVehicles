@@ -277,3 +277,63 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Error resetting password.' });
   }
 };
+exports.fetchDetails = async (req, res) => {
+  const { username } = req.query; // שליפת המייל מהבקשה
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+
+  try {
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (!decoded) {
+      return res.status(401).json({ message: 'Invalid token.' });
+    }
+
+    // חיפוש משתמש בצורה לא רגישה לאותיות
+    const user = await User.findOne({
+      email: { $regex: new RegExp(`^${username}$`, 'i') }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    res.status(200).json({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      verified: user.verified,
+    });
+  } catch (error) {
+    console.error('Error fetching user details:', error);
+    res.status(500).json({ message: 'Error fetching user details.' });
+  }
+};
+exports.updateDetails = async (req, res) => {
+  const { firstName, lastName, email, phone } = req.body;
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.firstName = firstName || user.firstName;
+    user.lastName = lastName || user.lastName;
+    user.email = email || user.email;
+    user.phone = phone || user.phone;
+
+    await user.save();
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error updating user details:', error);
+    res.status(500).json({ message: 'Error updating details' });
+  }
+};
