@@ -76,8 +76,4 @@ This project is a **web application** for managing **electric vehicle charging s
 - `POST /api/stations/:id/like` - Like a station.
 - `DELETE /api/stations/:id/unlike` - Unlike a station.
 
-## 🚀 Future Enhancements
-- 📡 **Real-time Station Availability Updates**.
-- 🛠️ **Admin Dashboard for Managing Stations**.
-- 📱 **Mobile Application Integration**.
 
