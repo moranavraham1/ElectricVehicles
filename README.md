@@ -1,7 +1,5 @@
 # 🚗 Electric Vehicles Charging Station Management ⚡🔋
 
-![Project Logo](https://via.placeholder.com/800x400?text=Electric+Vehicles+Charging+Stations)
-
 ## 🚀 Introduction
 This project is a **web application** for managing **electric vehicle charging stations**. It helps users find nearby charging stations, manage their favorite stations, and plan their routes efficiently. 
 
