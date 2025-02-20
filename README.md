@@ -13,7 +13,7 @@ This project is a **web application** for managing **electric vehicle charging s
 - 📡 **Real-time API Integration**: Retrieve live station data.
 - 🔒 **Secure**: JWT-based authentication & bcrypt for password hashing.
 
-![Project Screenshot](https://via.placeholder.com/800x400?text=Charging+Stations+Dashboard)
+
 
 ## 🛠️ Tech Stack
 ### 🎨 Frontend
