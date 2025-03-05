@@ -14,7 +14,7 @@ function PersonalArea() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchDetails = async () => {
+    const fetchUserDetails = async () => {
       const token = localStorage.getItem("token");
 
       if (!token) {
@@ -24,7 +24,7 @@ function PersonalArea() {
 
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL}/api/auth/fetch-details`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/auth/user-details`,
           {
             method: "GET",
             headers: {
@@ -40,11 +40,11 @@ function PersonalArea() {
         setUserDetails(data);
         setUpdatedDetails(data);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching user details:", err);
       }
     };
 
-    fetchDetails();
+    fetchUserDetails();
   }, [navigate]);
 
   const handleUpdate = async () => {
@@ -52,7 +52,7 @@ function PersonalArea() {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/auth/update-details`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/auth/update-user`,
         {
           method: "PUT",
           headers: {
@@ -92,21 +92,25 @@ function PersonalArea() {
           <button className={view === "password" ? "active" : ""} onClick={() => setView("password")}>Change Password</button>
         </nav>
 
-        {/* תצוגת הטאב הנבחר */}
+        {/* תצוגת הפרופיל עם נתוני המשתמש */}
         <div className="tab-content">
           {view === "profile" && (
             <>
               {editMode ? (
                 <div className="editable-user-info">
-                  <input type="text" value={updatedDetails.firstName} onChange={(e) => setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })} placeholder="First Name" />
-                  <input type="text" value={updatedDetails.lastName} onChange={(e) => setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })} placeholder="Last Name" />
+                  <input type="text" value={updatedDetails.firstName || ""} onChange={(e) => setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })} placeholder="First Name" />
+                  <input type="text" value={updatedDetails.lastName || ""} onChange={(e) => setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })} placeholder="Last Name" />
+                  <input type="email" value={updatedDetails.email || ""} readOnly placeholder="Email (Cannot be changed)" />
+                  <input type="text" value={updatedDetails.phone || ""} onChange={(e) => setUpdatedDetails({ ...updatedDetails, phone: e.target.value })} placeholder="Phone" />
                   <button className="save-btn" onClick={handleUpdate}>Save</button>
                   <button className="cancel-btn" onClick={() => setEditMode(false)}>Cancel</button>
                 </div>
               ) : (
                 <div className="profile-info">
-                  <p><span>First Name:</span> {userDetails?.firstName}</p>
-                  <p><span>Last Name:</span> {userDetails?.lastName}</p>
+                  <p><span>First Name:</span> {userDetails?.firstName || "Not Available"}</p>
+                  <p><span>Last Name:</span> {userDetails?.lastName || "Not Available"}</p>
+                  <p><span>Email:</span> {userDetails?.email || "Not Available"}</p>
+                  <p><span>Phone:</span> {userDetails?.phone || "Not Available"}</p>
                   <button className="edit-btn" onClick={() => setEditMode(true)}>Edit Info</button>
                 </div>
               )}

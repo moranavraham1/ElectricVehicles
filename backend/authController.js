@@ -278,7 +278,6 @@ exports.resetPassword = async (req, res) => {
   }
 };
 exports.fetchDetails = async (req, res) => {
-  const { username } = req.query; // שליפת המייל מהבקשה
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   try {
@@ -291,10 +290,8 @@ exports.fetchDetails = async (req, res) => {
       return res.status(401).json({ message: 'Invalid token.' });
     }
 
-    // חיפוש משתמש בצורה לא רגישה לאותיות
-    const user = await User.findOne({
-      email: { $regex: new RegExp(`^${username}$`, 'i') }
-    });
+    // חיפוש המשתמש לפי ה-ID מתוך הטוקן
+    const user = await User.findById(decoded.id);
 
     if (!user) {
       return res.status(404).json({ message: 'User not found.' });
@@ -312,6 +309,7 @@ exports.fetchDetails = async (req, res) => {
     res.status(500).json({ message: 'Error fetching user details.' });
   }
 };
+
 exports.updateDetails = async (req, res) => {
   const { firstName, lastName, email, phone } = req.body;
   const token = req.header('Authorization')?.replace('Bearer ', '');
