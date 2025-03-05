@@ -1,104 +1,194 @@
-.personal-area-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 20px;
-    background: #f9f9f9;
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    font-family: 'Arial', sans-serif;
-  }
-  
-  .personal-area-container h1 {
-    font-size: 2rem;
-    color: #333;
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  
-  .personal-area-container p {
-    font-size: 1.2rem;
-    color: #555;
-    margin: 10px 0;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  
-  .personal-area-container p span {
-    font-weight: bold;
-    color: #222;
-  }
-  
-  .editable-user-info {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    background: #fff;
-    padding: 15px;
-    border-radius: 10px;
-    border: 1px solid #ddd;
-  }
-  
-  .editable-user-info h2 {
-    font-size: 1.8rem;
-    color: #444;
-    text-align: center;
-  }
-  
-  .editable-user-info input {
-    padding: 10px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
-    font-size: 1rem;
-  }
-  
-  .editable-user-info button {
-    padding: 10px 15px;
-    border-radius: 5px;
-    font-size: 1rem;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s;
-  }
-  
-  .editable-user-info button:hover {
-    opacity: 0.9;
-  }
-  
-  .editable-user-info button:first-of-type {
-    background-color: #4caf50;
-    color: white;
-    border: none;
-  }
-  
-  .editable-user-info button:last-of-type {
-    background-color: #f44336;
-    color: white;
-    border: none;
-  }
-  
-  .personal-area-container button {
-    padding: 10px 15px;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    font-size: 1rem;
-    cursor: pointer;
-    font-weight: bold;
-    margin-top: 10px;
-    transition: background-color 0.3s;
-  }
-  
-  .personal-area-container button:hover {
-    background-color: #0056b3;
-  }
-  
-  .personal-area-container .loading-message,
-  .personal-area-container .error-message {
-    font-size: 1.5rem;
-    text-align: center;
-    color: #ff5722;
-    margin-top: 20px;
-  }
-  
+/* רקע כללי - כמו דף הבית */
+.personal-area-page {
+  background: linear-gradient(160deg, #e8f5e9, #728872);
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow-x: hidden;
+}
+
+/* סרגל עליון עם לוגו */
+.top-bar {
+  width: 100%;
+  background: #c8d8c3;
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.top-bar .logo {
+  height: 120px; /* הגדלת הלוגו */
+  max-width: 100%; 
+  object-fit: contain;
+}
+
+/* תוכן מרכזי */
+.content-container {
+  width: 90%;
+  max-width: 1100px;
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  margin-top: 180px;
+}
+
+/* כותרת ראשית */
+h1 {
+  font-size: 28px;
+  color: #1b5e20;
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* כפתורי ניווט */
+.tab-navigation {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.tab-navigation button {
+  padding: 10px 15px;
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.tab-navigation button.active {
+  background: #2e7d32;
+}
+
+.tab-navigation button:hover {
+  background: #388e3c;
+}
+
+/* תוכן כללי */
+.tab-content {
+  background: #f9f9f9;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 900px;
+  text-align: left;
+}
+
+/* פרטי המשתמש */
+.profile-info {
+  width: 100%;
+  text-align: left;
+}
+
+.profile-info p {
+  font-size: 18px;
+  color: #333;
+  margin: 10px 0;
+}
+
+.profile-info span {
+  font-weight: bold;
+  color: #1b5e20;
+}
+
+/* כפתורים */
+.edit-btn, .save-btn, .cancel-btn {
+  padding: 12px 18px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.edit-btn {
+  background: #1e88e5;
+}
+
+.save-btn {
+  background: #43a047;
+}
+
+.cancel-btn {
+  background: #d32f2f;
+}
+
+.edit-btn:hover {
+  background: #1565c0;
+}
+
+.save-btn:hover {
+  background: #2e7d32;
+}
+
+.cancel-btn:hover {
+  background: #b71c1c;
+}
+
+/* טופס עריכת פרטים */
+.editable-user-info input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+}
+
+/* סרגל תחתון */
+.bottom-bar {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background: #4caf50;
+  padding: 12px 0;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.bottom-bar-button {
+  text-align: center;
+  color: white;
+  font-size: 14px;
+  text-decoration: none;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.bottom-bar-button i {
+  display: block;
+  font-size: 20px;
+  margin-bottom: 5px;
+}
+
+/* תיקון לכפתור הלוג-אאוט שלא ייראה דהוי */
+.logout-button {
+  background: #c62828 !important;
+  padding: 12px 15px;
+  border-radius: 8px;
+  font-size: 16px;
+  color: white !important;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.logout-button:hover {
+  background: #b71c1c !important;
+}
