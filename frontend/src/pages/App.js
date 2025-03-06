@@ -9,7 +9,7 @@ import MapPage from './MapPage';
 import Favorites from './Favorites';
 import PersonalArea from './PersonalArea';
 import VerifyCode from './VerifyCode';
-import ResetPassword from './ResetPassword';
+import ChangePassword from './ChangePassword';
 import ProtectedRoute from '../components/ProtectedRoute'; 
 import Logout from './Logout'; 
 import '../designs/index.css';
@@ -26,7 +26,7 @@ function App() {
           <Route path="/verify-email" element={<VerifyCode />} />
           <Route path="/login" element={<Login />} /> {/* ✅ תיקון הוספת נתיב התחברות */}
           <Route path="/register" element={<Register />} />
-          <Route path="/reset-password/:token" element={<ResetPassword />} />
+          <Route path="/Change-Password/:token" element={<ChangePassword />} />
 
 
           <Route

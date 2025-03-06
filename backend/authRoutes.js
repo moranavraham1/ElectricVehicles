@@ -15,8 +15,8 @@ router.post('/logout', authController.logout);
 router.post('/verify-code', authController.verifyCode);
 router.post('/resend-verification-code', authController.resendVerificationCode);
 router.post('/forgot-password', authController.forgotPassword);
-router.get('/reset-password/:token', authController.resetPasswordPage);
-router.post('/reset-password/:token', authController.resetPassword);
+router.post("/change-password", authController.changePassword);
+
 router.get('/fetch-details', authController.fetchDetails);
 // עדכון פרטים אישיים
 router.put('/update-details', authMiddleware, authController.updateDetails);
