@@ -11,6 +11,8 @@ function PersonalArea() {
   const [editMode, setEditMode] = useState(false);
   const [updatedDetails, setUpdatedDetails] = useState({});
   const [view, setView] = useState("profile");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,7 +26,7 @@ function PersonalArea() {
 
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL}/api/auth/user-details`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/auth/fetch-details`,
           {
             method: "GET",
             headers: {
@@ -41,6 +43,9 @@ function PersonalArea() {
         setUpdatedDetails(data);
       } catch (err) {
         console.error("Error fetching user details:", err);
+        setError("Error loading user details");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -52,7 +57,7 @@ function PersonalArea() {
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_BACKEND_URL}/api/auth/update-user`,
+        `${process.env.REACT_APP_BACKEND_URL}/api/auth/update-details`,
         {
           method: "PUT",
           headers: {
@@ -73,18 +78,21 @@ function PersonalArea() {
     }
   };
 
+  if (loading) return <div className="loading-message">Loading...</div>;
+  if (error) return <div className="error-message">Error: {error}</div>;
+
   return (
     <div className="personal-area-page">
-      {/* סרגל עליון עם לוגו */}
+      {/* 🔹 סרגל עליון עם לוגו */}
       <div className="top-bar">
         <img src={logo} alt="EVision Logo" className="logo" />
       </div>
 
-      {/* תוכן ראשי */}
+      {/* 🔹 תוכן ראשי */}
       <div className="content-container">
         <h1>Personal Area</h1>
 
-        {/* כפתורי ניווט */}
+        {/* 🔹 כפתורי ניווט */}
         <nav className="tab-navigation">
           <button className={view === "profile" ? "active" : ""} onClick={() => setView("profile")}>Profile</button>
           <button className={view === "history" ? "active" : ""} onClick={() => setView("history")}>Charge History</button>
@@ -92,7 +100,7 @@ function PersonalArea() {
           <button className={view === "password" ? "active" : ""} onClick={() => setView("password")}>Change Password</button>
         </nav>
 
-        {/* תצוגת הפרופיל עם נתוני המשתמש */}
+        {/* 🔹 תצוגת הפרופיל עם נתוני המשתמש */}
         <div className="tab-content">
           {view === "profile" && (
             <>
@@ -122,15 +130,13 @@ function PersonalArea() {
         </div>
       </div>
 
-      {/* סרגל תחתון */}
+      {/* 🔹 סרגל תחתון */}
       <div className="bottom-bar">
-        <Link to="/home" className="bottom-bar-button"><i className="fas fa-home"></i> Home</Link>
-        <Link to="/personal-area" className="bottom-bar-button"><i className="fas fa-user"></i> Personal Area</Link>
-        <Link to="/favorites" className="bottom-bar-button"><i className="fas fa-heart"></i> Favorites</Link>
-        <Link to="/map" className="bottom-bar-button"><i className="fas fa-map-marked-alt"></i> Search on Map</Link>
-        <button className="bottom-bar-button logout-button" onClick={() => { localStorage.clear(); navigate("/login"); }}>
-          <i className="fas fa-sign-out-alt"></i> Logout
-        </button>
+        <Link to="/home" className="bottom-bar-button">Home</Link>
+        <Link to="/personal-area" className="bottom-bar-button">Personal Area</Link>
+        <Link to="/favorites" className="bottom-bar-button">Favorites</Link>
+        <Link to="/map" className="bottom-bar-button">Search on Map</Link>
+        <button className="bottom-bar-button logout-button" onClick={() => { localStorage.clear(); navigate("/login"); }}>Logout</button>
       </div>
     </div>
   );

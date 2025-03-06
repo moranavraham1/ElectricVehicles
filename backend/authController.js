@@ -199,84 +199,58 @@ exports.forgotPassword = async (req, res) => {
     res.status(500).json({ message: 'Error sending password reset email.' });
   }
 };
-// Display Reset Password Page
-exports.resetPasswordPage = async (req, res) => {
-  const { token } = req.params;
+exports.changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  const token = req.header("Authorization")?.replace("Bearer ", "");
 
   try {
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() }, // בודק שהתוקף לא פג
-    });
+    if (!token) {
+      return res.status(401).json({ message: "Access denied. No token provided." });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired password reset token.' });
+      return res.status(404).json({ message: "User not found." });
     }
 
-    res.status(200).json({ message: 'Token is valid. Please set your new password.' });
-  } catch (error) {
-    console.error('Error in resetPasswordPage:', error);
-    res.status(500).json({ message: 'Error validating password reset token.' });
-  }
-};
-
-
-
-
-// Reset Password Endpoint
-exports.resetPassword = async (req, res) => {
-  const { token } = req.params;
-  const { password, confirmPassword } = req.body;
-
-  try {
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired password reset token.' });
+    // ✅ בדיקה אם הסיסמה הנוכחית נכונה
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Current password is incorrect." });
     }
 
-    // Validate that password and confirmPassword match
-    if (password !== confirmPassword) {
-      return res.status(400).json({ message: 'Passwords do not match.' });
-    }
-
-    // Validate password strength
-    if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password)) {
+    // ✅ בדיקת חוזק הסיסמה החדשה
+    if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(newPassword)) {
       return res.status(400).json({
-        message: 'Password must be at least 8 characters, include one uppercase letter, and one number.',
+        message: "Password must be at least 8 characters, include one uppercase letter, and one number.",
       });
     }
 
-    // Ensure the new password is not the same as the old password
-    const isSamePassword = await bcrypt.compare(password, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({ message: 'New password cannot be the same as the old password.' });
-    }
-
-    // Hash the new password
-    user.password = await bcrypt.hash(password, 10);
-    user.resetPasswordToken = null;
-    user.resetPasswordExpires = null;
-
+    // ✅ הצפנת הסיסמה החדשה ושמירתה במסד הנתונים
+    user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
-    // Send success email
+    // ✅ שליחת מייל למשתמש על שינוי סיסמה
     await transporter.sendMail({
       from: process.env.EMAIL,
       to: user.email,
-      subject: 'Password Reset Successful',
-      text: 'Your password has been successfully reset. You can now log in with your new password.',
+      subject: "Password Changed Successfully",
+      text: "Your password has been successfully changed.",
     });
 
-    res.status(200).json({ message: 'Password has been successfully reset.' });
+    res.status(200).json({ message: "Password has been successfully changed." });
   } catch (error) {
-    console.error('Error in resetPassword:', error);
-    res.status(500).json({ message: 'Error resetting password.' });
+    console.error("Error changing password:", error);
+    res.status(500).json({ message: "Error changing password." });
   }
 };
+
+
+
+
+
 exports.fetchDetails = async (req, res) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
