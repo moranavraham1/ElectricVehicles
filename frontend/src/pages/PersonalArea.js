@@ -8,6 +8,12 @@ import logo from "../assets/logo.jpg";
 
 function PersonalArea() {
   const [userDetails, setUserDetails] = useState(null);
+<<<<<<< HEAD
+=======
+  const [appointments, setAppointments] = useState([]);
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
+>>>>>>> 8d42dfa9 (Summoning queues)
   const [editMode, setEditMode] = useState(false);
   const [updatedDetails, setUpdatedDetails] = useState({});
   const [view, setView] = useState("profile");
@@ -23,6 +29,7 @@ function PersonalArea() {
       console.error("Logout error:", error);
     }
   };
+
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -60,6 +67,36 @@ function PersonalArea() {
 
     fetchUserDetails();
   }, [navigate]);
+
+  // Fetch appointments for the logged in user
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BACKEND_URL}/api/appointments`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setAppointments(data.appointments);
+        } else {
+          console.error('Failed to fetch appointments');
+        }
+      } catch (err) {
+        console.error('Error fetching appointments:', err);
+      }
+    };
+
+    fetchAppointments();
+  }, []);
 
   const handleUpdate = async () => {
     if (!updatedDetails.firstName.trim() || !updatedDetails.lastName.trim() || !updatedDetails.phone.trim()) {
@@ -99,6 +136,7 @@ function PersonalArea() {
   if (error) return <div className="error-message">Error: {error}</div>;
 
   return (
+<<<<<<< HEAD
     <div className="personal-area-page">
       <div className="top-bar">
         <img src={logo} alt="EVision Logo" className="logo" />
@@ -145,6 +183,102 @@ function PersonalArea() {
       </div>
 
 
+=======
+    <div className="personal-area-container">
+      <h1>Personal Area</h1>
+      {editMode ? (
+        <div className="editable-user-info">
+          <h2>Edit Personal Information</h2>
+          <input
+            type="text"
+            name="firstName"
+            value={updatedDetails.firstName}
+            onChange={(e) =>
+              setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })
+            }
+            placeholder="First Name"
+          />
+          <input
+            type="text"
+            name="lastName"
+            value={updatedDetails.lastName}
+            onChange={(e) =>
+              setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })
+            }
+            placeholder="Last Name"
+          />
+          <input
+            type="email"
+            name="email"
+            value={updatedDetails.email}
+            onChange={(e) =>
+              setUpdatedDetails({ ...updatedDetails, email: e.target.value })
+            }
+            placeholder="Email"
+          />
+          <input
+            type="text"
+            name="phone"
+            value={updatedDetails.phone}
+            onChange={(e) =>
+              setUpdatedDetails({ ...updatedDetails, phone: e.target.value })
+            }
+            placeholder="Phone"
+          />
+          <button onClick={handleUpdate}>
+            <i className="fas fa-save"></i> Save
+          </button>
+          <button onClick={() => setEditMode(false)}>
+            <i className="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      ) : (
+        <>
+          <p>
+            <span>First Name:</span> {userDetails.firstName}
+          </p>
+          <p>
+            <span>Last Name:</span> {userDetails.lastName}
+          </p>
+          <p>
+            <span>Email:</span> {userDetails.email}
+          </p>
+          <p>
+            <span>Phone:</span> {userDetails.phone}
+          </p>
+          <button onClick={() => setEditMode(true)}>
+            <i className="fas fa-edit"></i> Edit Info
+          </button>
+          <button onClick={handleResetPassword}>
+            <i className="fas fa-lock"></i> Reset Password
+          </button>
+        </>
+      )}
+
+      {/* New section for displaying booked appointments */}
+      <div className="appointments-section">
+        <h2>Your Appointments</h2>
+        {appointments.length > 0 ? (
+          appointments.map((appointment) => (
+            <div key={appointment._id} className="appointment-item">
+              <p>
+                <strong>Station:</strong> {appointment.stationName}
+              </p>
+              <p>
+                <strong>Date:</strong> {appointment.appointmentDate}
+              </p>
+              <p>
+                <strong>Time:</strong> {appointment.appointmentTime}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p>You have no appointments booked.</p>
+        )}
+      </div>
+
+      {/* Bottom Bar */}
+>>>>>>> 8d42dfa9 (Summoning queues)
       <div className="bottom-bar">
         <Link className="bottom-bar-button logout" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout

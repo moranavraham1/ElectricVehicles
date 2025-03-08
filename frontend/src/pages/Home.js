@@ -60,11 +60,19 @@ const Home = () => {
     }
   };
 
+<<<<<<< HEAD
 
+=======
+  // Step 1: Get the user's location
+>>>>>>> 8d42dfa9 (Summoning queues)
   useEffect(() => {
     fetchUserLocation();
   }, []);
 
+<<<<<<< HEAD
+=======
+  // Step 2: Once location is available, fetch the stations
+>>>>>>> 8d42dfa9 (Summoning queues)
   useEffect(() => {
     if (latitude && longitude) {
       fetchStations();
@@ -82,6 +90,10 @@ const Home = () => {
     setFavorites(savedFavorites.map((station) => station['Station Name']));
   }, [navigate]);
 
+<<<<<<< HEAD
+=======
+  // Filtering and sorting stations
+>>>>>>> 8d42dfa9 (Summoning queues)
   useEffect(() => {
     if (searchQuery) {
       const filtered = stations.filter(
@@ -136,9 +148,16 @@ const Home = () => {
         distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
       }));
 
+<<<<<<< HEAD
       const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
       setStations(sortedStations);
       setFilteredStations(sortedStations);
+=======
+      // Sort stations by distance in ascending order
+      const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
+      setStations(sortedStations);
+      setFilteredStations(sortedStations); // Also sort the filtered stations
+>>>>>>> 8d42dfa9 (Summoning queues)
     } catch (error) {
       console.error('Error fetching stations:', error);
     }
@@ -251,6 +270,7 @@ const Home = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return parseFloat((R * c).toFixed(2));
   };
+
   const toggleFavorite = async (station) => {
     const loggedInUser = localStorage.getItem('loggedInUser');
     if (!loggedInUser) {
@@ -261,11 +281,19 @@ const Home = () => {
     try {
       const isFavorite = station.likedBy.includes(loggedInUser.toLowerCase());
       if (isFavorite) {
+<<<<<<< HEAD
+=======
+        // Remove from favorites
+>>>>>>> 8d42dfa9 (Summoning queues)
         await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           data: { user: loggedInUser.toLowerCase() },
         });
 
+<<<<<<< HEAD
+=======
+        // Update favorites list for the station
+>>>>>>> 8d42dfa9 (Summoning queues)
         setStations((prevStations) =>
           prevStations.map((s) =>
             s._id === station._id
@@ -274,11 +302,21 @@ const Home = () => {
           )
         );
       } else {
+<<<<<<< HEAD
         await axios.post(`http://localhost:3001/api/stations/${station._id}/like`,
+=======
+        // Add to favorites
+        await axios.post(
+          `http://localhost:3001/api/stations/${station._id}/like`,
+>>>>>>> 8d42dfa9 (Summoning queues)
           { user: loggedInUser.toLowerCase() },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
 
+<<<<<<< HEAD
+=======
+        // Update favorites list for the station
+>>>>>>> 8d42dfa9 (Summoning queues)
         setStations((prevStations) =>
           prevStations.map((s) =>
             s._id === station._id
@@ -291,10 +329,20 @@ const Home = () => {
       console.error('Error updating favorites:', error);
     }
   };
+<<<<<<< HEAD
 
+=======
+>>>>>>> 8d42dfa9 (Summoning queues)
 
+  // Function to navigate to the appointment page with the station details
+  const navigateToAppointment = (station) => {
+    navigate('/appointment', { state: { station } });
+  };
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 8d42dfa9 (Summoning queues)
   useEffect(() => {
     const loggedInUser = localStorage.getItem('loggedInUser');
     if (loggedInUser) {
@@ -303,7 +351,10 @@ const Home = () => {
       setFavorites(savedFavorites.map((station) => station['Station Name']));
     }
   }, []);
+<<<<<<< HEAD
 
+=======
+>>>>>>> 8d42dfa9 (Summoning queues)
 
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
@@ -348,6 +399,17 @@ const Home = () => {
               {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
             </div>
 
+            {/* Appointment button appears below the distance badge */}
+            <button 
+              className="appointment-button" 
+              onClick={(e) => {
+                e.stopPropagation();
+                navigateToAppointment(station);
+              }}
+            >
+              Book Appointment
+            </button>
+
             <div className="station-details">
               <h3>{station['Station Name']}</h3>
               <p><strong>Address:</strong> {station.Address}</p>
@@ -365,6 +427,7 @@ const Home = () => {
               </div>
             </div>
 
+<<<<<<< HEAD
             <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
               <button
                 type="button"
@@ -395,6 +458,8 @@ const Home = () => {
 
 
             {/* Favorite Button */}
+=======
+>>>>>>> 8d42dfa9 (Summoning queues)
             <div
               className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
               onClick={(e) => {
@@ -488,6 +553,7 @@ const Home = () => {
         <button className="bottom-bar-button logout" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout
         </button>
+<<<<<<< HEAD
         <Link to="/personal-area" className="bottom-bar-button">
           <i className="fas fa-user"></i> Personal Area
         </Link>
@@ -498,6 +564,18 @@ const Home = () => {
           <i className="fas fa-home"></i> Home
         </Link>
         <Link to="/map" className="bottom-bar-button">
+=======
+        <Link to="/personal-area" className="bottom-bar-button personal">
+          <i className="fas fa-user"></i> Personal Area
+        </Link>
+        <Link to="/favorites" className="bottom-bar-button favorites">
+          <i className="fas fa-heart"></i> Favorites
+        </Link>
+        <Link to="/home" className="bottom-bar-button home">
+          <i className="fas fa-home"></i> Home
+        </Link>
+        <Link to="/map" className="bottom-bar-button map">
+>>>>>>> 8d42dfa9 (Summoning queues)
           <i className="fas fa-map-marked-alt"></i> Search on Map
         </Link>
       </div>

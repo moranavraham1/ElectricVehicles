@@ -202,14 +202,23 @@ input[type="text"] {
 .distance-badge {
   background: #1b5e20;
   color: white;
+<<<<<<< HEAD
   padding: 4px 8px;
   border-radius: 15px;
+=======
+  padding: 4px 8px; 
+  border-radius: 15px; 
+>>>>>>> 8d42dfa9 (Summoning queues)
   font-size: 12px;
   font-weight: bold;
   position: absolute;
   top: 10px;
   right: 10px;
+<<<<<<< HEAD
   min-width: 50px;
+=======
+  min-width: 50px; 
+>>>>>>> 8d42dfa9 (Summoning queues)
   text-align: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
   z-index: 10;
@@ -257,7 +266,11 @@ input[type="text"] {
   padding: 2vh;
   display: flex;
   justify-content: space-around;
+<<<<<<< HEAD
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
+=======
+  box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
+>>>>>>> 8d42dfa9 (Summoning queues)
   height: 50px;
 }
 
@@ -323,7 +336,11 @@ input[type="text"] {
 }
 
 .heart-icon {
+<<<<<<< HEAD
   color: gray;
+=======
+  color: gray; 
+>>>>>>> 8d42dfa9 (Summoning queues)
   cursor: pointer;
   font-size: 1.5rem;
   transition: color 0.2s;
@@ -384,6 +401,7 @@ input[type="text"] {
   color: #333;
 >>>>>>> 02d7dfa1 (Fixing Availability and Booking Display)
 }
+<<<<<<< HEAD
 
 .book-button {
   background-color: #4CAF50;
@@ -513,3 +531,25 @@ input[type="text"] {
   font-size: 16px;
   box-sizing: border-box;
 }
+=======
+.appointment-button {
+  position: absolute;
+  top: 40px; 
+  right: 0px; 
+  background-color: #054809;
+  color: #fff;
+  border: none;
+  padding: 6px 1px;
+  border-radius: 2ch;
+  font-weight: bold;
+  font-size: 0.8rem; 
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  z-index: 5; 
+}
+
+.appointment-button:hover {
+  background-color: #fb2100;
+  transform: scale(1.05);
+}
+>>>>>>> 8d42dfa9 (Summoning queues)
