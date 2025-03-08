@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Tooltip, ZoomControl } from "react-leaflet";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import axios from "axios";
 import "../designs/map.css";
 import WazeLogo from "../assets/WAZE.jpg";
 
-// Configure Leaflet icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
@@ -31,8 +30,8 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) *
-    Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      Math.cos(lat2 * (Math.PI / 180)) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return parseFloat((R * c).toFixed(2));
 };
@@ -46,8 +45,9 @@ const MapPage = () => {
   const [loading, setLoading] = useState(true);
   const [hoveredStationId, setHoveredStationId] = useState(null);
   const mapRef = useRef();
-  const searchContainerRef = useRef(); // Ref for detecting clicks outside
-
+  const searchContainerRef = useRef();
+  const navigate = useNavigate();
+  
   const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
   useEffect(() => {
@@ -100,11 +100,11 @@ const MapPage = () => {
         );
       });
 
-      setSuggestions(filteredSuggestions.slice(0, 5)); // Show up to 5 suggestions
+      setSuggestions(filteredSuggestions.slice(0, 5));
 
       if (filteredSuggestions.length > 0 && mapRef.current) {
         const firstStation = filteredSuggestions[0];
-        mapRef.current.setView([firstStation.Latitude, firstStation.Longitude], 15); // Move map to first result
+        mapRef.current.setView([firstStation.Latitude, firstStation.Longitude], 15);
       }
     } else {
       setSuggestions([]);
@@ -117,7 +117,7 @@ const MapPage = () => {
         searchContainerRef.current &&
         !searchContainerRef.current.contains(event.target)
       ) {
-        setSuggestions([]); // Close suggestions dropdown
+        setSuggestions([]);
       }
     };
 
@@ -139,7 +139,7 @@ const MapPage = () => {
     setSuggestions([]);
     setZoom(18);
     if (mapRef.current) {
-      mapRef.current.setView([station.Latitude, station.Longitude], 18); // Focus on the selected station
+      mapRef.current.setView([station.Latitude, station.Longitude], 18);
     }
   };
 
@@ -217,6 +217,15 @@ const MapPage = () => {
                       <span>Navigate with Waze</span>
                       <img src={WazeLogo} alt="Navigate with Waze" style={{ width: "24px", height: "24px" }} />
                     </a>
+                    <br />
+                    {/* Appointment link with class for styling */}
+                    <Link 
+                      to="/appointment" 
+                      state={{ station }}
+                      className="tooltip-appointment-button"
+                    >
+                      Book Appointment
+                    </Link>
                   </div>
                 </Tooltip>
               )}

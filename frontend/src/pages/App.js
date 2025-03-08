@@ -10,6 +10,7 @@ import Favorites from './Favorites';
 import PersonalArea from './PersonalArea';
 import VerifyCode from './VerifyCode';
 import ResetPassword from './ResetPassword';
+import Appointment from './Appointment';  // Import the new Appointment component
 import ProtectedRoute from '../components/ProtectedRoute'; 
 import Logout from './Logout'; 
 import '../designs/index.css';
@@ -22,12 +23,10 @@ function App() {
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar />
         
         <Routes>
-         
           <Route path="/verify-email" element={<VerifyCode />} />
-          <Route path="/login" element={<Login />} /> {/* ✅ תיקון הוספת נתיב התחברות */}
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
-
 
           <Route
             path="/home"
@@ -61,10 +60,17 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* New Appointment route */}
+          <Route
+            path="/appointment"
+            element={
+              <ProtectedRoute>
+                <Appointment />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="/logout" element={<Logout />} />
-          
-
           <Route path="*" element={<Login />} />
         </Routes>
       </div>

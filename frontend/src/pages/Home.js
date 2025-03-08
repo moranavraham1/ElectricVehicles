@@ -30,12 +30,12 @@ const Home = () => {
     }
   };
 
-  // שלב ראשון: חישוב מיקום המשתמש
+  // Step 1: Get the user's location
   useEffect(() => {
     fetchUserLocation();
   }, []);
 
-  // שלב שני: לאחר המיקום, טוענים את התחנות
+  // Step 2: Once location is available, fetch the stations
   useEffect(() => {
     if (latitude && longitude) {
       fetchStations();
@@ -43,7 +43,7 @@ const Home = () => {
   }, [latitude, longitude]);
 
   useEffect(() => {
-    const loggedInUser = localStorage.getItem('loggedInUser'); // קבלת המשתמש המחובר
+    const loggedInUser = localStorage.getItem('loggedInUser');
     if (!loggedInUser) {
       alert('User not logged in!');
       navigate('/login');
@@ -53,7 +53,7 @@ const Home = () => {
     setFavorites(savedFavorites.map((station) => station['Station Name']));
   }, [navigate]);
 
-  // מיון וסינון התחנות
+  // Filtering and sorting stations
   useEffect(() => {
     if (searchQuery) {
       const filtered = stations.filter(
@@ -108,10 +108,10 @@ const Home = () => {
         distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
       }));
 
-      // מיון התחנות לפי מרחק בסדר עולה
+      // Sort stations by distance in ascending order
       const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
       setStations(sortedStations);
-      setFilteredStations(sortedStations); // גם התחנות המסוננות צריכות להיות ממוינות
+      setFilteredStations(sortedStations); // Also sort the filtered stations
     } catch (error) {
       console.error('Error fetching stations:', error);
     }
@@ -159,63 +159,66 @@ const Home = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return parseFloat((R * c).toFixed(2));
   };
+
   const toggleFavorite = async (station) => {
     const loggedInUser = localStorage.getItem('loggedInUser');
     if (!loggedInUser) {
-        alert('Please log in to manage favorites!');
-        return;
+      alert('Please log in to manage favorites!');
+      return;
     }
 
     try {
-        const isFavorite = station.likedBy.includes(loggedInUser.toLowerCase());
-        if (isFavorite) {
-            // Remove from favorites
-            await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-                data: { user: loggedInUser.toLowerCase() },
-            });
+      const isFavorite = station.likedBy.includes(loggedInUser.toLowerCase());
+      if (isFavorite) {
+        // Remove from favorites
+        await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          data: { user: loggedInUser.toLowerCase() },
+        });
 
-            // עדכון רשימת המועדפים בתחנה
-            setStations((prevStations) =>
-                prevStations.map((s) =>
-                    s._id === station._id
-                        ? { ...s, likedBy: s.likedBy.filter((email) => email !== loggedInUser.toLowerCase()) }
-                        : s
-                )
-            );
-        } else {
-            // Add to favorites
-            await axios.post(`http://localhost:3001/api/stations/${station._id}/like`, 
-                { user: loggedInUser.toLowerCase() },
-                { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-            );
+        // Update favorites list for the station
+        setStations((prevStations) =>
+          prevStations.map((s) =>
+            s._id === station._id
+              ? { ...s, likedBy: s.likedBy.filter((email) => email !== loggedInUser.toLowerCase()) }
+              : s
+          )
+        );
+      } else {
+        // Add to favorites
+        await axios.post(
+          `http://localhost:3001/api/stations/${station._id}/like`,
+          { user: loggedInUser.toLowerCase() },
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
 
-            // עדכון רשימת המועדפים בתחנה
-            setStations((prevStations) =>
-                prevStations.map((s) =>
-                    s._id === station._id
-                        ? { ...s, likedBy: [...s.likedBy, loggedInUser.toLowerCase()] }
-                        : s
-                )
-            );
-        }
+        // Update favorites list for the station
+        setStations((prevStations) =>
+          prevStations.map((s) =>
+            s._id === station._id
+              ? { ...s, likedBy: [...s.likedBy, loggedInUser.toLowerCase()] }
+              : s
+          )
+        );
+      }
     } catch (error) {
-        console.error('Error updating favorites:', error);
+      console.error('Error updating favorites:', error);
     }
-};
+  };
 
+  // Function to navigate to the appointment page with the station details
+  const navigateToAppointment = (station) => {
+    navigate('/appointment', { state: { station } });
+  };
 
-
-  
   useEffect(() => {
-    const loggedInUser = localStorage.getItem('loggedInUser'); // המשתמש המחובר
+    const loggedInUser = localStorage.getItem('loggedInUser');
     if (loggedInUser) {
-      const favoriteKey = `favorites_${loggedInUser}`; // מפתח המועדפים הייחודי
+      const favoriteKey = `favorites_${loggedInUser}`;
       const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
       setFavorites(savedFavorites.map((station) => station['Station Name']));
     }
   }, []);
-  
 
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
@@ -264,6 +267,17 @@ const Home = () => {
               {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
             </div>
 
+            {/* Appointment button appears below the distance badge */}
+            <button 
+              className="appointment-button" 
+              onClick={(e) => {
+                e.stopPropagation();
+                navigateToAppointment(station);
+              }}
+            >
+              Book Appointment
+            </button>
+
             <div className="station-details">
               <h3>{station['Station Name']}</h3>
               <p><strong>Address:</strong> {station.Address}</p>
@@ -281,18 +295,15 @@ const Home = () => {
               </div>
             </div>
 
-            
             <div
-    className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
-    onClick={(e) => {
-        e.stopPropagation(); // עצירת התרחשות קליק על הכרטיס
-        toggleFavorite(station); // עדכון המועדפים
-    }}
->
-    <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
-</div>
-
-
+              className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite(station);
+              }}
+            >
+              <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
+            </div>
 
             <iframe
               title={`Street View of ${station['Station Name']}`}
@@ -322,20 +333,18 @@ const Home = () => {
         <button className="bottom-bar-button logout" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout
         </button>
-       <Link to="/personal-area" className="bottom-bar-button personal">
-           <i className="fas fa-user"></i> Personal Area
-         
-         </Link>
-         <Link to="/favorites" className="bottom-bar-button favorites">
-           <i className="fas fa-heart"></i> Favorites
-         </Link>
-         <Link to="/home" className="bottom-bar-button home">
-           <i className="fas fa-home"></i> Home
-         </Link>
-        
-         <Link to="/map" className="bottom-bar-button map">
-           <i className="fas fa-map-marked-alt"></i> Search on Map
-         </Link>
+        <Link to="/personal-area" className="bottom-bar-button personal">
+          <i className="fas fa-user"></i> Personal Area
+        </Link>
+        <Link to="/favorites" className="bottom-bar-button favorites">
+          <i className="fas fa-heart"></i> Favorites
+        </Link>
+        <Link to="/home" className="bottom-bar-button home">
+          <i className="fas fa-home"></i> Home
+        </Link>
+        <Link to="/map" className="bottom-bar-button map">
+          <i className="fas fa-map-marked-alt"></i> Search on Map
+        </Link>
       </div>
     </div>
   );

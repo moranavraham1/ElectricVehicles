@@ -4,11 +4,13 @@ import '../designs/PersonalArea.css';
 
 function PersonalArea() {
   const [userDetails, setUserDetails] = useState(null);
+  const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [updatedDetails, setUpdatedDetails] = useState({});
   const navigate = useNavigate();
+
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -49,6 +51,36 @@ function PersonalArea() {
     };
 
     fetchDetails();
+  }, []);
+
+  // Fetch appointments for the logged in user
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const response = await fetch(
+          `${process.env.REACT_APP_BACKEND_URL}/api/appointments`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setAppointments(data.appointments);
+        } else {
+          console.error('Failed to fetch appointments');
+        }
+      } catch (err) {
+        console.error('Error fetching appointments:', err);
+      }
+    };
+
+    fetchAppointments();
   }, []);
 
   const handleUpdate = async () => {
@@ -134,28 +166,36 @@ function PersonalArea() {
             type="text"
             name="firstName"
             value={updatedDetails.firstName}
-            onChange={(e) => setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })}
+            onChange={(e) =>
+              setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })
+            }
             placeholder="First Name"
           />
           <input
             type="text"
             name="lastName"
             value={updatedDetails.lastName}
-            onChange={(e) => setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })}
+            onChange={(e) =>
+              setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })
+            }
             placeholder="Last Name"
           />
           <input
             type="email"
             name="email"
             value={updatedDetails.email}
-            onChange={(e) => setUpdatedDetails({ ...updatedDetails, email: e.target.value })}
+            onChange={(e) =>
+              setUpdatedDetails({ ...updatedDetails, email: e.target.value })
+            }
             placeholder="Email"
           />
           <input
             type="text"
             name="phone"
             value={updatedDetails.phone}
-            onChange={(e) => setUpdatedDetails({ ...updatedDetails, phone: e.target.value })}
+            onChange={(e) =>
+              setUpdatedDetails({ ...updatedDetails, phone: e.target.value })
+            }
             placeholder="Phone"
           />
           <button onClick={handleUpdate}>
@@ -188,7 +228,29 @@ function PersonalArea() {
         </>
       )}
 
-      {/* סרגל תחתון נשאר ללא שינוי */}
+      {/* New section for displaying booked appointments */}
+      <div className="appointments-section">
+        <h2>Your Appointments</h2>
+        {appointments.length > 0 ? (
+          appointments.map((appointment) => (
+            <div key={appointment._id} className="appointment-item">
+              <p>
+                <strong>Station:</strong> {appointment.stationName}
+              </p>
+              <p>
+                <strong>Date:</strong> {appointment.appointmentDate}
+              </p>
+              <p>
+                <strong>Time:</strong> {appointment.appointmentTime}
+              </p>
+            </div>
+          ))
+        ) : (
+          <p>You have no appointments booked.</p>
+        )}
+      </div>
+
+      {/* Bottom Bar */}
       <div className="bottom-bar">
         <button className="bottom-bar-button logout-button" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout
