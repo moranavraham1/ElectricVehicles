@@ -1,9 +1,15 @@
 const mongoose = require('./db');
 const cors = require('cors');
+<<<<<<< HEAD
 const authRoutes = require('./authRoutes');
 const osmRoutes = require('./osmRoutes');
 const stationsRoutes = require('./routes/stations');
 const bookingRoutes = require('./routes/bookings');
+=======
+const authRoutes = require('./routes/authRoutes');
+const osmRoutes = require('./routes/osmRoutes'); // Add this line
+const stationsRoutes = require('./routes/stations'); // Import stations routes
+>>>>>>> 2d8a29e8 (Move to routes folder)
 require('dotenv').config();
 const express = require('express');
 const authMiddleware = require('./authMiddleware');
