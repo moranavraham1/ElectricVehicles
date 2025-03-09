@@ -19,6 +19,7 @@ function PersonalArea() {
 >>>>>>> 0ac2f7e6 (.)
   const [editMode, setEditMode] = useState(false);
   const [updatedDetails, setUpdatedDetails] = useState({});
+<<<<<<< HEAD
   const [view, setView] = useState("profile");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -33,6 +34,14 @@ function PersonalArea() {
     }
   };
 
+=======
+  // State for editing an appointment
+  const [editingAppointmentId, setEditingAppointmentId] = useState(null);
+  const [editedAppointment, setEditedAppointment] = useState({});
+  const navigate = useNavigate();
+
+  // Fetch user details
+>>>>>>> 419312ab (View appointments in your personal area and send an email about appointments, cancellations, and appointment updates.)
   useEffect(() => {
     const fetchUserDetails = async () => {
       const token = localStorage.getItem("token");
@@ -74,10 +83,12 @@ function PersonalArea() {
   // Fetch appointments for the logged in user
   useEffect(() => {
     const fetchAppointments = async () => {
+      if (!userDetails || !userDetails.email) return;
+
       const token = localStorage.getItem('token');
       try {
         const response = await fetch(
-          `${process.env.REACT_APP_BACKEND_URL}/api/appointments`,
+          `${process.env.REACT_APP_BACKEND_URL}/api/appointments?email=${userDetails.email}`,
           {
             method: 'GET',
             headers: {
@@ -99,9 +110,89 @@ function PersonalArea() {
     };
 
     fetchAppointments();
+<<<<<<< HEAD
   }, []);
 =======
 >>>>>>> 0ac2f7e6 (.)
+=======
+  }, [userDetails]);
+
+  // Function to cancel an appointment
+  const handleCancelAppointment = async (appointmentId) => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/appointments/${appointmentId}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      if (response.ok) {
+        // Remove the appointment from the state after successful deletion
+        setAppointments(appointments.filter(app => app._id !== appointmentId));
+      } else {
+        console.error('Failed to cancel appointment');
+        alert('Failed to cancel appointment');
+      }
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      alert('Error cancelling appointment');
+    }
+  };
+
+  // Function to initiate editing an appointment
+  const handleEditAppointment = (appointment) => {
+    setEditingAppointmentId(appointment._id);
+    setEditedAppointment({
+      appointmentDate: appointment.appointmentDate,
+      appointmentTime: appointment.appointmentTime,
+    });
+  };
+
+  // Function to save the updated appointment
+  const handleSaveAppointment = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/appointments/${editingAppointmentId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(editedAppointment),
+        }
+      );
+      if (response.ok) {
+        // Update the appointment in the state
+        const updatedAppointments = appointments.map((appointment) => {
+          if (appointment._id === editingAppointmentId) {
+            return {
+              ...appointment,
+              appointmentDate: editedAppointment.appointmentDate,
+              appointmentTime: editedAppointment.appointmentTime,
+            };
+          }
+          return appointment;
+        });
+        setAppointments(updatedAppointments);
+        setEditingAppointmentId(null);
+        setEditedAppointment({});
+      } else {
+        console.error('Failed to update appointment');
+        alert('Failed to update appointment');
+      }
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+      alert('Error updating appointment');
+    }
+  };
+>>>>>>> 419312ab (View appointments in your personal area and send an email about appointments, cancellations, and appointment updates.)
 
   const handleUpdate = async () => {
     if (!updatedDetails.firstName.trim() || !updatedDetails.lastName.trim() || !updatedDetails.phone.trim()) {
@@ -261,21 +352,64 @@ function PersonalArea() {
         </>
       )}
 
-      {/* New section for displaying booked appointments */}
+      {/* Section for displaying booked appointments */}
       <div className="appointments-section">
         <h2>Your Appointments</h2>
         {appointments.length > 0 ? (
           appointments.map((appointment) => (
             <div key={appointment._id} className="appointment-item">
-              <p>
-                <strong>Station:</strong> {appointment.stationName}
-              </p>
-              <p>
-                <strong>Date:</strong> {appointment.appointmentDate}
-              </p>
-              <p>
-                <strong>Time:</strong> {appointment.appointmentTime}
-              </p>
+              {editingAppointmentId === appointment._id ? (
+                <>
+                  <div className="edit-appointment-form">
+                    <label>
+                      Date:
+                      <input
+                        type="date"
+                        value={editedAppointment.appointmentDate}
+                        onChange={(e) =>
+                          setEditedAppointment({
+                            ...editedAppointment,
+                            appointmentDate: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Time:
+                      <input
+                        type="time"
+                        value={editedAppointment.appointmentTime}
+                        onChange={(e) =>
+                          setEditedAppointment({
+                            ...editedAppointment,
+                            appointmentTime: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                    <button onClick={handleSaveAppointment}>Save</button>
+                    <button onClick={() => setEditingAppointmentId(null)}>Cancel</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p>
+                    <strong>Station:</strong> {appointment.stationName}
+                  </p>
+                  <p>
+                    <strong>Date:</strong> {appointment.appointmentDate}
+                  </p>
+                  <p>
+                    <strong>Time:</strong> {appointment.appointmentTime}
+                  </p>
+                  <button onClick={() => handleEditAppointment(appointment)}>
+                    Edit Appointment
+                  </button>
+                  <button onClick={() => handleCancelAppointment(appointment._id)}>
+                    Cancel Appointment
+                  </button>
+                </>
+              )}
             </div>
           ))
         ) : (
