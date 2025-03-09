@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const authController = require('./authController');
-const authMiddleware = require('./authMiddleware'); // Import the middleware
+const authController = require('../authController');
+const authMiddleware = require('../authMiddleware'); // Import the middleware
 
 // נתיב מוגן - אזור אישי
 router.get('/personal-area', authMiddleware, (req, res) => {
