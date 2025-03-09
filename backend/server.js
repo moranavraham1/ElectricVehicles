@@ -8,6 +8,7 @@ const express = require('express');
 const authMiddleware = require('./authMiddleware'); // middleware לאימות
 const app = express();
 const router = express.Router();
+const appointmentRoutes = require('./routes/appointmentRoutes');
 
 
 app.use(express.json());
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/osm', osmRoutes); // Add OSM routes
 app.use('/api/stations', stationsRoutes); // Mount /api/stations route
 
+app.use('/api/appointments', appointmentRoutes);
 
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Server is up' });
