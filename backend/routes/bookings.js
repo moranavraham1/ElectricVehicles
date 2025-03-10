@@ -27,21 +27,12 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post("/check-availability", async (req, res) => {
   try {
     const { station, date } = req.body;
-    const trimmedStation = station.trim();
+    
+    // רשימת שעות זמינות לדוגמה
+    const allTimes = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00","00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00"];
+    const bookedTimes = await Booking.find({ station, date }).distinct("time");
 
-    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
-    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
-
-    let availableTimes = [];
-
-    for (let hour = 8; hour <= 22; hour++) {
-      const timeSlot = `${hour}:00`;
-      const bookingCount = await Booking.countDocuments({ station: trimmedStation, date, time: timeSlot });
-
-      if (bookingCount < maxSlots) {
-        availableTimes.push(timeSlot);
-      }
-    }
+    const availableTimes = allTimes.filter(time => !bookedTimes.includes(time));
 
     res.json({ availableTimes, maxCapacity: maxSlots });
   } catch (error) {
