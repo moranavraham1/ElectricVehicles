@@ -18,9 +18,9 @@ function ChangePassword() {
       toast.error("New password and confirmation do not match.");
       return;
     }
-
-    if (newPassword.length < 8) {
-      toast.error("Password must be at least 8 characters.");
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      toast.error("Password must be at least 8 characters long and include at least one uppercase letter, one lowercase letter, and one number.");
       return;
     }
 

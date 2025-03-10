@@ -18,6 +18,19 @@ const Home = () => {
   const [filteredStations, setFilteredStations] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const suggestionsRef = useRef(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedStation, setSelectedStation] = useState(null);
+  const [date, setDate] = useState('');
+  const [time, setTime] = useState("");
+  const [availableTimes, setAvailableTimes] = useState([]);
+  const [isAvailable, setIsAvailable] = useState(null);
+  const today = new Date().toISOString().split("T")[0]; 
+  
+  
+
+
+
+
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -116,6 +129,44 @@ const Home = () => {
       console.error('Error fetching stations:', error);
     }
   };
+  const fetchAvailableTimes = async (selectedDate) => {
+    if (!selectedStation) {
+      console.error("No station selected.");
+      return;
+    }
+  
+    try {
+      console.log("Fetching available times for:", selectedDate);
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
+        { station: selectedStation, date: selectedDate },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        );
+        let times = response.data.availableTimes || [];
+
+        
+        const now = new Date();
+        const currentHour = now.getHours();
+        const currentMinutes = now.getMinutes();
+        const today = now.toISOString().split("T")[0];
+
+        if (selectedDate === today) {
+            times = times.filter(time => {
+                const [hour, minute] = time.split(":").map(Number);
+                return hour > currentHour || (hour === currentHour && minute > currentMinutes);
+            });
+        }
+  
+      console.log("Available times received:", response.data.availableTimes);
+      setAvailableTimes(response.data.availableTimes || []);
+      setIsAvailable(response.data.availableTimes.length > 0);
+    } catch (error) {
+      console.error("Error fetching available times:", error);
+      setAvailableTimes([]);
+      setIsAvailable(false);
+    }
+  };
+  
 
   const handleSearchChange = (e) => {
     const query = e.target.value;
@@ -145,6 +196,52 @@ const Home = () => {
       return [clickedStation, ...updatedStations];
     });
   };
+  const checkAvailability = async () => {
+    if (!selectedStation || !date || !time) {
+      alert("Please select a station, date, and time.");
+      return;
+    }
+  
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
+        { station: selectedStation, date, time }
+      );
+  
+      console.log("Availability Response:", response.data);
+      setIsAvailable(response.data.available);
+    } catch (error) {
+      console.error("Error checking availability:", error);
+      setIsAvailable(false); // מונע קריסה אם יש שגיאה
+    }
+  };
+  
+  const bookAppointment = async () => {
+    if (!selectedStation || !date || !time) {
+      alert("Please select a station, date, and time.");
+      return;
+    }
+    if (!isAvailable) {
+      alert("This time slot is already booked.");
+      return;
+    }
+  
+    try {
+      await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/bookings/book`,
+        { station: selectedStation, date, time },
+        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+      );
+  
+      alert("Booking successful!");
+      setSelectedStation(null);
+    } catch (error) {
+      console.error("Error booking appointment:", error);
+      alert("Failed to book appointment. Please try again later.");
+    }
+  };
+  
+
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
@@ -222,14 +319,14 @@ const Home = () => {
       <div className="logo-container">
         <img src={logo} alt="EVision Logo" className="logo" />
       </div>
-
+  
       <div className="location-bar">
         <p>{loadingLocation ? 'Loading...' : userLocation} 📍</p>
         <button className="refresh-location-button" onClick={fetchUserLocation}>
           🔄 Refresh Location
         </button>
       </div>
-
+  
       <div className="search-bar-container" ref={suggestionsRef} onClick={(e) => e.stopPropagation()}>
         <input
           type="text"
@@ -252,18 +349,14 @@ const Home = () => {
           </ul>
         )}
       </div>
-
+  
       <div className="station-list">
         {filteredStations.map((station, index) => (
-          <div
-            key={index}
-            className="station-card"
-            onClick={() => handleStationClick(station)}
-          >
+          <div key={index} className="station-card">
             <div className="distance-badge">
               {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
             </div>
-
+  
             <div className="station-details">
               <h3>{station['Station Name']}</h3>
               <p><strong>Address:</strong> {station.Address}</p>
@@ -280,20 +373,33 @@ const Home = () => {
                 </a>
               </div>
             </div>
+  
+            <button 
+              type="button"  
+              onClick={(e) => { 
+                e.preventDefault();  
+                e.stopPropagation(); 
+                setSelectedStation(station['Station Name']); 
+                setShowModal(true);
+                console.log("Modal should open:", showModal); // 🔍 Debugging
+              }}
+            >
+              📅 Book Appointment
+            </button>
 
-            
+  
+            {/* Favorite Button */}
             <div
-    className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
-    onClick={(e) => {
-        e.stopPropagation(); // עצירת התרחשות קליק על הכרטיס
-        toggleFavorite(station); // עדכון המועדפים
-    }}
->
-    <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
-</div>
-
-
-
+              className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleFavorite(station);
+              }}
+            >
+              <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
+            </div>
+  
+            {/* Google Maps Street View */}
             <iframe
               title={`Street View of ${station['Station Name']}`}
               className="station-image-small"
@@ -317,28 +423,69 @@ const Home = () => {
           </div>
         ))}
       </div>
+  
+      {/* Booking Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <h2>Book an appointment for {selectedStation}</h2>
+          
+          {/* Date Picker */}
+          <label>Select Date:</label>
+          <input 
+            type="date" 
+            value={date} 
+            onChange={(e) => { 
+              setDate(e.target.value);
+              fetchAvailableTimes(e.target.value, selectedStation);
+            }} 
+            min={new Date().toISOString().split("T")[0]}
+          />
 
+          {/* Time Dropdown */}
+          {availableTimes && availableTimes.length > 0 ? (
+            <>
+              <label>Select Time:</label>
+              <select value={time} onChange={(e) => setTime(e.target.value)}>
+                <option value="">-- Select Time --</option>
+                {availableTimes.map((availableTime, index) => (
+                  <option key={index} value={availableTime}>
+                    {availableTime}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            date && <p>No available times for this date.</p>
+          )}
+
+          <button onClick={bookAppointment} disabled={!isAvailable || !time}>📌 Confirm Booking</button>
+          <button onClick={() => setShowModal(false)}>❌ Close</button>
+        </div>
+      </div>
+      )}
+  
       <div className="bottom-bar">
         <button className="bottom-bar-button logout" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout
         </button>
-       <Link to="/personal-area" className="bottom-bar-button personal">
-           <i className="fas fa-user"></i> Personal Area
-         
-         </Link>
-         <Link to="/favorites" className="bottom-bar-button favorites">
-           <i className="fas fa-heart"></i> Favorites
-         </Link>
-         <Link to="/home" className="bottom-bar-button home">
-           <i className="fas fa-home"></i> Home
-         </Link>
-        
-         <Link to="/map" className="bottom-bar-button map">
-           <i className="fas fa-map-marked-alt"></i> Search on Map
-         </Link>
+        <Link to="/personal-area" className="bottom-bar-button">
+          <i className="fas fa-user"></i> Personal Area
+        </Link>
+        <Link to="/favorites" className="bottom-bar-button">
+          <i className="fas fa-heart"></i> Favorites
+        </Link>
+        <Link to="/home" className="bottom-bar-button">
+          <i className="fas fa-home"></i> Home
+        </Link>
+        <Link to="/map" className="bottom-bar-button">
+          <i className="fas fa-map-marked-alt"></i> Search on Map
+        </Link>
       </div>
     </div>
   );
-};
+
+  
+}  
 
 export default Home;

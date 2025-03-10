@@ -1,6 +1,8 @@
 const User = require('./User');
 const jwt = require('jsonwebtoken');
+const Booking = require('./models/Booking'); 
 const bcrypt = require('bcryptjs');
+
 const nodemailer = require('nodemailer');
 
 // Configure nodemailer
@@ -298,14 +300,120 @@ exports.updateDetails = async (req, res) => {
 
     user.firstName = firstName || user.firstName;
     user.lastName = lastName || user.lastName;
-    user.email = email || user.email;
     user.phone = phone || user.phone;
 
     await user.save();
+    await transporter.sendMail({
+      from: process.env.EMAIL,
+      to: user.email,
+      subject: "Profile Updated",
+      text: `Hello ${user.firstName},\n\nYour profile has been updated successfully.\n\nUpdated details:\nFirst Name: ${user.firstName}\nLast Name: ${user.lastName}\nPhone: ${user.phone}\n\nIf you didn't make this change, please contact support.`,
+    });
 
     res.status(200).json(user);
   } catch (error) {
     console.error('Error updating user details:', error);
     res.status(500).json({ message: 'Error updating details' });
   }
+
 };
+exports.createBooking = async (req, res) => {
+  try {
+    const { station, date, time } = req.body;
+    const userId = req.user.id; 
+
+
+    const existingBooking = await Booking.findOne({ station, date, time });
+    if (existingBooking) {
+      return res.status(400).json({ message: 'This time slot is already booked.' });
+    }
+
+
+    const newBooking = new Booking({
+      user: userId,
+      station,
+      date,
+      time,
+    });
+
+    await newBooking.save();
+
+
+    const user = await User.findById(userId);
+
+
+    await transporter.sendMail({
+      from: process.env.EMAIL,
+      to: user.email,
+      subject: 'Appointment Confirmation',
+      text: `Hello ${user.firstName},\n\nYour appointment has been confirmed for ${station} on ${date} at ${time}.\n\nThank you for choosing us!`,
+    });
+
+    res.status(201).json({ message: 'Booking confirmed and email sent.', booking: newBooking });
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    res.status(500).json({ message: 'Error creating booking.' });
+  }
+};
+exports.cancelBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    const userId = req.user.id;
+
+    const booking = await Booking.findOne({ _id: bookingId, user: userId });
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found.' });
+    }
+
+    await Booking.deleteOne({ _id: bookingId });
+
+    const user = await User.findById(userId);
+
+
+    await transporter.sendMail({
+      from: process.env.EMAIL,
+      to: user.email,
+      subject: 'Appointment Cancelled',
+      text: `Hello ${user.firstName},\n\nYour appointment for ${booking.station} on ${booking.date} at ${booking.time} has been cancelled.\n\nIf this was a mistake, please rebook your appointment.`,
+    });
+
+    res.status(200).json({ message: 'Booking cancelled and email sent.' });
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    res.status(500).json({ message: 'Error cancelling booking.' });
+  }
+};
+const sendUpcomingBookingReminder = async () => {
+  try {
+    const now = new Date();
+    now.setMinutes(0, 0, 0); 
+
+    const oneHourLater = new Date(now);
+    oneHourLater.setHours(oneHourLater.getHours() + 1);
+
+
+    const upcomingBookings = await Booking.find({
+      date: now.toISOString().split('T')[0],
+      time: oneHourLater.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+    }).populate('user');
+
+
+    for (const booking of upcomingBookings) {
+      await transporter.sendMail({
+        from: process.env.EMAIL,
+        to: booking.user.email,
+        subject: 'Reminder: Your Appointment is in One Hour',
+        text: `Hello ${booking.user.firstName},\n\nThis is a reminder that your appointment at ${booking.station} is in one hour.\n\nDate: ${booking.date}\nTime: ${booking.time}\n\nPlease be on time.`,
+      });
+    }
+
+    console.log(`✅ Sent ${upcomingBookings.length} reminders`);
+  } catch (error) {
+    console.error('Error sending reminders:', error);
+  }
+};
+
+
+setInterval(sendUpcomingBookingReminder, 30 * 60 * 1000);
+
+
