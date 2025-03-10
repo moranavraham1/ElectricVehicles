@@ -53,6 +53,14 @@ function PersonalArea() {
   }, [navigate]);
 
   const handleUpdate = async () => {
+    if (!updatedDetails.firstName.trim() || !updatedDetails.lastName.trim() || !updatedDetails.phone.trim()) {
+      alert("All fields must be filled before saving.");
+      return;
+    }
+    if (!/^\d{10}$/.test(updatedDetails.phone)) {
+      alert("Phone number must be exactly 10 digits.");
+      return;
+    }
     const token = localStorage.getItem("token");
 
     try {
@@ -72,7 +80,7 @@ function PersonalArea() {
 
       setUserDetails(updatedDetails);
       setEditMode(false);
-      alert("Details updated successfully!");
+      alert("Details updated successfully! A confirmation email has been sent.");
     } catch (err) {
       alert(`Error updating details: ${err.message}`);
     }
