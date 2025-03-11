@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
+<<<<<<< HEAD:backend/routes/authRoutes.js
 <<<<<<< HEAD:backend/authRoutes.js
 const authController = require('./authController');
 const authMiddleware = require('./authMiddleware');
 =======
 const authController = require('../authController');
 const authMiddleware = require('../authMiddleware'); // Import the middleware
+=======
+const authController = require('./authController');
+const authMiddleware = require('./authMiddleware'); // Import the middleware
+>>>>>>> 6192b3b1 (.):backend/authRoutes.js
 
 // נתיב מוגן - אזור אישי
 >>>>>>> 2d8a29e8 (Move to routes folder):backend/routes/authRoutes.js

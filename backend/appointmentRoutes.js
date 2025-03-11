@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const authMiddleware = require('../authMiddleware');
-const Appointment = require('../Appointment');
+const authMiddleware = require('./authMiddleware');
+const Appointment = require('./Appointment');
 const nodemailer = require('nodemailer');
 
 // הגדרת transporter לשליחת מיילים
