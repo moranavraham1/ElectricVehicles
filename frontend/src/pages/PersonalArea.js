@@ -9,11 +9,14 @@ import logo from "../assets/logo.jpg";
 function PersonalArea() {
   const [userDetails, setUserDetails] = useState(null);
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
   const [appointments, setAppointments] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 >>>>>>> 8d42dfa9 (Summoning queues)
+=======
+>>>>>>> 0ac2f7e6 (.)
   const [editMode, setEditMode] = useState(false);
   const [updatedDetails, setUpdatedDetails] = useState({});
   const [view, setView] = useState("profile");
@@ -29,7 +32,6 @@ function PersonalArea() {
       console.error("Logout error:", error);
     }
   };
-
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -67,6 +69,7 @@ function PersonalArea() {
 
     fetchUserDetails();
   }, [navigate]);
+<<<<<<< HEAD
 
   // Fetch appointments for the logged in user
   useEffect(() => {
@@ -97,6 +100,8 @@ function PersonalArea() {
 
     fetchAppointments();
   }, []);
+=======
+>>>>>>> 0ac2f7e6 (.)
 
   const handleUpdate = async () => {
     if (!updatedDetails.firstName.trim() || !updatedDetails.lastName.trim() || !updatedDetails.phone.trim()) {
@@ -136,6 +141,7 @@ function PersonalArea() {
   if (error) return <div className="error-message">Error: {error}</div>;
 
   return (
+<<<<<<< HEAD
 <<<<<<< HEAD
     <div className="personal-area-page">
       <div className="top-bar">
@@ -279,6 +285,57 @@ function PersonalArea() {
 
       {/* Bottom Bar */}
 >>>>>>> 8d42dfa9 (Summoning queues)
+=======
+    <div className="personal-area-page">
+      {/* 🔹 סרגל עליון עם לוגו */}
+      <div className="top-bar">
+        <img src={logo} alt="EVision Logo" className="logo" />
+      </div>
+
+      {/* 🔹 תוכן ראשי */}
+      <div className="content-container">
+        <h1>Personal Area</h1>
+
+        {/* 🔹 כפתורי ניווט */}
+        <nav className="tab-navigation">
+          <button className={view === "profile" ? "active" : ""} onClick={() => setView("profile")}>Profile</button>
+          <button className={view === "history" ? "active" : ""} onClick={() => setView("history")}>Charge History</button>
+          <button className={view === "bookings" ? "active" : ""} onClick={() => setView("bookings")}>Future Bookings</button>
+          <button className={view === "password" ? "active" : ""} onClick={() => setView("password")}>Change Password</button>
+        </nav>
+
+        {/* 🔹 תצוגת הפרופיל עם נתוני המשתמש */}
+        <div className="tab-content">
+          {view === "profile" && (
+            <>
+              {editMode ? (
+                <div className="editable-user-info">
+                  <input type="text" value={updatedDetails.firstName || ""} onChange={(e) => setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })} placeholder="First Name" />
+                  <input type="text" value={updatedDetails.lastName || ""} onChange={(e) => setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })} placeholder="Last Name" />
+                  <input type="email" value={updatedDetails.email || ""} readOnly placeholder="Email (Cannot be changed)" />
+                  <input type="text" value={updatedDetails.phone || ""} onChange={(e) => setUpdatedDetails({ ...updatedDetails, phone: e.target.value })} placeholder="Phone" />
+                  <button className="save-btn" onClick={handleUpdate}>Save</button>
+                  <button className="cancel-btn" onClick={() => setEditMode(false)}>Cancel</button>
+                </div>
+              ) : (
+                <div className="profile-info">
+                  <p><span>First Name:</span> {userDetails?.firstName || "Not Available"}</p>
+                  <p><span>Last Name:</span> {userDetails?.lastName || "Not Available"}</p>
+                  <p><span>Email:</span> {userDetails?.email || "Not Available"}</p>
+                  <p><span>Phone:</span> {userDetails?.phone || "Not Available"}</p>
+                  <button className="edit-btn" onClick={() => setEditMode(true)}>Edit Info</button>
+                </div>
+              )}
+            </>
+          )}
+          {view === "history" && <ChargeHistory />}
+          {view === "bookings" && <FutureBookings />}
+          {view === "password" && <ChangePassword />}
+        </div>
+      </div>
+
+      {/* 🔹 סרגל תחתון */}
+>>>>>>> 0ac2f7e6 (.)
       <div className="bottom-bar">
         <Link className="bottom-bar-button logout" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout
