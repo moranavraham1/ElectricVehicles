@@ -1,7 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
-const Station = require('./Station');
+const Station = require('../Station');
 
 router.get('/nearby', async (req, res) => {
   const { lat, lon, radius = 1000, amenity } = req.query;  

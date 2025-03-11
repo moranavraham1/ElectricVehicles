@@ -36,7 +36,7 @@ const Appointment = () => {
     setErrorMessage('');
 
     // Prepare payload for sending to the server
-    const userEmail = localStorage.getItem('userEmail') || 'your-email@example.com'; // Assumes you store the user's email
+    const userEmail = localStorage.getItem('loggedInUser'); // Using loggedInUser consistently
     const payload = {
       email: userEmail,
       stationName: station['Station Name'],
@@ -49,10 +49,12 @@ const Appointment = () => {
     };
 
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:3001/api/appointments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(payload),
       });
