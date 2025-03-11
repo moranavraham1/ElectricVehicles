@@ -296,3 +296,28 @@ button[type="submit"]:hover {
 .suggestion-item:hover {
   background: #f0f0f0;
 }
+.tooltip-appointment-button {
+  display: block;
+  width: fit-content;
+  margin: 5px 0 0 0;
+  padding: 4px 8px;
+  background-color: #09671f;
+  color: #fff !important;
+  font-size: 0.8rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 3px;
+  text-decoration: none;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.tooltip-appointment-button:hover {
+  transform: scale(1.05);
+}
+
+.tooltip-appointment-button:active,
+.tooltip-appointment-button:focus {
+  color: #f0eded !important;
+  background-color: #09671f !important;
+  outline: none;
+}
