@@ -14,6 +14,15 @@ function PersonalArea() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const handleLogout = () => {
+    try {
+      localStorage.clear();
+      alert("You have been logged out successfully!");
+      navigate("/login");
+    } catch (error) {
+      console.error("Logout error:", error);
+    }
+  };
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -91,16 +100,13 @@ function PersonalArea() {
 
   return (
     <div className="personal-area-page">
-      {/* 🔹 סרגל עליון עם לוגו */}
       <div className="top-bar">
         <img src={logo} alt="EVision Logo" className="logo" />
       </div>
 
-      {/* 🔹 תוכן ראשי */}
       <div className="content-container">
         <h1>Personal Area</h1>
 
-        {/* 🔹 כפתורי ניווט */}
         <nav className="tab-navigation">
           <button className={view === "profile" ? "active" : ""} onClick={() => setView("profile")}>Profile</button>
           <button className={view === "history" ? "active" : ""} onClick={() => setView("history")}>Charge History</button>
@@ -108,7 +114,7 @@ function PersonalArea() {
           <button className={view === "password" ? "active" : ""} onClick={() => setView("password")}>Change Password</button>
         </nav>
 
-        {/* 🔹 תצוגת הפרופיל עם נתוני המשתמש */}
+
         <div className="tab-content">
           {view === "profile" && (
             <>
@@ -138,13 +144,23 @@ function PersonalArea() {
         </div>
       </div>
 
-      {/* 🔹 סרגל תחתון */}
+
       <div className="bottom-bar">
-        <Link to="/home" className="bottom-bar-button">Home</Link>
-        <Link to="/personal-area" className="bottom-bar-button">Personal Area</Link>
-        <Link to="/favorites" className="bottom-bar-button">Favorites</Link>
-        <Link to="/map" className="bottom-bar-button">Search on Map</Link>
-        <button className="bottom-bar-button logout-button" onClick={() => { localStorage.clear(); navigate("/login"); }}>Logout</button>
+        <Link className="bottom-bar-button logout" onClick={handleLogout}>
+          <i className="fas fa-sign-out-alt"></i> Logout
+        </Link>
+        <Link to="/personal-area" className="bottom-bar-button">
+          <i className="fas fa-user"></i> Personal Area
+        </Link>
+        <Link to="/favorites" className="bottom-bar-button">
+          <i className="fas fa-heart"></i> Favorites
+        </Link>
+        <Link to="/home" className="bottom-bar-button">
+          <i className="fas fa-home"></i> Home
+        </Link>
+        <Link to="/map" className="bottom-bar-button">
+          <i className="fas fa-map-marked-alt"></i> Search on Map
+        </Link>
       </div>
     </div>
   );

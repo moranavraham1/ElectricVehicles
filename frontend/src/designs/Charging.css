@@ -1,0 +1,115 @@
+.charging-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    height: 100vh;
+    background-color: #f5f5f5;
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.charging-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.charging-location {
+    font-size: 20px;
+    color: #555;
+}
+
+.charging-status {
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+.charging-status.active {
+    color: #28a745;
+}
+
+.charging-status.finished {
+    color: #dc3545;
+}
+
+.charging-timer {
+    font-size: 24px;
+    font-weight: bold;
+    background: #fff;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+    margin: 15px 0;
+}
+
+.start-button,
+.stop-button {
+    background-color: #007bff;
+    color: white;
+    padding: 14px 24px;
+    font-size: 20px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: 0.3s;
+}
+
+.stop-button {
+    background-color: #dc3545;
+}
+
+.start-button:hover {
+    background-color: #0056b3;
+}
+
+.stop-button:hover {
+    background-color: #c82333;
+}
+
+@media screen and (max-width: 1200px) {
+    .charging-title {
+        font-size: 26px;
+    }
+
+    .charging-location {
+        font-size: 18px;
+    }
+
+    .charging-timer {
+        font-size: 22px;
+    }
+
+    .start-button,
+    .stop-button {
+        font-size: 18px;
+        padding: 12px 20px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .charging-container {
+        padding: 10px;
+    }
+
+    .charging-title {
+        font-size: 24px;
+    }
+
+    .charging-location {
+        font-size: 16px;
+    }
+
+    .charging-timer {
+        font-size: 20px;
+    }
+
+    .start-button,
+    .stop-button {
+        font-size: 16px;
+        padding: 10px 16px;
+    }
+}

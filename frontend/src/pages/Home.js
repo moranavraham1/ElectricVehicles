@@ -5,6 +5,7 @@ import '../designs/Home.css';
 import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
 
+
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const Home = () => {
@@ -24,9 +25,18 @@ const Home = () => {
   const [time, setTime] = useState("");
   const [availableTimes, setAvailableTimes] = useState([]);
   const [isAvailable, setIsAvailable] = useState(null);
-  const today = new Date().toISOString().split("T")[0]; 
-  
-  
+  const today = new Date().toISOString().split("T")[0];
+  const closeModal = () => {
+    setShowModal(false);
+    setDate('');
+    setTime('');
+    setAvailableTimes([]);
+  };
+
+  const startCharging = (station) => {
+    navigate('/charging', { state: { station } });
+  };
+
 
 
 
@@ -43,12 +53,11 @@ const Home = () => {
     }
   };
 
-  // Step 1: Get the user's location
+
   useEffect(() => {
     fetchUserLocation();
   }, []);
 
-  // Step 2: Once location is available, fetch the stations
   useEffect(() => {
     if (latitude && longitude) {
       fetchStations();
@@ -66,7 +75,6 @@ const Home = () => {
     setFavorites(savedFavorites.map((station) => station['Station Name']));
   }, [navigate]);
 
-  // Filtering and sorting stations
   useEffect(() => {
     if (searchQuery) {
       const filtered = stations.filter(
@@ -121,52 +129,50 @@ const Home = () => {
         distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
       }));
 
-      // Sort stations by distance in ascending order
       const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
       setStations(sortedStations);
-      setFilteredStations(sortedStations); // Also sort the filtered stations
+      setFilteredStations(sortedStations);
     } catch (error) {
       console.error('Error fetching stations:', error);
     }
   };
+  const [chargingSlots, setChargingSlots] = useState({});
+
   const fetchAvailableTimes = async (selectedDate) => {
-    if (!selectedStation) {
-      console.error("No station selected.");
-      return;
-    }
-  
+    if (!selectedStation) return;
+
     try {
-      console.log("Fetching available times for:", selectedDate);
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
-        { station: selectedStation, date: selectedDate },
+        { station: selectedStation["Station Name"], date: selectedDate }
+        ,
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
-        );
-        let times = response.data.availableTimes || [];
+      );
 
-        
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentMinutes = now.getMinutes();
-        const today = now.toISOString().split("T")[0];
+      console.log("✅ response from check-availability:", response.data);
+      let availableTimeSlots = response.data.availableTimes || [];
+      const bookingsPerTime = response.data.bookingsPerTime || {};
+      const maxCapacity = selectedStation["Duplicate Count"] || 1;
+      let updatedChargingSlots = {};
 
-        if (selectedDate === today) {
-            times = times.filter(time => {
-                const [hour, minute] = time.split(":").map(Number);
-                return hour > currentHour || (hour === currentHour && minute > currentMinutes);
-            });
-        }
-  
-      console.log("Available times received:", response.data.availableTimes);
-      setAvailableTimes(response.data.availableTimes || []);
-      setIsAvailable(response.data.availableTimes.length > 0);
+      availableTimeSlots = availableTimeSlots.filter(time => {
+        const bookedCount = bookingsPerTime[time] || 0;
+        const remainingSlots = maxCapacity - bookedCount;
+        updatedChargingSlots[time] = remainingSlots;
+        return remainingSlots > 0;
+      });
+
+      setAvailableTimes(availableTimeSlots);
+      setChargingSlots(updatedChargingSlots);
+      setIsAvailable(availableTimeSlots.length > 0);
     } catch (error) {
       console.error("Error fetching available times:", error);
       setAvailableTimes([]);
+      setChargingSlots({});
       setIsAvailable(false);
     }
   };
-  
+
 
   const handleSearchChange = (e) => {
     const query = e.target.value;
@@ -188,59 +194,41 @@ const Home = () => {
     setSuggestions([]);
   };
 
-  const handleStationClick = (clickedStation) => {
-    setStations((prevStations) => {
-      const updatedStations = prevStations.filter(
-        (station) => station['Station Name'] !== clickedStation['Station Name']
-      );
-      return [clickedStation, ...updatedStations];
-    });
-  };
-  const checkAvailability = async () => {
-    if (!selectedStation || !date || !time) {
-      alert("Please select a station, date, and time.");
-      return;
-    }
-  
-    try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
-        { station: selectedStation, date, time }
-      );
-  
-      console.log("Availability Response:", response.data);
-      setIsAvailable(response.data.available);
-    } catch (error) {
-      console.error("Error checking availability:", error);
-      setIsAvailable(false); // מונע קריסה אם יש שגיאה
-    }
-  };
-  
+
+
   const bookAppointment = async () => {
     if (!selectedStation || !date || !time) {
       alert("Please select a station, date, and time.");
       return;
     }
-    if (!isAvailable) {
-      alert("This time slot is already booked.");
-      return;
-    }
-  
+
     try {
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/book`,
-        { station: selectedStation, date, time },
+        { station: selectedStation["Station Name"], date, time },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
-  
+
       alert("Booking successful!");
-      setSelectedStation(null);
+
+      setChargingSlots(prevSlots => {
+        const updatedSlots = { ...prevSlots };
+        if (updatedSlots[time] > 1) {
+          updatedSlots[time] -= 1;
+        } else {
+          delete updatedSlots[time];
+          setAvailableTimes(prevTimes => prevTimes.filter(t => t !== time));
+        }
+        return updatedSlots;
+      });
+
+      closeModal();
     } catch (error) {
       console.error("Error booking appointment:", error);
       alert("Failed to book appointment. Please try again later.");
     }
   };
-  
+
 
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -256,7 +244,6 @@ const Home = () => {
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return parseFloat((R * c).toFixed(2));
   };
-
   const toggleFavorite = async (station) => {
     const loggedInUser = localStorage.getItem('loggedInUser');
     if (!loggedInUser) {
@@ -267,13 +254,11 @@ const Home = () => {
     try {
       const isFavorite = station.likedBy.includes(loggedInUser.toLowerCase());
       if (isFavorite) {
-        // Remove from favorites
         await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           data: { user: loggedInUser.toLowerCase() },
         });
 
-        // Update favorites list for the station
         setStations((prevStations) =>
           prevStations.map((s) =>
             s._id === station._id
@@ -282,14 +267,11 @@ const Home = () => {
           )
         );
       } else {
-        // Add to favorites
-        await axios.post(
-          `http://localhost:3001/api/stations/${station._id}/like`,
+        await axios.post(`http://localhost:3001/api/stations/${station._id}/like`,
           { user: loggedInUser.toLowerCase() },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
 
-        // Update favorites list for the station
         setStations((prevStations) =>
           prevStations.map((s) =>
             s._id === station._id
@@ -303,10 +285,8 @@ const Home = () => {
     }
   };
 
-  // Function to navigate to the appointment page with the station details
-  const navigateToAppointment = (station) => {
-    navigate('/appointment', { state: { station } });
-  };
+
+
 
   useEffect(() => {
     const loggedInUser = localStorage.getItem('loggedInUser');
@@ -317,19 +297,20 @@ const Home = () => {
     }
   }, []);
 
+
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
       <div className="logo-container">
         <img src={logo} alt="EVision Logo" className="logo" />
       </div>
-  
+
       <div className="location-bar">
         <p>{loadingLocation ? 'Loading...' : userLocation} 📍</p>
         <button className="refresh-location-button" onClick={fetchUserLocation}>
           🔄 Refresh Location
         </button>
       </div>
-  
+
       <div className="search-bar-container" ref={suggestionsRef} onClick={(e) => e.stopPropagation()}>
         <input
           type="text"
@@ -352,14 +333,14 @@ const Home = () => {
           </ul>
         )}
       </div>
-  
+
       <div className="station-list">
         {filteredStations.map((station, index) => (
           <div key={index} className="station-card">
             <div className="distance-badge">
               {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
             </div>
-  
+
             <div className="station-details">
               <h3>{station['Station Name']}</h3>
               <p><strong>Address:</strong> {station.Address}</p>
@@ -376,21 +357,36 @@ const Home = () => {
                 </a>
               </div>
             </div>
-  
-            <button 
-              type="button"  
-              onClick={(e) => { 
-                e.preventDefault();  
-                e.stopPropagation(); 
-                setSelectedStation(station['Station Name']); 
-                setShowModal(true);
-                console.log("Modal should open:", showModal); // 🔍 Debugging
-              }}
-            >
-              📅 Book Appointment
-            </button>
 
-  
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const todayDate = new Date().toISOString().split("T")[0];
+                  setSelectedStation(station);
+                  setDate(todayDate);
+                  setShowModal(true);
+                  fetchAvailableTimes(todayDate);
+                }}
+              >
+                📅 Book Appointment
+              </button>
+
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  startCharging(station);
+                }}
+              >
+                ⚡ Start Charging
+              </button>
+            </div>
+
+
             {/* Favorite Button */}
             <div
               className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
@@ -401,7 +397,7 @@ const Home = () => {
             >
               <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
             </div>
-  
+
             {/* Google Maps Street View */}
             <iframe
               title={`Street View of ${station['Station Name']}`}
@@ -426,48 +422,61 @@ const Home = () => {
           </div>
         ))}
       </div>
-  
+
       {/* Booking Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-          <h2>Book an appointment for {selectedStation}</h2>
-          
-          {/* Date Picker */}
-          <label>Select Date:</label>
-          <input 
-            type="date" 
-            value={date} 
-            onChange={(e) => { 
-              setDate(e.target.value);
-              fetchAvailableTimes(e.target.value, selectedStation);
-            }} 
-            min={new Date().toISOString().split("T")[0]}
-          />
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Book an appointment for {selectedStation['Station Name']}</h2>
 
-          {/* Time Dropdown */}
-          {availableTimes && availableTimes.length > 0 ? (
-            <>
-              <label>Select Time:</label>
-              <select value={time} onChange={(e) => setTime(e.target.value)}>
-                <option value="">-- Select Time --</option>
-                {availableTimes.map((availableTime, index) => (
-                  <option key={index} value={availableTime}>
-                    {availableTime}
-                  </option>
-                ))}
-              </select>
-            </>
-          ) : (
-            date && <p>No available times for this date.</p>
-          )}
+            <label htmlFor="date">Select Date:</label>
+            <input
+              id="date"
+              type="date"
+              value={date}
+              min={today}
+              onChange={(e) => {
+                const selectedDate = e.target.value;
+                if (selectedDate < today) {
+                  alert("You cannot select a past date!");
+                  setDate(today);
+                  fetchAvailableTimes(today);
+                } else {
+                  setDate(selectedDate);
+                  setTime("");
+                  fetchAvailableTimes(selectedDate);
+                }
+              }}
+            />
 
-          <button onClick={bookAppointment} disabled={!isAvailable || !time}>📌 Confirm Booking</button>
-          <button onClick={() => setShowModal(false)}>❌ Close</button>
+            <label htmlFor="time">Select Time:</label>
+            <select
+              id="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              disabled={availableTimes.length === 0}
+            >
+              <option value="">-- Select Time --</option>
+              {availableTimes.map((availableTime, index) => (
+                <option key={index} value={availableTime}>
+                  {availableTime}
+                </option>
+              ))}
+            </select>
+
+            {date && availableTimes.length === 0 && (
+              <p style={{ color: "red" }}>No available times for this date.</p>
+            )}
+
+            <button onClick={bookAppointment} disabled={!isAvailable || !time}>
+              📌 Confirm Booking
+            </button>
+            <button onClick={closeModal}>❌ Close</button>
+          </div>
         </div>
-      </div>
       )}
-  
+
+
       <div className="bottom-bar">
         <button className="bottom-bar-button logout" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout
@@ -485,10 +494,10 @@ const Home = () => {
           <i className="fas fa-map-marked-alt"></i> Search on Map
         </Link>
       </div>
-    </div>
+    </div >
   );
 
-  
-}  
+
+}
 
 export default Home;

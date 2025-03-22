@@ -1,6 +1,5 @@
 const mongoose = require('mongoose');
 
-// יצירת סכימה לתחנה
 const stationSchema = new mongoose.Schema({
   'Station Name': { type: String, required: true },
   'Address': { type: String, required: true },
@@ -23,7 +22,7 @@ const stationSchema = new mongoose.Schema({
       message: 'Duplicate Count must be an integer',
     },
   },
-  likedBy: { type: [String], default: [] }, // שדה למיילים של המשתמשים שאהבו
+  likedBy: { type: [String], default: [] },
 });
 
 module.exports = mongoose.model('Station', stationSchema);

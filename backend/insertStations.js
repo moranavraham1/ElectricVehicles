@@ -1,12 +1,10 @@
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config();
 const mongoose = require('mongoose');
 const Station = require('./Station');
 
-// Get MongoDB URI from the environment variable
 const MONGO_URI = process.env.MONGO_URI;
 
-// Station data
-const stationData = 
+const stationData =
     [
         {
             "Station Name": "G Tzamerat ",
@@ -12016,28 +12014,23 @@ const stationData =
         }
     ];
 
-// Main function to insert data
 async function insertData() {
     try {
-        // Connect to MongoDB
         await mongoose.connect(MONGO_URI, {
             useNewUrlParser: true,
             useUnifiedTopology: true
         });
         console.log('Connected to MongoDB');
 
-        // Insert data
         const result = await Station.insertMany(stationData);
         console.log(`${result.length} stations inserted successfully`);
 
     } catch (error) {
         console.error('Error inserting data:', error.message);
     } finally {
-        // Disconnect from MongoDB
         await mongoose.disconnect();
         console.log('Disconnected from MongoDB');
     }
 }
 
-// Execute the script
 insertData();
