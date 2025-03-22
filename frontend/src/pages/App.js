@@ -10,19 +10,20 @@ import Favorites from './Favorites';
 import PersonalArea from './PersonalArea';
 import VerifyCode from './VerifyCode';
 import ChangePassword from './ChangePassword';
-import ProtectedRoute from '../components/ProtectedRoute'; 
-import Logout from './Logout'; 
+import ProtectedRoute from '../components/ProtectedRoute';
+import Logout from './Logout';
 import '../designs/index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import Charging from './Charging'; // ודאי שהנתיב נכון
 
 function App() {
   return (
     <Router>
       <div className="App">
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar />
-        
+
         <Routes>
-         
+
           <Route path="/verify-email" element={<VerifyCode />} />
           <Route path="/login" element={<Login />} /> {/* ✅ תיקון הוספת נתיב התחברות */}
           <Route path="/register" element={<Register />} />
@@ -62,8 +63,10 @@ function App() {
             }
           />
 
+          <Route path="/charging" element={<Charging />} />
+
           <Route path="/logout" element={<Logout />} />
-          
+
 
           <Route path="*" element={<Login />} />
         </Routes>
