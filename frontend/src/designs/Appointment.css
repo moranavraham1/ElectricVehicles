@@ -1,0 +1,187 @@
+
+
+.appointment-container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 30px;
+    background: #f9f9f9;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    font-family: 'Poppins', Arial, sans-serif;
+  }
+  
+  .appointment-container h1 {
+    font-size: 2.2rem;
+    color: #1b5e20;
+    margin-bottom: 25px;
+  }
+  
+  .station-info {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    text-align: left;
+    transition: box-shadow 0.3s ease;
+  }
+  
+  .station-info:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .station-info h2 {
+    font-size: 1.6rem;
+    color: #333;
+    margin-bottom: 15px;
+  }
+  
+  .station-info p {
+    font-size: 1rem;
+    color: #555;
+    margin: 8px 0;
+  }
+  
+
+  
+  .appointment-form {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 10px;
+    padding: 25px;
+    margin-bottom: 30px;
+    text-align: left;
+  }
+  
+  .appointment-form h3 {
+    font-size: 1.4rem;
+    margin-bottom: 20px;
+    color: #1b5e20;
+    text-align: center;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #333;
+  }
+  
+  .form-group input,
+  .react-datepicker-wrapper,
+  .react-datepicker__input-container input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border 0.3s ease;
+  }
+  
+  .form-group input:focus,
+  .react-datepicker-wrapper:focus,
+  .react-datepicker__input-container input:focus {
+    border-color: #4caf50;
+    outline: none;
+  }
+  
+  .error-message {
+    color: #d32f2f;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-align: center;
+  }
+  
+  .submit-button {
+    background: #4caf50;
+    color: #fff;
+    border: none;
+    padding: 12px 25px;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s ease, transform 0.2s ease;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  .submit-button:hover {
+    background: #388e3c;
+    transform: scale(1.03);
+  }
+  
+  .back-button {
+    background: #4caf50;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    margin-top: 20px;
+  }
+  
+  .back-button:hover {
+    background: #388e3c;
+  }
+  
+  /* Responsive Styles */
+  @media only screen and (max-width: 768px) {
+    .appointment-container {
+      max-width: 95%;
+      margin: 20px auto;
+      padding: 20px;
+    }
+    
+    .appointment-container h1 {
+      font-size: 1.8rem;
+      margin-bottom: 20px;
+    }
+    
+    .station-info {
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .station-info h2 {
+      font-size: 1.4rem;
+    }
+    
+    .station-info p {
+      font-size: 0.95rem;
+    }
+    
+    .appointment-form {
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .appointment-form h3 {
+      font-size: 1.2rem;
+      margin-bottom: 15px;
+    }
+    
+    .form-group input,
+    .react-datepicker-wrapper,
+    .react-datepicker__input-container input {
+      padding: 8px 10px;
+      font-size: 0.95rem;
+    }
+    
+    .submit-button {
+      padding: 10px 20px;
+      font-size: 0.95rem;
+    }
+    
+    .back-button {
+      padding: 8px 16px;
+      font-size: 0.95rem;
+    }
+  }
+  
