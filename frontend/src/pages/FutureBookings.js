@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function FutureBookings() {
   const [bookings, setBookings] = useState([]);
   const [activeCharging, setActiveCharging] = useState(null);
   const [currentTime, setCurrentTime] = useState({ date: "", hour: "" });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const now = new Date();
@@ -56,7 +58,7 @@ function FutureBookings() {
     }
   };
 
-  const handleStartCharging = async (station) => {
+  const handleStartCharging = async (station, date, time) => {
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings/start-charging`, {
@@ -65,12 +67,15 @@ function FutureBookings() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ station }),
+        body: JSON.stringify({ station, date, time }),
       });
+
       const data = await res.json();
       if (res.ok) {
         alert(data.message);
         fetchActiveCharging();
+        // ניווט לעמוד Charging.js עם מידע על התחנה
+        navigate("/charging", { state: { station } });
       } else {
         alert(data.message || "Error starting charging");
       }
@@ -130,16 +135,26 @@ function FutureBookings() {
                 const bookingTime = new Date(`${booking.date}T${booking.time}`);
                 const diffMinutes = (now - bookingTime) / 60000;
 
-                if (diffMinutes >= 0 && diffMinutes <= 60 && !isActive) {
-                  return (
-                    <button onClick={() => handleStartCharging(booking.station)}>⚡ Start Charging</button>
-                  );
-                }
-
-                if (diffMinutes > 60 && !isActive) {
-                  return (
-                    <p style={{ color: "red", fontWeight: "bold" }}>⚠️ התור עבר – לא ניתן להפעיל טעינה</p>
-                  );
+                if (!isActive) {
+                  if (diffMinutes >= -5 && diffMinutes <= 60) {
+                    return (
+                      <button onClick={() => handleStartCharging(booking.station, booking.date, booking.time)}>
+                        ⚡ Start Charging
+                      </button>
+                    );
+                  } else if (diffMinutes < -5) {
+                    return (
+                      <p style={{ color: "orange", fontWeight: "bold" }}>
+                        ⚠️ The appointment has not started yet – charging is not allowed
+                      </p>
+                    );
+                  } else {
+                    return (
+                      <p style={{ color: "red", fontWeight: "bold" }}>
+                        ⚠️ The appointment has passed – charging cannot be started
+                      </p>
+                    );
+                  }
                 }
 
                 return null;

@@ -27,6 +27,7 @@ function App() {
           <Route path="/login" element={<Login />} /> {/* ✅ תיקון הוספת נתיב התחברות */}
           <Route path="/register" element={<Register />} />
           <Route path="/Change-Password/:token" element={<ChangePassword />} />
+          <Route path="/charging" element={<Charging />} />
 
 
           <Route

@@ -5,7 +5,7 @@ import axios from 'axios';
 const Charging = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const station = location.state?.station;
+    const { station, date, time } = location.state || {};
     const [isCharging, setIsCharging] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -15,8 +15,14 @@ const Charging = () => {
             setLoading(true);
             const response = await axios.post(
                 `${process.env.REACT_APP_BACKEND_URL}/api/bookings/start-charging`,
-                { station: station['Station Name'] },
-                { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+                {
+                    station: station['Station Name'],
+                    date,
+                    time
+                },
+                {
+                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                }
             );
             alert(response.data.message);
             setIsCharging(true);
