@@ -1,6 +1,6 @@
 const User = require('./User');
 const jwt = require('jsonwebtoken');
-const Booking = require('./models/Booking'); 
+const Booking = require('./models/Booking');
 const bcrypt = require('bcryptjs');
 
 const nodemailer = require('nodemailer');
@@ -118,8 +118,8 @@ exports.login = async (req, res) => {
       { id: user._id, email: user.email }, // הוספת המייל
       process.env.JWT_SECRET,
       { expiresIn: '1h' }
-  );
-  
+    );
+
 
     res.status(200).json({ message: 'Login successful', token });
   } catch (error) {
@@ -320,7 +320,7 @@ exports.updateDetails = async (req, res) => {
 exports.createBooking = async (req, res) => {
   try {
     const { station, date, time } = req.body;
-    const userId = req.user.id; 
+    const userId = req.user.id;
 
 
     const existingBooking = await Booking.findOne({ station, date, time });
@@ -386,7 +386,7 @@ exports.cancelBooking = async (req, res) => {
 const sendUpcomingBookingReminder = async () => {
   try {
     const now = new Date();
-    now.setMinutes(0, 0, 0); 
+    now.setMinutes(0, 0, 0);
 
     const oneHourLater = new Date(now);
     oneHourLater.setHours(oneHourLater.getHours() + 1);
@@ -410,6 +410,45 @@ const sendUpcomingBookingReminder = async () => {
     console.log(`✅ Sent ${upcomingBookings.length} reminders`);
   } catch (error) {
     console.error('Error sending reminders:', error);
+  }
+};
+// Add to likedBy
+exports.likeStation = async (req, res) => {
+  const { id } = req.params;
+  const { user } = req.body;
+
+  try {
+    const station = await Station.findById(id);
+    if (!station) return res.status(404).json({ message: "Station not found" });
+
+    if (!station.likedBy.includes(user)) {
+      station.likedBy.push(user);
+      await station.save();
+    }
+
+    res.status(200).json({ message: "Station liked" });
+  } catch (error) {
+    console.error("Error liking station:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Remove from likedBy
+exports.unlikeStation = async (req, res) => {
+  const { id } = req.params;
+  const { email } = req.body;
+
+  try {
+    const station = await Station.findById(id);
+    if (!station) return res.status(404).json({ message: "Station not found" });
+
+    station.likedBy = station.likedBy.filter((u) => u !== email);
+    await station.save();
+
+    res.status(200).json({ message: "Station unliked" });
+  } catch (error) {
+    console.error("Error unliking station:", error);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
