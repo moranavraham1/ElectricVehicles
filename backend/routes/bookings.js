@@ -32,23 +32,41 @@ router.post("/check-availability", async (req, res) => {
     const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
     const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
 
-    let availableTimes = [];
+    // שלב 1: שליפה בבת אחת
+    const bookings = await Booking.find({ station: trimmedStation, date });
+    const activeCharging = await ActiveCharging.find({ station: trimmedStation, date });
 
-    for (let hour = 8; hour <= 22; hour++) {
-      const timeSlot = `${hour}:00`;
-      const bookingCount = await Booking.countDocuments({ station: trimmedStation, date, time: timeSlot });
+    // שלב 2: ספירה לפי זמן
+    const bookingsPerTime = {};
+    for (const b of bookings) {
+      bookingsPerTime[b.time] = (bookingsPerTime[b.time] || 0) + 1;
+    }
+    for (const c of activeCharging) {
+      bookingsPerTime[c.time] = (bookingsPerTime[c.time] || 0) + 1;
+    }
 
-      if (bookingCount < maxSlots) {
-        availableTimes.push(timeSlot);
+    // שלב 3: יצירת 288 טווחי זמן של 5 דקות
+    const availableTimes = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 20) {
+        const hh = hour.toString().padStart(2, '0');
+        const mm = minute.toString().padStart(2, '0');
+        const timeSlot = `${hh}:${mm}`;
+
+        const used = bookingsPerTime[timeSlot] || 0;
+        if (used < maxSlots) {
+          availableTimes.push(timeSlot);
+        }
       }
     }
 
-    res.json({ availableTimes, maxCapacity: maxSlots });
+    res.json({ availableTimes, bookingsPerTime, maxCapacity: maxSlots });
   } catch (error) {
     console.error("Error checking availability:", error);
     res.status(500).json({ message: "Server error", error });
   }
 });
+
 
 const sendBookingConfirmationEmail = async (email, station, date, time) => {
   try {
@@ -95,9 +113,7 @@ router.post('/book', authMiddleware, async (req, res) => {
     console.error('Error creating booking:', error);
     res.status(500).json({ message: 'Error creating booking' });
   }
-});
-
-router.delete('/:id', authMiddleware, async (req, res) => {
+}); router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
@@ -106,6 +122,15 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 
     if (booking.user !== req.user.email) {
       return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const now = new Date();
+    const bookingTime = new Date(`${booking.date}T${booking.time}:00`);
+    if (bookingTime < now) {
+      // תור שכבר עבר - אפשר למחוק אותו, אך לא שולחים מייל
+      await booking.deleteOne();
+      console.log(`🗑️ Past booking deleted (no email): ${booking.station} on ${booking.date} at ${booking.time}`);
+      return res.json({ message: 'Past booking deleted.' });
     }
 
     await booking.deleteOne();
@@ -128,46 +153,30 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 
-router.post("/check-availability", async (req, res) => {
-  try {
-    const { station, date } = req.body;
-    const trimmedStation = station.trim();
 
-    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
-    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
 
-    let availableTimes = [];
-
-    for (let hour = 8; hour <= 22; hour++) {
-      const timeSlot = `${hour}:00`;
-      const bookingCount = await Booking.countDocuments({ station: trimmedStation, date, time: timeSlot });
-      const activeChargingCount = await ActiveCharging.countDocuments({ station: trimmedStation });
-      const totalUsed = bookingCount + activeChargingCount;
-      if (totalUsed < maxSlots) {
-        availableTimes.push(timeSlot);
-      }
-    }
-
-    res.json({ availableTimes, maxCapacity: maxSlots });
-  } catch (error) {
-    console.error("Error checking availability:", error);
-    res.status(500).json({ message: "Server error", error });
-  }
-});
 router.post('/start-charging', authMiddleware, async (req, res) => {
   try {
-    const { station } = req.body;
+    const { station, date, time } = req.body;
     const userEmail = req.user.email;
     const trimmedStation = station.trim();
+
+    const now = new Date();
+    const slotDateTime = new Date(`${date}T${time}:00`);
+    if (slotDateTime < now) {
+      return res.status(400).json({ message: ' appointment has passed – charging cannot be started ⚠️' });
+    }
+
     const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
     const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
     const bookingCount = await Booking.countDocuments({ station: trimmedStation });
     const activeChargingCount = await ActiveCharging.countDocuments({ station: trimmedStation });
+
     if (bookingCount + activeChargingCount >= maxSlots) {
       return res.status(400).json({ message: 'No available slots for this station.' });
     }
 
-    const newCharge = new ActiveCharging({ user: userEmail, station: trimmedStation });
+    const newCharge = new ActiveCharging({ user: userEmail, station: trimmedStation, date, time });
     await newCharge.save();
     res.status(201).json({ message: 'Charging started!' });
   } catch (error) {
@@ -175,6 +184,7 @@ router.post('/start-charging', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error starting charging' });
   }
 });
+
 router.post('/stop-charging', authMiddleware, async (req, res) => {
   try {
     const userEmail = req.user.email;

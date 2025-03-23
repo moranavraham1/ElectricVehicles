@@ -32,12 +32,55 @@ const Home = () => {
     setTime('');
     setAvailableTimes([]);
   };
+  const [showNoTimesMessage, setShowNoTimesMessage] = useState(false);
+  const startCharging = async (station) => {
+    const today = new Date().toISOString().split("T")[0];
 
-  const startCharging = (station) => {
-    navigate('/charging', { state: { station } });
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
+        {
+          station: station["Station Name"],
+          date: today
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
+      );
+
+      const availableTimes = response.data.availableTimes || [];
+
+      // סינון רק לשעות שטרם עברו
+      const now = new Date();
+      const futureTimes = availableTimes.filter((time) => {
+        const [hour, minute] = time.split(":").map(Number);
+        const slot = new Date(today);
+        slot.setHours(hour);
+        slot.setMinutes(minute);
+        return slot > now;
+      });
+
+      if (futureTimes.length === 0) {
+        alert("⚠️ No available time slots remaining for today.");
+        return;
+      }
+
+      const nextAvailableTime = futureTimes[0]; // הראשון שזמין באמת
+
+      navigate("/charging", {
+        state: {
+          station,
+          date: today,
+          time: nextAvailableTime
+        }
+      });
+    } catch (error) {
+      console.error("⚠️ Error checking availability:", error);
+      alert("Unable to check availability. Please try again.");
+    }
   };
-
-
 
 
 
@@ -141,15 +184,15 @@ const Home = () => {
   const fetchAvailableTimes = async (selectedDate) => {
     if (!selectedStation) return;
 
+    setShowNoTimesMessage(false); // איפוס ההודעה בכל קריאה
+
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
-        { station: selectedStation["Station Name"], date: selectedDate }
-        ,
+        { station: selectedStation["Station Name"], date: selectedDate },
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
 
-      console.log("✅ response from check-availability:", response.data);
       let availableTimeSlots = response.data.availableTimes || [];
       const bookingsPerTime = response.data.bookingsPerTime || {};
       const maxCapacity = selectedStation["Duplicate Count"] || 1;
@@ -162,14 +205,33 @@ const Home = () => {
         return remainingSlots > 0;
       });
 
+      const now = new Date();
+      availableTimeSlots = availableTimeSlots.filter(time => {
+        const [hour, minute] = time.split(":");
+        const slotDateTime = new Date(selectedDate);
+        slotDateTime.setHours(parseInt(hour));
+        slotDateTime.setMinutes(parseInt(minute));
+        return slotDateTime > now;
+      });
+
       setAvailableTimes(availableTimeSlots);
       setChargingSlots(updatedChargingSlots);
       setIsAvailable(availableTimeSlots.length > 0);
+
+      // הצגת ההודעה רק אחרי 10 שניות אם אין זמינות
+      if (availableTimeSlots.length === 0) {
+        setTimeout(() => {
+          setShowNoTimesMessage(true);
+        }, 10000); // 10 שניות
+      }
     } catch (error) {
       console.error("Error fetching available times:", error);
       setAvailableTimes([]);
       setChargingSlots({});
       setIsAvailable(false);
+      setTimeout(() => {
+        setShowNoTimesMessage(true);
+      }, 10000);
     }
   };
 
@@ -364,12 +426,13 @@ const Home = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  const todayDate = new Date().toISOString().split("T")[0];
                   setSelectedStation(station);
-                  setDate(todayDate);
+                  setDate("");
+                  setTime("");
+                  setAvailableTimes([]);
                   setShowModal(true);
-                  fetchAvailableTimes(todayDate);
                 }}
+
               >
                 📅 Book Appointment
               </button>
@@ -464,9 +527,14 @@ const Home = () => {
               ))}
             </select>
 
-            {date && availableTimes.length === 0 && (
-              <p style={{ color: "red" }}>No available times for this date.</p>
+            {showNoTimesMessage && date && availableTimes.length === 0 && (
+              <p style={{ color: "red" }}>
+                {date === today
+                  ? " No more available slots for today. Please choose another date."
+                  : " No available times for this date."}
+              </p>
             )}
+
 
             <button onClick={bookAppointment} disabled={!isAvailable || !time}>
               📌 Confirm Booking
