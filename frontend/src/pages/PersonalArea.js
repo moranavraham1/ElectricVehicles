@@ -110,6 +110,10 @@ function PersonalArea() {
           <button className={view === "history" ? "active" : ""} onClick={() => setView("history")}>Charge History</button>
           <button className={view === "bookings" ? "active" : ""} onClick={() => setView("bookings")}>Future Bookings</button>
           <button className={view === "password" ? "active" : ""} onClick={() => setView("password")}>Change Password</button>
+          <Link to="/my-bookings" className="bottom-bar-button">
+            <i className="fas fa-calendar-check"></i> My Bookings
+          </Link>
+
         </nav>
 
         {/* 🔹 תצוגת הפרופיל עם נתוני המשתמש */}

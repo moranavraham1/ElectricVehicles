@@ -522,15 +522,63 @@ input[type="text"] {
   color: #1b5e20 !important;
 }
 
-.modal-content input[type="date"],
-.modal-content select {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  font-size: 16px;
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
   box-sizing: border-box;
 }
+
+.modal-content {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  width: 90%;
+  max-width: 350px;
+  max-height: 80vh;
+  /* Maximum height of 80% of viewport */
+  overflow-y: auto;
+  /* Enable vertical scrolling */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+<<<<<<< HEAD
 =======
 .appointment-button {
   position: absolute;
@@ -553,3 +601,14 @@ input[type="text"] {
   transform: scale(1.05);
 }
 >>>>>>> 8d42dfa9 (Summoning queues)
+=======
+
+.modal-content button {
+  width: 100%;
+  padding: 10px;
+  margin: 5px 0;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+>>>>>>> 510cb047 (LLLP algorithm for prioritizing vehicle charging)

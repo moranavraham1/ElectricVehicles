@@ -14,6 +14,12 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import Logout from './Logout'; 
 import '../designs/index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+<<<<<<< HEAD
+=======
+import Charging from './Charging'; // ודאי שהנתיב נכון
+import ChargingQueue from './ChargingQueue';
+import MyBookings from './MyBookings';
+>>>>>>> 510cb047 (LLLP algorithm for prioritizing vehicle charging)
 
 function App() {
   return (
@@ -62,9 +68,31 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/queue/:stationName/:selectedDate"
+            element={
+              <ProtectedRoute>
+                <ChargingQueue />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-bookings"
+            element={
+              <ProtectedRoute>
+                <MyBookings />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="/logout" element={<Logout />} />
+<<<<<<< HEAD
           
+=======
+
+          <Route path="/charging-queue/:stationName/:selectedDate" element={<ChargingQueue />} />
+
+>>>>>>> 510cb047 (LLLP algorithm for prioritizing vehicle charging)
 
           <Route path="*" element={<Login />} />
         </Routes>

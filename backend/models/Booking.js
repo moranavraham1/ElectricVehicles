@@ -5,7 +5,11 @@ const bookingSchema = new mongoose.Schema({
   station: { type: String, required: true },
   date: { type: String, required: true },
   time: { type: String, required: true },
-  slotId: { type: mongoose.Schema.Types.ObjectId, ref: 'Slot' }
+  urgencyLevel: { type: Number, required: true },
+  estimatedChargeTime: { type: Number, required: true },
+  createdAt: { type: Date, default: Date.now },
+  status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
+  rejectionCount: { type: Number, default: 0 }
 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
