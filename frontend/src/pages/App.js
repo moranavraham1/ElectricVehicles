@@ -15,6 +15,8 @@ import Logout from './Logout';
 import '../designs/index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import Charging from './Charging'; // ודאי שהנתיב נכון
+import ChargingQueue from './ChargingQueue';
+import MyBookings from './MyBookings';
 
 function App() {
   return (
@@ -63,10 +65,28 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/queue/:stationName/:selectedDate"
+            element={
+              <ProtectedRoute>
+                <ChargingQueue />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/my-bookings"
+            element={
+              <ProtectedRoute>
+                <MyBookings />
+              </ProtectedRoute>
+            }
+          />
 
           <Route path="/charging" element={<Charging />} />
 
           <Route path="/logout" element={<Logout />} />
+
+          <Route path="/charging-queue/:stationName/:selectedDate" element={<ChargingQueue />} />
 
 
           <Route path="*" element={<Login />} />

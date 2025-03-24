@@ -12,6 +12,25 @@ const transporter = nodemailer.createTransport({
     pass: process.env.EMAIL_PASSWORD,
   },
 });
+router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
+  try {
+    const { station, date } = req.params;
+    const trimmedStation = station.trim();
+
+    const queue = await Booking.find({ station: trimmedStation, date });
+    const sortedQueue = queue.sort((a, b) => {
+      if (b.urgencyLevel !== a.urgencyLevel) {
+        return b.urgencyLevel - a.urgencyLevel;
+      }
+      return b.estimatedChargeTime - a.estimatedChargeTime;
+    });
+
+    res.json(sortedQueue);
+  } catch (error) {
+    console.error('Error fetching queue:', error);
+    res.status(500).json({ message: 'Error fetching queue' });
+  }
+});
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -32,11 +51,8 @@ router.post("/check-availability", async (req, res) => {
     const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
     const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
 
-    // שלב 1: שליפה בבת אחת
     const bookings = await Booking.find({ station: trimmedStation, date });
     const activeCharging = await ActiveCharging.find({ station: trimmedStation, date });
-
-    // שלב 2: ספירה לפי זמן
     const bookingsPerTime = {};
     for (const b of bookings) {
       bookingsPerTime[b.time] = (bookingsPerTime[b.time] || 0) + 1;
@@ -45,7 +61,6 @@ router.post("/check-availability", async (req, res) => {
       bookingsPerTime[c.time] = (bookingsPerTime[c.time] || 0) + 1;
     }
 
-    // שלב 3: יצירת 288 טווחי זמן של 5 דקות
     const availableTimes = [];
     for (let hour = 0; hour < 24; hour++) {
       for (let minute = 0; minute < 60; minute += 20) {
@@ -84,9 +99,10 @@ const sendBookingConfirmationEmail = async (email, station, date, time) => {
   }
 };
 
+
 router.post('/book', authMiddleware, async (req, res) => {
   try {
-    const { station, date, time } = req.body;
+    const { station, date, time, urgencyLevel, estimatedChargeTime } = req.body;
     const userEmail = req.user.email;
     const trimmedStation = station.trim();
 
@@ -95,25 +111,26 @@ router.post('/book', authMiddleware, async (req, res) => {
       return res.status(400).json({ message: 'You already have a booking for this time slot.' });
     }
 
-    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
-    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
 
-    const bookingCount = await Booking.countDocuments({ station: trimmedStation, date, time });
+    const newBooking = new Booking({
+      user: userEmail,
+      station: trimmedStation,
+      date,
+      time,
+      urgencyLevel,
+      estimatedChargeTime,
+      createdAt: new Date(),
+    });
 
-    if (bookingCount >= maxSlots) {
-      return res.status(400).json({ message: 'No available slots for this time.' });
-    }
-
-    const newBooking = new Booking({ user: userEmail, station: trimmedStation, date, time });
     await newBooking.save();
-
     await sendBookingConfirmationEmail(userEmail, trimmedStation, date, time);
-    res.status(201).json({ message: 'Booking successful!' });
+    res.status(201).json({ message: 'Booking received! Allocation will be done before the charging time.' });
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({ message: 'Error creating booking' });
   }
-}); router.delete('/:id', authMiddleware, async (req, res) => {
+});
+router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
     if (!booking) {
@@ -127,7 +144,6 @@ router.post('/book', authMiddleware, async (req, res) => {
     const now = new Date();
     const bookingTime = new Date(`${booking.date}T${booking.time}:00`);
     if (bookingTime < now) {
-      // תור שכבר עבר - אפשר למחוק אותו, אך לא שולחים מייל
       await booking.deleteOne();
       console.log(`🗑️ Past booking deleted (no email): ${booking.station} on ${booking.date} at ${booking.time}`);
       return res.json({ message: 'Past booking deleted.' });
@@ -135,13 +151,16 @@ router.post('/book', authMiddleware, async (req, res) => {
 
     await booking.deleteOne();
     console.log(`🗑️ Booking deleted: ${booking.station} on ${booking.date} at ${booking.time}`);
-
-    await transporter.sendMail({
-      from: process.env.EMAIL,
-      to: booking.user,
-      subject: 'Appointment Cancelled',
-      text: `Your appointment at ${booking.station} on ${booking.date} at ${booking.time} has been cancelled.`,
-    });
+    if (booking.user) {
+      await transporter.sendMail({
+        from: process.env.EMAIL,
+        to: booking.user,
+        subject: 'Charging Appointment Approved',
+        text: `✅ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been approved.`,
+      });
+    } else {
+      console.log(`No email address found for booking at ${booking.station}`);
+    }
 
     console.log(`📩 Cancellation email sent to ${booking.user}`);
 
@@ -199,5 +218,52 @@ router.post('/stop-charging', authMiddleware, async (req, res) => {
   }
 });
 
+router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => {
+  try {
+    const { station, date, time } = req.params;
+    const trimmedStation = station.trim();
+
+    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
+    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
+
+    const candidates = await Booking.find({ station: trimmedStation, date, time });
+
+    const sorted = candidates.sort((a, b) => {
+      const scoreA = (a.urgencyLevel * 2) + (a.estimatedChargeTime / 10) + ((a.rejectionCount || 0) * 1.5);
+      const scoreB = (b.urgencyLevel * 2) + (b.estimatedChargeTime / 10) + ((b.rejectionCount || 0) * 1.5);
+      return scoreB - scoreA;
+    });
+
+    const approved = sorted.slice(0, maxSlots);
+    const rejected = sorted.slice(maxSlots);
+
+    for (const booking of approved) {
+      await Booking.updateOne(
+        { _id: booking._id },
+        { $set: { status: 'approved' } }
+      );
+
+      await transporter.sendMail({
+        from: process.env.EMAIL,
+        to: booking.user,
+        subject: 'Charging Appointment Approved',
+        text: `✅ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been approved.`,
+      });
+    }
+
+    for (const booking of rejected) {
+      const newRejectionCount = (booking.rejectionCount || 0) + 1;
+      await Booking.updateOne(
+        { _id: booking._id },
+        { $set: { status: 'rejected', rejectionCount: newRejectionCount } }
+      );
+    }
+
+    res.json({ approved, rejected });
+  } catch (error) {
+    console.error('Error assigning LLLP queue:', error);
+    res.status(500).json({ message: 'Error in dynamic assignment' });
+  }
+});
 
 module.exports = router;

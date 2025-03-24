@@ -26,61 +26,70 @@ const Home = () => {
   const [availableTimes, setAvailableTimes] = useState([]);
   const [isAvailable, setIsAvailable] = useState(null);
   const today = new Date().toISOString().split("T")[0];
+  const [urgencyLevel, setUrgencyLevel] = useState(1); // ערך ברירת מחדל
+
   const closeModal = () => {
     setShowModal(false);
     setDate('');
     setTime('');
     setAvailableTimes([]);
   };
-  const [showNoTimesMessage, setShowNoTimesMessage] = useState(false);
-  const startCharging = async (station) => {
-    const today = new Date().toISOString().split("T")[0];
 
-    try {
-      const response = await axios.post(
-        `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
-        {
-          station: station["Station Name"],
-          date: today
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
-        }
-      );
-
-      const availableTimes = response.data.availableTimes || [];
-
-      // סינון רק לשעות שטרם עברו
-      const now = new Date();
-      const futureTimes = availableTimes.filter((time) => {
-        const [hour, minute] = time.split(":").map(Number);
-        const slot = new Date(today);
-        slot.setHours(hour);
-        slot.setMinutes(minute);
-        return slot > now;
-      });
-
-      if (futureTimes.length === 0) {
-        alert("⚠️ No available time slots remaining for today.");
-        return;
-      }
-
-      const nextAvailableTime = futureTimes[0]; // הראשון שזמין באמת
-
-      navigate("/charging", {
-        state: {
-          station,
-          date: today,
-          time: nextAvailableTime
-        }
-      });
-    } catch (error) {
-      console.error("⚠️ Error checking availability:", error);
-      alert("Unable to check availability. Please try again.");
-    }
+  const startCharging = (station) => {
+    navigate('/charging', { state: { station } });
   };
+
+  const carModelsData = {
+    "Tesla Model 3": { fullChargeTime: 80 },
+    "Tesla Model Y": { fullChargeTime: 90 },
+    "Hyundai Ioniq 5": { fullChargeTime: 70 },
+    "Kia EV6": { fullChargeTime: 75 },
+    "Nissan Leaf": { fullChargeTime: 90 },
+    "BYD Atto 3": { fullChargeTime: 85 },
+    "MG ZS EV": { fullChargeTime: 80 },
+    "Skoda Enyaq": { fullChargeTime: 85 },
+    "Volkswagen ID.4": { fullChargeTime: 85 },
+    "Renault Zoe": { fullChargeTime: 60 },
+    "Chevrolet Bolt EV": { fullChargeTime: 70 },
+    "Other / Manual Input": { fullChargeTime: null }
+  };
+
+  const [selectedCarModel, setSelectedCarModel] = useState("");
+  const [batteryLevel, setBatteryLevel] = useState(20);
+  const [targetLevel, setTargetLevel] = useState(80);
+  const [estimatedChargeTime, setEstimatedChargeTime] = useState(0);
+  const [manualTime, setManualTime] = useState(30);
+
+  useEffect(() => {
+    if (!selectedCarModel || batteryLevel >= targetLevel) return;
+
+    const baseTime = selectedCarModel === "Other / Manual Input"
+      ? manualTime
+      : carModelsData[selectedCarModel]?.fullChargeTime || 0;
+
+    const diff = targetLevel - batteryLevel;
+    const time = (baseTime * diff) / 100;
+    setEstimatedChargeTime(Math.round(time));
+
+    // חישוב דחיפות (רמה 1 עד 3)
+    if (diff >= 60) setUrgencyLevel(3);
+    else if (diff >= 30) setUrgencyLevel(2);
+    else setUrgencyLevel(1);
+
+  }, [selectedCarModel, batteryLevel, targetLevel, manualTime]);
+
+
+  useEffect(() => {
+    if (!selectedCarModel || batteryLevel >= targetLevel) return;
+
+    const baseTime = selectedCarModel === "Other / Manual Input"
+      ? manualTime
+      : carModelsData[selectedCarModel]?.fullChargeTime || 0;
+
+    const diff = targetLevel - batteryLevel;
+    const time = (baseTime * diff) / 100;
+    setEstimatedChargeTime(Math.round(time));
+  }, [selectedCarModel, batteryLevel, targetLevel, manualTime]);
 
 
 
@@ -96,6 +105,17 @@ const Home = () => {
     }
   };
 
+  useEffect(() => {
+    if (!selectedCarModel || batteryLevel >= targetLevel) return;
+
+    const baseTime = selectedCarModel === "Other / Manual Input"
+      ? manualTime
+      : carModelsData[selectedCarModel]?.fullChargeTime || 0;
+
+    const diff = targetLevel - batteryLevel;
+    const time = (baseTime * diff) / 100;
+    setEstimatedChargeTime(Math.round(time));
+  }, [selectedCarModel, batteryLevel, targetLevel, manualTime]);
 
   useEffect(() => {
     fetchUserLocation();
@@ -184,15 +204,15 @@ const Home = () => {
   const fetchAvailableTimes = async (selectedDate) => {
     if (!selectedStation) return;
 
-    setShowNoTimesMessage(false); // איפוס ההודעה בכל קריאה
-
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
-        { station: selectedStation["Station Name"], date: selectedDate },
+        { station: selectedStation["Station Name"], date: selectedDate }
+        ,
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
 
+      console.log("✅ response from check-availability:", response.data);
       let availableTimeSlots = response.data.availableTimes || [];
       const bookingsPerTime = response.data.bookingsPerTime || {};
       const maxCapacity = selectedStation["Duplicate Count"] || 1;
@@ -204,34 +224,23 @@ const Home = () => {
         updatedChargingSlots[time] = remainingSlots;
         return remainingSlots > 0;
       });
-
       const now = new Date();
       availableTimeSlots = availableTimeSlots.filter(time => {
         const [hour, minute] = time.split(":");
         const slotDateTime = new Date(selectedDate);
         slotDateTime.setHours(parseInt(hour));
         slotDateTime.setMinutes(parseInt(minute));
-        return slotDateTime > now;
+        return slotDateTime > now; // רק שעות עתידיות
       });
 
       setAvailableTimes(availableTimeSlots);
       setChargingSlots(updatedChargingSlots);
       setIsAvailable(availableTimeSlots.length > 0);
-
-      // הצגת ההודעה רק אחרי 10 שניות אם אין זמינות
-      if (availableTimeSlots.length === 0) {
-        setTimeout(() => {
-          setShowNoTimesMessage(true);
-        }, 10000); // 10 שניות
-      }
     } catch (error) {
       console.error("Error fetching available times:", error);
       setAvailableTimes([]);
       setChargingSlots({});
       setIsAvailable(false);
-      setTimeout(() => {
-        setShowNoTimesMessage(true);
-      }, 10000);
     }
   };
 
@@ -267,9 +276,20 @@ const Home = () => {
     try {
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/book`,
-        { station: selectedStation["Station Name"], date, time },
-        { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
+        {
+          station: selectedStation["Station Name"],
+          date,
+          time,
+          estimatedChargeTime,
+          urgencyLevel
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        }
       );
+
 
       alert("Booking successful!");
 
@@ -448,7 +468,21 @@ const Home = () => {
                 ⚡ Start Charging
               </button>
             </div>
-
+            {/* כפתור לניווט לדף התור */}
+            <Link
+              to={`/charging-queue/${station['Station Name']}/${today}`}
+              style={{
+                padding: "10px",
+                backgroundColor: "#4CAF50",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                textDecoration: "none",
+                textAlign: "center",
+              }}
+            >
+              📝 View Charging Queue
+            </Link>
 
             {/* Favorite Button */}
             <div
@@ -527,14 +561,114 @@ const Home = () => {
               ))}
             </select>
 
-            {showNoTimesMessage && date && availableTimes.length === 0 && (
+            {date && availableTimes.length === 0 && (
               <p style={{ color: "red" }}>
                 {date === today
-                  ? " No more available slots for today. Please choose another date."
-                  : " No available times for this date."}
+                  ? "⚠️ No more available slots for today. Please choose another date."
+                  : "No available times for this date."}
               </p>
             )}
 
+            {/* Modal to book an appointment */}
+            {showModal && (
+              <div className="modal-overlay" onClick={closeModal}>
+                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                  <h2>Book an appointment for {selectedStation['Station Name']}</h2>
+
+                  {/* Date Picker */}
+                  <label htmlFor="date">Select Date:</label>
+                  <input
+                    id="date"
+                    type="date"
+                    value={date}
+                    min={today}
+                    onChange={(e) => {
+                      const selectedDate = e.target.value;
+                      if (selectedDate < today) {
+                        alert("You cannot select a past date!");
+                        setDate(today);
+                        fetchAvailableTimes(today);
+                      } else {
+                        setDate(selectedDate);
+                        setTime("");
+                        fetchAvailableTimes(selectedDate);
+                      }
+                    }}
+                  />
+
+                  {/* Select Car Model */}
+                  <label htmlFor="carModel">Select Car Model:</label>
+                  <select
+                    id="carModel"
+                    value={selectedCarModel}
+                    onChange={(e) => setSelectedCarModel(e.target.value)}
+                  >
+                    <option value="">Select Car Model</option>
+                    {Object.keys(carModelsData).map((carModel, index) => (
+                      <option key={index} value={carModel}>
+                        {carModel}
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Battery Level */}
+                  <label htmlFor="batteryLevel">Battery Level (%):</label>
+                  <input
+                    id="batteryLevel"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={batteryLevel}
+                    onChange={(e) => setBatteryLevel(e.target.value)}
+                  />
+
+                  {/* Target Battery Level */}
+                  <label htmlFor="targetLevel">Target Battery Level (%):</label>
+                  <input
+                    id="targetLevel"
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={targetLevel}
+                    onChange={(e) => setTargetLevel(e.target.value)}
+                  />
+
+                  {/* Display Estimated Charge Time */}
+                  <div>
+                    ⏱ Estimated Charging Time: <strong>{estimatedChargeTime} minutes</strong>
+                  </div>
+
+                  {/* Time Slot Selection */}
+                  <label htmlFor="time">Select Time:</label>
+                  <select
+                    id="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    disabled={availableTimes.length === 0}
+                  >
+                    <option value="">-- Select Time --</option>
+                    {availableTimes.map((availableTime, index) => (
+                      <option key={index} value={availableTime}>
+                        {availableTime}
+                      </option>
+                    ))}
+                  </select>
+
+                  {date && availableTimes.length === 0 && (
+                    <p style={{ color: "red" }}>
+                      {date === today
+                        ? "⚠️ No more available slots for today. Please choose another date."
+                        : "No available times for this date."}
+                    </p>
+                  )}
+
+                  <button onClick={bookAppointment} disabled={!isAvailable || !time}>
+                    📌 Confirm Booking
+                  </button>
+                  <button onClick={closeModal}>❌ Close</button>
+                </div>
+              </div>
+            )}
 
             <button onClick={bookAppointment} disabled={!isAvailable || !time}>
               📌 Confirm Booking
