@@ -23,6 +23,8 @@ const ChargingQueue = () => {
                 console.error("Failed to fetch queue:", err);
             }
         };
+        console.log('Fetching queue for:', stationName, selectedDate);
+
 
         fetchQueue();
     }, [stationName, selectedDate]);

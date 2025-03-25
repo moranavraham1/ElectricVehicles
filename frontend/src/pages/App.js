@@ -21,6 +21,7 @@ import ChargingQueue from './ChargingQueue';
 import MyBookings from './MyBookings';
 >>>>>>> 510cb047 (LLLP algorithm for prioritizing vehicle charging)
 
+
 function App() {
   return (
     <Router>

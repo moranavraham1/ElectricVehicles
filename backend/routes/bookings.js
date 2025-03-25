@@ -15,22 +15,43 @@ const transporter = nodemailer.createTransport({
 router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
   try {
     const { station, date } = req.params;
-    const trimmedStation = station.trim();
+    const now = new Date();
+    const normalizedStation = station.trim().toLowerCase();
+    const queue = await Booking.find({
+      station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') },
+      date
+    });
+    
+    const bookingsWithLaxity = queue.map((b) => {
+      const bookingTime = new Date(`${b.date}T${b.time}:00`);
+      const estimatedChargeTime = b.estimatedChargeTime || 30;
+      const laxity = (bookingTime - now) / (60 * 1000) - estimatedChargeTime;
 
-    const queue = await Booking.find({ station: trimmedStation, date });
-    const sortedQueue = queue.sort((a, b) => {
-      if (b.urgencyLevel !== a.urgencyLevel) {
-        return b.urgencyLevel - a.urgencyLevel;
-      }
+      return {
+        _id: b._id,
+        station: b.station,
+        date: b.date,
+        time: b.time,
+        user: b.user, // מייל
+        urgencyLevel: b.urgencyLevel,
+        estimatedChargeTime,
+        laxity
+      };
+    });
+
+    // מיון לפי LLLP: קודם כל לפי laxity עולה, ואז לפי estimatedChargeTime יורד
+    bookingsWithLaxity.sort((a, b) => {
+      if (a.laxity !== b.laxity) return a.laxity - b.laxity;
       return b.estimatedChargeTime - a.estimatedChargeTime;
     });
 
-    res.json(sortedQueue);
+    res.json(bookingsWithLaxity);
   } catch (error) {
     console.error('Error fetching queue:', error);
     res.status(500).json({ message: 'Error fetching queue' });
   }
 });
+
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -98,6 +119,22 @@ const sendBookingConfirmationEmail = async (email, station, date, time) => {
     console.error('❌ Error sending confirmation email:', error);
   }
 };
+const sendBookingCancellationEmail = async (email, station, date, time) => {
+  try {
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: email,
+      subject: 'Charging Appointment Cancellation',
+      text: `Your appointment at station ${station} on ${date} at ${time} has been successfully cancelled.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('📩 Cancellation email sent to:', email);
+  } catch (error) {
+    console.error('❌ Error sending cancellation email:', error);
+  }
+};
+
 
 
 router.post('/book', authMiddleware, async (req, res) => {
@@ -156,7 +193,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
         from: process.env.EMAIL,
         to: booking.user,
         subject: 'Charging Appointment Approved',
-        text: `✅ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been approved.`,
+        text: `❌ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been canceled.`,
       });
     } else {
       console.log(`No email address found for booking at ${booking.station}`);
@@ -182,19 +219,26 @@ router.post('/start-charging', authMiddleware, async (req, res) => {
 
     const now = new Date();
     const slotDateTime = new Date(`${date}T${time}:00`);
-    if (slotDateTime < now) {
-      return res.status(400).json({ message: ' appointment has passed – charging cannot be started ⚠️' });
-    }
+    const tenMinutes = 10 * 60 * 1000;
 
     const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
     const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
     const bookingCount = await Booking.countDocuments({ station: trimmedStation });
-    const activeChargingCount = await ActiveCharging.countDocuments({ station: trimmedStation });
+    
+    
 
-    if (bookingCount + activeChargingCount >= maxSlots) {
-      return res.status(400).json({ message: 'No available slots for this station.' });
+    const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time, status: 'approved' });
+    if (!existingBooking) {
+      return res.status(404).json({ message: 'No confirmed order found at this time.' });
+    }
+    if (now < slotDateTime - tenMinutes || now > slotDateTime + tenMinutes) {
+      return res.status(400).json({ message: 'You can only start charging 10 minutes before your scheduled reservation time. If the station is available' });
     }
 
+    const activeChargingCount = await ActiveCharging.countDocuments({ station: trimmedStation, date, time });
+    if (activeChargingCount >= maxSlots) {
+      return res.status(400).json({ message: 'The position is occupied at this time.' });
+    }
     const newCharge = new ActiveCharging({ user: userEmail, station: trimmedStation, date, time });
     await newCharge.save();
     res.status(201).json({ message: 'Charging started!' });
@@ -249,6 +293,8 @@ router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => 
         subject: 'Charging Appointment Approved',
         text: `✅ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been approved.`,
       });
+      
+      
     }
 
     for (const booking of rejected) {
@@ -257,6 +303,12 @@ router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => 
         { _id: booking._id },
         { $set: { status: 'rejected', rejectionCount: newRejectionCount } }
       );
+      await transporter.sendMail({
+        from: process.env.EMAIL,
+        to: booking.user,
+        subject: 'Charging Appointment Canceled',
+        text: `❌ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been canceled.`,
+      });
     }
 
     res.json({ approved, rejected });
