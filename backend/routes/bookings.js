@@ -21,7 +21,7 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
       station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') },
       date
     });
-    
+
     const bookingsWithLaxity = queue.map((b) => {
       const bookingTime = new Date(`${b.date}T${b.time}:00`);
       const estimatedChargeTime = b.estimatedChargeTime || 30;
@@ -67,7 +67,10 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post("/check-availability", async (req, res) => {
   try {
     const { station, date } = req.body;
-    const trimmedStation = station.trim();
+    const trimmedStation =
+      typeof station === 'string'
+        ? station.trim()
+        : station['Station Name']?.trim?.() || '';
 
     const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
     const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
@@ -144,8 +147,14 @@ router.post('/book', authMiddleware, async (req, res) => {
     const trimmedStation = station.trim();
 
     const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time });
+
+    // נמשיך רק אם:
     if (existingBooking) {
-      return res.status(400).json({ message: 'You already have a booking for this time slot.' });
+      if (existingBooking.status !== 'approved') {
+        console.log('⚠️ Booking exists but not approved. Allowing charging anyway.');
+      }
+    } else {
+      console.log('⚠️ No booking found. Allowing charging without booking.');
     }
 
 
@@ -215,7 +224,18 @@ router.post('/start-charging', authMiddleware, async (req, res) => {
   try {
     const { station, date, time } = req.body;
     const userEmail = req.user.email;
-    const trimmedStation = station.trim();
+    if (!station) {
+      return res.status(400).json({ message: 'Station is required.' });
+    }
+    let trimmedStation = '';
+
+    if (typeof station === 'string') {
+      trimmedStation = station.trim();
+    } else if (typeof station === 'object' && station['Station Name']) {
+      trimmedStation = station['Station Name'].trim();
+    } else {
+      return res.status(400).json({ message: 'Invalid station format.' });
+    }
 
     const now = new Date();
     const slotDateTime = new Date(`${date}T${time}:00`);
@@ -223,24 +243,31 @@ router.post('/start-charging', authMiddleware, async (req, res) => {
 
     const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
     const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
-    const bookingCount = await Booking.countDocuments({ station: trimmedStation });
-    
-    
 
-    const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time, status: 'approved' });
-    if (!existingBooking) {
-      return res.status(404).json({ message: 'No confirmed order found at this time.' });
-    }
-    if (now < slotDateTime - tenMinutes || now > slotDateTime + tenMinutes) {
-      return res.status(400).json({ message: 'You can only start charging 10 minutes before your scheduled reservation time. If the station is available' });
-    }
-
+    // בודק אם יש כבר טעינה פעילה באותו זמן ותחנה
     const activeChargingCount = await ActiveCharging.countDocuments({ station: trimmedStation, date, time });
     if (activeChargingCount >= maxSlots) {
       return res.status(400).json({ message: 'The position is occupied at this time.' });
     }
+
+    // בודק אם קיים תור, גם אם לא מאושר
+    const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time });
+    if (existingBooking) {
+      if (existingBooking.status !== 'approved') {
+        console.log('⚠️ Booking exists but not approved. Allowing charging anyway.');
+      }
+    } else {
+      console.log('⚠️ No booking found. Allowing charging without booking.');
+    }
+
+    // בדיקה של חלון זמן של 10 דקות לפני / אחרי
+    if (now < slotDateTime - tenMinutes || now > slotDateTime + tenMinutes) {
+      return res.status(400).json({ message: 'You can only start charging 10 minutes before or after your scheduled time.' });
+    }
+
     const newCharge = new ActiveCharging({ user: userEmail, station: trimmedStation, date, time });
     await newCharge.save();
+
     res.status(201).json({ message: 'Charging started!' });
   } catch (error) {
     console.error('Error starting charging:', error);
@@ -252,6 +279,11 @@ router.post('/stop-charging', authMiddleware, async (req, res) => {
   try {
     const userEmail = req.user.email;
     const { station } = req.body;
+
+    if (!station) {
+      return res.status(400).json({ message: 'Station is required to stop charging.' });
+    }
+
     const trimmedStation = station.trim();
     await ActiveCharging.deleteOne({ user: userEmail, station: trimmedStation });
 
@@ -261,6 +293,7 @@ router.post('/stop-charging', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error stopping charging' });
   }
 });
+
 
 router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => {
   try {
@@ -293,8 +326,8 @@ router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => 
         subject: 'Charging Appointment Approved',
         text: `✅ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been approved.`,
       });
-      
-      
+
+
     }
 
     for (const booking of rejected) {

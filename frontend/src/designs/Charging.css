@@ -1,131 +1,80 @@
-:root {
-    --primary-color: #0070f3;
-    --secondary-color: #00dea3;
-    --background-color: #f4f7fa;
-    --text-color: #2c3e50;
-}
-
-.charging-wrapper {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    min-height: 100vh;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    font-family: 'Arial', sans-serif;
-}
-
 .charging-container {
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-    width: 100%;
-    max-width: 500px;
+    max-width: 600px;
+    margin: 0 auto;
     padding: 30px;
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
     text-align: center;
-    transition: all 0.3s ease;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.charging-container:hover {
-    transform: scale(1.02);
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+.charging-container h2 {
+    color: #4caf50;
+    margin-bottom: 20px;
 }
 
-.charging-header {
-    margin-bottom: 25px;
-    border-bottom: 2px solid #f1f1f1;
-    padding-bottom: 20px;
+.charging-container p {
+    font-size: 16px;
+    margin: 10px 0;
 }
 
-.charging-header h2 {
-    color: var(--primary-color);
-    font-size: 24px;
-    margin-bottom: 15px;
-}
-
-.station-info h3 {
-    color: var(--secondary-color);
-    margin-bottom: 10px;
-}
-
-.station-info p {
-    color: var(--text-color);
-    margin: 5px 0;
-}
-
-.error-message {
-    background-color: #ff4d4d;
-    color: white;
-    padding: 10px;
-    border-radius: 5px;
-    margin: 15px 0;
-    animation: shake 0.5s;
-}
-
-@keyframes shake {
-
-    0%,
-    100% {
-        transform: translateX(0);
-    }
-
-    10%,
-    30%,
-    50%,
-    70%,
-    90% {
-        transform: translateX(-5px);
-    }
-
-    20%,
-    40%,
-    60%,
-    80% {
-        transform: translateX(5px);
-    }
-}
-
-.charging-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.charging-controls button {
-    padding: 12px;
+button {
+    padding: 10px 20px;
+    background-color: #4caf50;
     border: none;
-    border-radius: 8px;
     color: white;
     font-weight: bold;
+    font-size: 16px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin-top: 20px;
 }
 
-.start-charging-btn {
-    background: linear-gradient(45deg, #00b4db, #0083b0);
-}
-
-.stop-charging-btn {
-    background: linear-gradient(45deg, #ff4d4d, #ff1e1e);
-}
-
-.back-home-btn {
-    background: #6c757d;
-}
-
-.charging-controls button:hover {
-    opacity: 0.9;
-    transform: translateY(-3px);
-}
-
-.charging-controls button:disabled {
-    background: #cccccc;
+button:disabled {
+    background-color: #a5d6a7;
     cursor: not-allowed;
 }
 
-@media (max-width: 600px) {
-    .charging-container {
-        width: 90%;
-        margin: 20px;
-        padding: 20px;
-    }
+button:hover:not(:disabled) {
+    background-color: #43a047;
+}
+
+.bottom-bar {
+    margin-top: 30px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    border-top: 1px solid #ddd;
+    padding-top: 20px;
+}
+
+.bottom-bar-button {
+    text-decoration: none;
+    color: #333;
+    background-color: #e0e0e0;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin: 5px;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    transition: background-color 0.2s ease;
+}
+
+.bottom-bar-button i {
+    margin-right: 8px;
+}
+
+.bottom-bar-button:hover {
+    background-color: #d5d5d5;
+}
+
+.logout {
+    background-color: #ff5252;
+    color: white;
+}
+
+.logout:hover {
+    background-color: #e53935;
 }

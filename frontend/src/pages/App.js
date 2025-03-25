@@ -15,11 +15,16 @@ import Logout from './Logout';
 import '../designs/index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 import Charging from './Charging'; // ודאי שהנתיב נכון
 import ChargingQueue from './ChargingQueue';
 import MyBookings from './MyBookings';
 >>>>>>> 510cb047 (LLLP algorithm for prioritizing vehicle charging)
+=======
+import Charging from './Charging';
+import ChargingQueue from './ChargingQueue';
+>>>>>>> 39541ef2 (charge management)
 
 
 function App() {
@@ -77,15 +82,12 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/my-bookings"
-            element={
-              <ProtectedRoute>
-                <MyBookings />
-              </ProtectedRoute>
-            }
-          />
 
+<<<<<<< HEAD
+=======
+
+
+>>>>>>> 39541ef2 (charge management)
           <Route path="/logout" element={<Logout />} />
 <<<<<<< HEAD
           
