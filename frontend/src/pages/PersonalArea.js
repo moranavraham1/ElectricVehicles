@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import ChargeHistory from "./ChargeHistory";
 import FutureBookings from "./FutureBookings";
 import ChangePassword from "./ChangePassword";
 import "../designs/PersonalArea.css";
@@ -109,12 +108,8 @@ function PersonalArea() {
 
         <nav className="tab-navigation">
           <button className={view === "profile" ? "active" : ""} onClick={() => setView("profile")}>Profile</button>
-          <button className={view === "history" ? "active" : ""} onClick={() => setView("history")}>Charge History</button>
           <button className={view === "bookings" ? "active" : ""} onClick={() => setView("bookings")}>Future Bookings</button>
           <button className={view === "password" ? "active" : ""} onClick={() => setView("password")}>Change Password</button>
-          <Link to="/my-bookings" className="bottom-bar-button">
-            <i className="fas fa-calendar-check"></i> My Bookings
-          </Link>
 
         </nav>
 
@@ -142,7 +137,7 @@ function PersonalArea() {
               )}
             </>
           )}
-          {view === "history" && <ChargeHistory />}
+
           {view === "bookings" && <FutureBookings />}
           {view === "password" && <ChangePassword />}
         </div>

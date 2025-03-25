@@ -14,9 +14,8 @@ import ProtectedRoute from '../components/ProtectedRoute';
 import Logout from './Logout';
 import '../designs/index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
-import Charging from './Charging'; // ודאי שהנתיב נכון
+import Charging from './Charging';
 import ChargingQueue from './ChargingQueue';
-import MyBookings from './MyBookings';
 
 
 function App() {
@@ -74,16 +73,8 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/my-bookings"
-            element={
-              <ProtectedRoute>
-                <MyBookings />
-              </ProtectedRoute>
-            }
-          />
 
-          <Route path="/charging" element={<Charging />} />
+
 
           <Route path="/logout" element={<Logout />} />
 

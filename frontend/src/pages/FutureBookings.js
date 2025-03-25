@@ -68,6 +68,7 @@ function FutureBookings() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ station, date, time }),
+
       });
 
       const data = await res.json();
@@ -75,7 +76,13 @@ function FutureBookings() {
         alert(data.message);
         fetchActiveCharging();
         // ניווט לעמוד Charging.js עם מידע על התחנה
-        navigate("/charging", { state: { station } });
+        navigate("/charging", {
+          state: {
+            station,
+            date,
+            time
+          }
+        });
       } else {
         alert(data.message || "Error starting charging");
       }
@@ -138,9 +145,22 @@ function FutureBookings() {
                 if (!isActive) {
                   if (diffMinutes >= -5 && diffMinutes <= 60) {
                     return (
-                      <button onClick={() => handleStartCharging(booking.station, booking.date, booking.time)}>
-                        ⚡ Start Charging
+                      <button
+                        onClick={() =>
+                          navigate('/charging', {
+                            state: {
+                              station: booking.station,
+                              date: booking.date,
+                              time: booking.time,
+                              estimatedChargeTime: booking.estimatedChargeTime
+                            }
+                          })
+                        }
+                      >
+                        🚘 Go to Charging Page
                       </button>
+
+
                     );
                   } else if (diffMinutes < -5) {
                     return (
