@@ -470,7 +470,7 @@ const Home = () => {
             </div>
             {/* כפתור לניווט לדף התור */}
             <Link
-              to={`/charging-queue/${station['Station Name']}/${today}`}
+              to={`/charging-queue/${encodeURIComponent(station['Station Name'])}/${today}`}
               style={{
                 padding: "10px",
                 backgroundColor: "#4CAF50",

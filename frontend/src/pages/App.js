@@ -18,6 +18,7 @@ import Charging from './Charging'; // ודאי שהנתיב נכון
 import ChargingQueue from './ChargingQueue';
 import MyBookings from './MyBookings';
 
+
 function App() {
   return (
     <Router>

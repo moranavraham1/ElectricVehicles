@@ -9,7 +9,9 @@ const bookingSchema = new mongoose.Schema({
   estimatedChargeTime: { type: Number, required: true },
   createdAt: { type: Date, default: Date.now },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-  rejectionCount: { type: Number, default: 0 }
+  rejectionCount: { type: Number, default: 0 },
+  laxity: { type: Number, default: null }
+  
 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
