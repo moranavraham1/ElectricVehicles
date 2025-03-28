@@ -35,7 +35,19 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
       const createdAt = new Date(b.createdAt);
       const waitingMinutes = (now - createdAt) / (60 * 1000); 
 
-      const priorityScore = (b.urgencyLevel ?? 100) - (waitingMinutes * agingFactor); // 🔄 שינוי
+      const maxWaitTime = 40; 
+      const maxBoost = 20; 
+
+      const waitFactor = Math.min(waitingMinutes / maxWaitTime, 1); 
+      const agingBoost = waitFactor * maxBoost;
+
+ 
+      const priorityScore = 
+        (b.urgencyLevel ?? 100) - 
+        (waitingMinutes * agingFactor) - 
+        ((b.currentBattery ?? 100) / 5) - 
+        agingBoost;
+
 
       return {
         _id: b._id,
@@ -46,6 +58,7 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
         urgencyLevel: b.urgencyLevel,
         estimatedChargeTime,
         createdAt,
+        currentBattery: b.currentBattery,
         priorityScore 
       };
     });
