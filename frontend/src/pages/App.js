@@ -16,6 +16,8 @@ import '../designs/index.css';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import Charging from './Charging';
 import ChargingQueue from './ChargingQueue';
+import NavigateToToday from './NavigateToToday';
+
 
 
 function App() {
@@ -31,6 +33,9 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/Change-Password/:token" element={<ChangePassword />} />
           <Route path="/charging" element={<Charging />} />
+          <Route path="/charging-queue/:stationName" element={<NavigateToToday />} />
+          <Route path="/navigate-to-today/:stationName" element={<NavigateToToday />} />
+
 
 
           <Route

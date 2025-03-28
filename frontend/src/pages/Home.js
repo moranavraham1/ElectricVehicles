@@ -6,6 +6,7 @@ import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
 
 
+
 const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const Home = () => {
@@ -38,6 +39,24 @@ const Home = () => {
   const startCharging = (station) => {
     navigate('/charging', { state: { station } });
   };
+  const goToAppointmentPage = async (station) => {
+    try {
+      const battery = await navigator.getBattery(); 
+      const level = Math.round(battery.level * 100);
+      navigate('/appointment', {
+        state: {
+          station,
+          batteryLevel: level 
+        }
+      });
+    } catch (err) {
+      console.error('Battery API not available:', err);
+      navigate('/appointment', {
+        state: { station } 
+      });
+    }
+  };
+  
 
   const carModelsData = {
     "Tesla Model 3": { fullChargeTime: 80 },
@@ -78,7 +97,36 @@ const Home = () => {
 
   }, [selectedCarModel, batteryLevel, targetLevel, manualTime]);
 
-
+  useEffect(() => {
+    let batteryRef;
+  
+    const getBattery = async () => {
+      try {
+        const battery = await navigator.getBattery();
+        batteryRef = battery;
+        const updateLevel = () => {
+          setBatteryLevel(Math.round(battery.level * 100));
+        };
+  
+        updateLevel(); // עדכון ראשוני
+        battery.addEventListener("levelchange", updateLevel);
+      } catch (err) {
+        console.error("Battery API not supported", err);
+      }
+    };
+  
+    if (showModal) {
+      getBattery();
+    }
+  
+    return () => {
+      if (batteryRef) {
+        batteryRef.removeEventListener("levelchange", () => {});
+      }
+    };
+  }, [showModal]);
+  
+  
   useEffect(() => {
     if (!selectedCarModel || batteryLevel >= targetLevel) return;
 
@@ -272,8 +320,11 @@ const Home = () => {
       alert("Please select a station, date, and time.");
       return;
     }
-
+  
     try {
+      const battery = await navigator.getBattery(); // 🔄 שליפת אחוז סוללה
+      const level = Math.round(battery.level * 100);
+  
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/book`,
         {
@@ -281,7 +332,9 @@ const Home = () => {
           date,
           time,
           estimatedChargeTime,
-          urgencyLevel
+          urgencyLevel,
+          currentBattery: batteryLevel, 
+          targetBattery: targetLevel 
         },
         {
           headers: {
@@ -289,10 +342,9 @@ const Home = () => {
           }
         }
       );
-
-
+  
       alert("Booking successful!");
-
+  
       setChargingSlots(prevSlots => {
         const updatedSlots = { ...prevSlots };
         if (updatedSlots[time] > 1) {
@@ -303,13 +355,14 @@ const Home = () => {
         }
         return updatedSlots;
       });
-
+  
       closeModal();
     } catch (error) {
       console.error("Error booking appointment:", error);
       alert("Failed to book appointment. Please try again later.");
     }
   };
+  
 
 
 
@@ -525,6 +578,57 @@ const Home = () => {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Book an appointment for {selectedStation['Station Name']}</h2>
+            <div style={{
+              backgroundColor: '#f1f8e9',
+              padding: '10px',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              color: '#1b5e20',
+              marginBottom: '15px'
+            }}>
+              🔋 Current Battery Level: {batteryLevel}%
+            </div>
+            {/* Select Car Model */}
+            <label htmlFor="carModel">Select Car Model:</label>
+            <select
+              id="carModel"
+              value={selectedCarModel}
+              onChange={(e) => setSelectedCarModel(e.target.value)}
+            >
+              <option value="">Select Car Model</option>
+              {Object.keys(carModelsData).map((carModel, index) => (
+                <option key={index} value={carModel}>
+                  {carModel}
+                </option>
+              ))}
+            </select>
+
+            {/* Battery Level (editable) */}
+            <label htmlFor="batteryLevel">Battery Level (%):</label>
+            <input
+              id="batteryLevel"
+              type="number"
+              min="0"
+              max="100"
+              value={batteryLevel}
+              onChange={(e) => setBatteryLevel(e.target.value)}
+            />
+
+            {/* Target Battery Level */}
+            <label htmlFor="targetLevel">Target Battery Level (%):</label>
+            <input
+              id="targetLevel"
+              type="number"
+              min="0"
+              max="100"
+              value={targetLevel}
+              onChange={(e) => setTargetLevel(e.target.value)}
+            />
+
+            {/* Display Estimated Charge Time */}
+            <div>
+              ⏱ Estimated Charging Time: <strong>{estimatedChargeTime} minutes</strong>
+            </div>
 
             <label htmlFor="date">Select Date:</label>
             <input
@@ -570,105 +674,7 @@ const Home = () => {
             )}
 
             {/* Modal to book an appointment */}
-            {showModal && (
-              <div className="modal-overlay" onClick={closeModal}>
-                <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-                  <h2>Book an appointment for {selectedStation['Station Name']}</h2>
-
-                  {/* Date Picker */}
-                  <label htmlFor="date">Select Date:</label>
-                  <input
-                    id="date"
-                    type="date"
-                    value={date}
-                    min={today}
-                    onChange={(e) => {
-                      const selectedDate = e.target.value;
-                      if (selectedDate < today) {
-                        alert("You cannot select a past date!");
-                        setDate(today);
-                        fetchAvailableTimes(today);
-                      } else {
-                        setDate(selectedDate);
-                        setTime("");
-                        fetchAvailableTimes(selectedDate);
-                      }
-                    }}
-                  />
-
-                  {/* Select Car Model */}
-                  <label htmlFor="carModel">Select Car Model:</label>
-                  <select
-                    id="carModel"
-                    value={selectedCarModel}
-                    onChange={(e) => setSelectedCarModel(e.target.value)}
-                  >
-                    <option value="">Select Car Model</option>
-                    {Object.keys(carModelsData).map((carModel, index) => (
-                      <option key={index} value={carModel}>
-                        {carModel}
-                      </option>
-                    ))}
-                  </select>
-
-                  {/* Battery Level */}
-                  <label htmlFor="batteryLevel">Battery Level (%):</label>
-                  <input
-                    id="batteryLevel"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={batteryLevel}
-                    onChange={(e) => setBatteryLevel(e.target.value)}
-                  />
-
-                  {/* Target Battery Level */}
-                  <label htmlFor="targetLevel">Target Battery Level (%):</label>
-                  <input
-                    id="targetLevel"
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={targetLevel}
-                    onChange={(e) => setTargetLevel(e.target.value)}
-                  />
-
-                  {/* Display Estimated Charge Time */}
-                  <div>
-                    ⏱ Estimated Charging Time: <strong>{estimatedChargeTime} minutes</strong>
-                  </div>
-
-                  {/* Time Slot Selection */}
-                  <label htmlFor="time">Select Time:</label>
-                  <select
-                    id="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    disabled={availableTimes.length === 0}
-                  >
-                    <option value="">-- Select Time --</option>
-                    {availableTimes.map((availableTime, index) => (
-                      <option key={index} value={availableTime}>
-                        {availableTime}
-                      </option>
-                    ))}
-                  </select>
-
-                  {date && availableTimes.length === 0 && (
-                    <p style={{ color: "red" }}>
-                      {date === today
-                        ? "⚠️ No more available slots for today. Please choose another date."
-                        : "No available times for this date."}
-                    </p>
-                  )}
-
-                  <button onClick={bookAppointment} disabled={!isAvailable || !time}>
-                    📌 Confirm Booking
-                  </button>
-                  <button onClick={closeModal}>❌ Close</button>
-                </div>
-              </div>
-            )}
+            
 
             <button onClick={bookAppointment} disabled={!isAvailable || !time}>
               📌 Confirm Booking

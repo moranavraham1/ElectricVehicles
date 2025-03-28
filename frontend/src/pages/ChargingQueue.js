@@ -10,13 +10,14 @@ const ChargingQueue = () => {
     useEffect(() => {
         const fetchQueue = async () => {
             try {
+                const encodedStation = encodeURIComponent(stationName);
                 const response = await axios.get(
-                    `${process.env.REACT_APP_BACKEND_URL}/api/bookings/queue/${stationName}/${selectedDate}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        },
-                    }
+                  `${process.env.REACT_APP_BACKEND_URL}/api/bookings/queue/${encodedStation}/${selectedDate}`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                  }
                 );
                 setQueue(response.data);
             } catch (err) {

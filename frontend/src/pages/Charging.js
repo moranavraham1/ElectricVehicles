@@ -23,6 +23,35 @@ const Charging = () => {
     const [estimatedChargeTime, setEstimatedChargeTime] = useState(null);
     const [endTime, setEndTime] = useState('');
     const timerRef = useRef(null);
+    const [batteryLevel, setBatteryLevel] = useState(null);
+    useEffect(() => {
+        let batteryRef;
+    
+        const monitorBattery = async () => {
+            try {
+                const battery = await navigator.getBattery();
+                batteryRef = battery;
+    
+                const updateLevel = () => {
+                    setBatteryLevel(Math.round(battery.level * 100));
+                };
+    
+                updateLevel();
+                battery.addEventListener('levelchange', updateLevel);
+            } catch (error) {
+                console.error('Battery API not supported:', error);
+            }
+        };
+    
+        monitorBattery();
+    
+        return () => {
+            if (batteryRef) {
+                batteryRef.removeEventListener('levelchange', () => {});
+            }
+        };
+    }, []);
+    
 
     useEffect(() => {
         if (!station) return;
@@ -146,6 +175,12 @@ const Charging = () => {
             <p><strong>🏙 City:</strong> {station.City}</p>
             <p><strong>📅 Date:</strong> {date}</p>
             <p><strong>🕒 Start Time:</strong> {time}</p>
+            {batteryLevel !== null && (
+                <p style={{ fontWeight: 'bold', color: '#4caf50' }}>
+                    🔋 Current Battery Level: {batteryLevel}%
+                </p>
+            )}
+
 
             {/* הצגת זמן סיום רק אם המשתמש הגיע עם תור */}
             {estimatedChargeTime && (

@@ -144,6 +144,25 @@ const MapPage = () => {
   };
 
   if (loading) return <div>Loading stations...</div>;
+  const handleBookAppointment = async (station) => {
+    try {
+      const battery = await navigator.getBattery(); 
+      const batteryLevel = Math.round(battery.level * 100);
+  
+      navigate('/appointment', {
+        state: {
+          station,
+          batteryLevel 
+        }
+      });
+    } catch (error) {
+      console.error('Error getting battery level:', error);
+      navigate('/appointment', {
+        state: { station } 
+      });
+    }
+  };
+  
 
   return (
     <div className="map-page-container">
@@ -219,13 +238,12 @@ const MapPage = () => {
                     </a>
                     <br />
                     {/* Appointment link with class for styling */}
-                    <Link 
-                      to="/appointment" 
-                      state={{ station }}
+                    <button 
+                      onClick={() => handleBookAppointment(station)} 
                       className="tooltip-appointment-button"
                     >
                       Book Appointment
-                    </Link>
+                    </button>
                   </div>
                 </Tooltip>
               )}

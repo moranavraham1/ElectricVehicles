@@ -10,7 +10,8 @@ const bookingSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
   status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
   rejectionCount: { type: Number, default: 0 },
-  laxity: { type: Number, default: null }
+  laxity: { type: Number, default: null },
+  currentBattery: {type: Number,required: false,}
   
 });
 
