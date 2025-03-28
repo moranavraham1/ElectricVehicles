@@ -4,6 +4,7 @@ const Booking = require('../models/Booking');
 const Station = require('../Station');
 const authMiddleware = require('../authMiddleware');
 const nodemailer = require('nodemailer');
+
 const ActiveCharging = require('../models/ActiveCharging');
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -15,42 +16,65 @@ const transporter = nodemailer.createTransport({
 router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
   try {
     const { station, date } = req.params;
-    const now = new Date();
-    const normalizedStation = station.trim().toLowerCase();
+
+    const normalize = (str) =>
+      decodeURIComponent(str).trim().toLowerCase().replace(/\s+/g, ' ');
+
+    const normalizedStation = normalize(station);
+
     const queue = await Booking.find({
       station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') },
       date
     });
+    const now = new Date();
+    const agingFactor = 0.08; 
 
-    const bookingsWithLaxity = queue.map((b) => {
+    const bookingsWithPriority = queue.map((b) => {
       const bookingTime = new Date(`${b.date}T${b.time}:00`);
       const estimatedChargeTime = b.estimatedChargeTime || 30;
-      const laxity = (bookingTime - now) / (60 * 1000) - estimatedChargeTime;
+      const createdAt = new Date(b.createdAt);
+      const waitingMinutes = (now - createdAt) / (60 * 1000); 
+
+      const priorityScore = (b.urgencyLevel ?? 100) - (waitingMinutes * agingFactor); // 🔄 שינוי
 
       return {
         _id: b._id,
         station: b.station,
         date: b.date,
         time: b.time,
-        user: b.user, // מייל
+        user: b.user,
         urgencyLevel: b.urgencyLevel,
         estimatedChargeTime,
-        laxity
+        createdAt,
+        priorityScore 
       };
     });
 
-    // מיון לפי LLLP: קודם כל לפי laxity עולה, ואז לפי estimatedChargeTime יורד
-    bookingsWithLaxity.sort((a, b) => {
-      if (a.laxity !== b.laxity) return a.laxity - b.laxity;
-      return b.estimatedChargeTime - a.estimatedChargeTime;
+   
+    bookingsWithPriority.sort((a, b) => {
+      if (a.priorityScore !== b.priorityScore) {
+        return a.priorityScore - b.priorityScore;
+      }
+    
+      if (a.estimatedChargeTime !== b.estimatedChargeTime) {
+        return a.estimatedChargeTime - b.estimatedChargeTime;
+      }
+    
+      if (a.currentBattery !== b.currentBattery) {
+        return a.currentBattery - b.currentBattery; 
+      }
+    
+      return new Date(a.createdAt) - new Date(b.createdAt); 
     });
+    
 
-    res.json(bookingsWithLaxity);
+    res.json(bookingsWithPriority);
   } catch (error) {
     console.error('Error fetching queue:', error);
     res.status(500).json({ message: 'Error fetching queue' });
   }
 });
+
 
 
 router.get('/', authMiddleware, async (req, res) => {
@@ -142,13 +166,14 @@ const sendBookingCancellationEmail = async (email, station, date, time) => {
 
 router.post('/book', authMiddleware, async (req, res) => {
   try {
-    const { station, date, time, urgencyLevel, estimatedChargeTime } = req.body;
+    const { station, date, time, urgencyLevel, estimatedChargeTime, currentBattery } = req.body;
     const userEmail = req.user.email;
-    const trimmedStation = station.trim();
+    const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ');
+    const trimmedStation = normalize(station);
+
 
     const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time });
 
-    // נמשיך רק אם:
     if (existingBooking) {
       if (existingBooking.status !== 'approved') {
         console.log('⚠️ Booking exists but not approved. Allowing charging anyway.');
@@ -165,6 +190,7 @@ router.post('/book', authMiddleware, async (req, res) => {
       time,
       urgencyLevel,
       estimatedChargeTime,
+      currentBattery,
       createdAt: new Date(),
     });
 

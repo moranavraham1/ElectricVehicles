@@ -10,7 +10,7 @@ registerLocale('en-US', enUS);
 const Appointment = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { station } = location.state || {};
+  const { station, batteryLevel } = location.state || {}; // 🔄 שינוי: קבלת batteryLevel מהניווט
 
   const [appointmentDate, setAppointmentDate] = useState(null);
   const [appointmentTime, setAppointmentTime] = useState('');
@@ -35,8 +35,7 @@ const Appointment = () => {
     }
     setErrorMessage('');
 
-    // Prepare payload for sending to the server
-    const userEmail = localStorage.getItem('loggedInUser'); // Using loggedInUser consistently
+    const userEmail = localStorage.getItem('loggedInUser');
     const payload = {
       email: userEmail,
       stationName: station['Station Name'],
@@ -46,6 +45,7 @@ const Appointment = () => {
       distance: station.distance,
       appointmentDate: formattedDate,
       appointmentTime: appointmentTime,
+      currentBattery: batteryLevel // 🔄 שינוי: שליחת אחוז הסוללה לשרת
     };
 
     try {
@@ -60,7 +60,6 @@ const Appointment = () => {
       });
       if (response.ok) {
         alert(`Appointment booked for ${appointmentDateTime.toLocaleString()} and email sent!`);
-        // Redirect to Personal Area so the new appointment is visible
         navigate('/personal-area');
       } else {
         alert('Appointment booked but there was an error sending the email.');
