@@ -73,6 +73,7 @@ function VerifyCode() {
           <input
             type="text"
             placeholder="Enter Verification Code"
+            autoComplete="off"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             className="verify-input"
