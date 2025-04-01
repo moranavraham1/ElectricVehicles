@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../designs/Register.css';
 
 function Register() {
+  // Form steps
+  const steps = ['Personal', 'Contact', 'Security'];
+  const [currentStep, setCurrentStep] = useState(0);
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -13,8 +17,30 @@ function Register() {
     password: '',
     confirmPassword: '',
   });
+
   const [errors, setErrors] = useState({});
+  const [passwordStrength, setPasswordStrength] = useState(0);
   const navigate = useNavigate();
+
+  // Calculate password strength
+  useEffect(() => {
+    if (!formData.password) {
+      setPasswordStrength(0);
+      return;
+    }
+
+    let strength = 0;
+    // Length check
+    if (formData.password.length >= 8) strength += 25;
+    // Uppercase check
+    if (/[A-Z]/.test(formData.password)) strength += 25;
+    // Number check
+    if (/\d/.test(formData.password)) strength += 25;
+    // Special character check
+    if (/[^A-Za-z0-9]/.test(formData.password)) strength += 25;
+
+    setPasswordStrength(strength);
+  }, [formData.password]);
 
   const validateField = (field, value) => {
     let error = '';
@@ -89,18 +115,44 @@ function Register() {
     validateField(name, value);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-  
-    const isValid = Object.keys(formData).every((field) =>
+  const nextStep = () => {
+    let fieldsToValidate = [];
+
+    // Determine which fields to validate based on current step
+    if (currentStep === 0) {
+      fieldsToValidate = ['firstName', 'lastName'];
+    } else if (currentStep === 1) {
+      fieldsToValidate = ['email', 'phone'];
+    }
+
+    const isStepValid = fieldsToValidate.every(field =>
       validateField(field, formData[field])
     );
-  
-    if (!isValid) {
+
+    if (isStepValid) {
+      setCurrentStep(currentStep + 1);
+    } else {
+      toast.error('Please correct the errors before proceeding.');
+    }
+  };
+
+  const prevStep = () => {
+    setCurrentStep(currentStep - 1);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    // Validate final step fields
+    const finalFieldsValid = ['password', 'confirmPassword'].every(field =>
+      validateField(field, formData[field])
+    );
+
+    if (!finalFieldsValid) {
       toast.error('Please correct the errors before submitting.');
       return;
     }
-  
+
     try {
       const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/register`, {
         method: 'POST',
@@ -115,93 +167,179 @@ function Register() {
           password: formData.password,
         }),
       });
-  
+
       // Check if response status is ok
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Registration failed.');
       }
-  
-      const data = await response.json(); // Parse response JSON
-      toast.success(data.message);
+
+      const data = await response.json();
+      toast.success(data.message || 'Registration successful!');
       navigate(`/verify-email?email=${formData.email}`);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.message || 'An error occurred during registration.');
     }
   };
-  
+
+  // Get password strength color
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength < 25) return '#F87171'; // Weak - Red
+    if (passwordStrength < 75) return '#FBBF24'; // Medium - Amber
+    return '#34D399'; // Strong - Green
+  };
+
+  // Render form based on current step
+  const renderForm = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <>
+            <div className="form-group">
+              <input
+                type="text"
+                name="firstName"
+                placeholder="First Name"
+                value={formData.firstName}
+                onChange={handleChange}
+                autoFocus
+              />
+              {errors.firstName && <span className="error-message">{errors.firstName}</span>}
+            </div>
+
+            <div className="form-group">
+              <input
+                type="text"
+                name="lastName"
+                placeholder="Last Name"
+                value={formData.lastName}
+                onChange={handleChange}
+              />
+              {errors.lastName && <span className="error-message">{errors.lastName}</span>}
+            </div>
+          </>
+        );
+
+      case 1:
+        return (
+          <>
+            <div className="form-group">
+              <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleChange}
+                autoFocus
+              />
+              {errors.email && <span className="error-message">{errors.email}</span>}
+            </div>
+
+            <div className="form-group">
+              <input
+                type="tel"
+                name="phone"
+                placeholder="Phone Number"
+                value={formData.phone}
+                onChange={handleChange}
+                pattern="[0-9]{10}"
+              />
+              {errors.phone && <span className="error-message">{errors.phone}</span>}
+            </div>
+          </>
+        );
+
+      case 2:
+        return (
+          <>
+            <div className="form-group">
+              <input
+                type="password"
+                name="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={handleChange}
+                autoFocus
+              />
+              <div className="password-strength" style={{ opacity: formData.password ? 1 : 0 }}>
+                <div className="password-strength-bar" style={{
+                  width: `${passwordStrength}%`,
+                  backgroundColor: getPasswordStrengthColor()
+                }}></div>
+              </div>
+              <div className="password-strength-text" style={{ color: getPasswordStrengthColor() }}>
+                {passwordStrength === 0 && formData.password && "Very Weak"}
+                {passwordStrength === 25 && "Weak"}
+                {passwordStrength === 50 && "Fair"}
+                {passwordStrength === 75 && "Good"}
+                {passwordStrength === 100 && "Strong"}
+              </div>
+              {errors.password && <span className="error-message">{errors.password}</span>}
+            </div>
+
+            <div className="form-group">
+              <input
+                type="password"
+                name="confirmPassword"
+                placeholder="Confirm Password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+              />
+              {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+            </div>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="register-container">
       <form onSubmit={handleSubmit}>
         <h1>Create an Account</h1>
 
-        <div className="form-group">
-          <input
-            type="text"
-            name="firstName"
-            placeholder="First Name"
-            value={formData.firstName}
-            onChange={handleChange}
-          />
-          {errors.firstName && <span className="error-message">{errors.firstName}</span>}
+        <div className="progress-indicator">
+          {steps.map((step, index) => (
+            <div
+              key={index}
+              className={`progress-step ${index === currentStep ? 'active' : ''} ${index < currentStep ? 'completed' : ''}`}
+            >
+              {index < currentStep ? '✓' : index + 1}
+            </div>
+          ))}
         </div>
 
-        <div className="form-group">
-          <input
-            type="text"
-            name="lastName"
-            placeholder="Last Name"
-            value={formData.lastName}
-            onChange={handleChange}
-          />
-          {errors.lastName && <span className="error-message">{errors.lastName}</span>}
-        </div>
+        <h2 className="step-title">{steps[currentStep]}</h2>
 
-        <div className="form-group">
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            value={formData.email}
-            onChange={handleChange}
-          />
-          {errors.email && <span className="error-message">{errors.email}</span>}
-        </div>
+        {renderForm()}
 
-        <div className="form-group">
-          <input
-            type="text"
-            name="phone"
-            placeholder="Phone Number"
-            value={formData.phone}
-            onChange={handleChange}
-          />
-          {errors.phone && <span className="error-message">{errors.phone}</span>}
-        </div>
+        <div className="button-group">
+          {currentStep > 0 && (
+            <button
+              type="button"
+              className="back-button"
+              onClick={prevStep}
+            >
+              Back
+            </button>
+          )}
 
-        <div className="form-group">
-          <input
-            type="password"
-            name="password"
-            placeholder="Password"
-            value={formData.password}
-            onChange={handleChange}
-          />
-          {errors.password && <span className="error-message">{errors.password}</span>}
+          {currentStep < steps.length - 1 ? (
+            <button
+              type="button"
+              className="next-button"
+              onClick={nextStep}
+            >
+              Next
+            </button>
+          ) : (
+            <button type="submit" className="submit-button">
+              Register
+            </button>
+          )}
         </div>
-
-        <div className="form-group">
-          <input
-            type="password"
-            name="confirmPassword"
-            placeholder="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-          />
-          {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
-        </div>
-
-        <button type="submit">Register</button>
 
         <p>
           Already have an account? <Link to="/">Login here</Link>

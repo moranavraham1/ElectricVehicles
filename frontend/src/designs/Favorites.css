@@ -1,169 +1,436 @@
-/* 🌟 מכולת העמוד הראשית - מסך מלא */
-.favorites-container {
-    font-family: 'Arial', sans-serif;
-    background: linear-gradient(to bottom, #e8f5e9, #c8e6c9);
-    color: #2e7d32;
-    width: 100vw; /* 100% מרוחב המסך */
-    height: 100vh; /* 100% מגובה המסך */
+/* Favorites.css - Premium Design 2025 */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+:root {
+    /* Color palette based on Home.css */
+    --primary: #1b5e20;
+    --primary-light: #4caf50;
+    --primary-gradient: linear-gradient(135deg, #1b5e20, #4caf50);
+    --background-gradient: linear-gradient(160deg, #e8f5e9, #728872);
+    --card-bg: #ffffff;
+    --text-primary: #333333;
+    --text-secondary: #555555;
+    --text-light: #777777;
+    --accent: #f44336;
+    --success: #388e3c;
+    --border-color: #82b984;
+
+    /* Spacing */
+    --spacing-xs: 5px;
+    --spacing-sm: 10px;
+    --spacing-md: 20px;
+    --spacing-lg: 30px;
+    --spacing-xl: 40px;
+
+    /* Shadows */
+    --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.15);
+
+    /* Borders */
+    --border-radius-sm: 8px;
+    --border-radius-md: 12px;
+    --border-radius-lg: 20px;
+    --border-radius-xl: 50px;
+
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-normal: 0.3s ease;
+}
+
+/* Base & Reset */
+* {
     margin: 0;
-    padding: 30px;
+    padding: 0;
     box-sizing: border-box;
-    overflow-y: auto; /* גלילה במקרה של תוכן רב */
 }
 
-/* 🌟 כותרת העמוד */
-.favorites-container h2 {
+body,
+.favorites-container {
+    font-family: 'Poppins', Arial, sans-serif;
+    color: var(--text-primary);
+    background: var(--background-gradient);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100vw;
+    overflow-x: hidden;
+}
+
+.favorites-container {
+    padding: var(--spacing-md);
+    padding-bottom: 80px;
+    /* Space for bottom bar */
+    margin: 0 auto;
+    position: relative;
+}
+
+/* Header Section */
+.favorites-summary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin: var(--spacing-md) 0;
     text-align: center;
-    font-size: 32px;
-    margin-bottom: 25px;
-    color: #1b5e20;
-    font-weight: bold;
+    width: 90%;
+    max-width: 500px;
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.8);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
 }
 
-/* 🌟 רשימת תחנות */
-.favorites-container .station-card {
-    background: #ffffff;
-    border: 1px solid #a5d6a7;
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+.favorites-summary h2 {
+    height: 20px;
+    line-height: 30px;
+}
+
+.favorites-summary h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: var(--spacing-sm);
+}
+
+.favorites-summary p {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.favorites-summary p strong {
+    color: var(--primary);
+    font-weight: 600;
+}
+
+/* Station Cards */
+.station-list {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.1px;
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-sm);
+    max-width: 900px;
+    max-height: calc(100vh - 25vh);
+    overflow-y: auto;
+}
+
+
+
+.station-card {
+    background: var(--card-bg);
+    border-radius: var(--border-radius-md);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-md);
+    border-left: 5px solid var(--primary-light);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 10px;
-    transition: box-shadow 0.3s, transform 0.2s;
+    gap: var(--spacing-md);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    position: relative;
+    cursor: default;
 }
 
-.favorites-container .station-card:hover {
+.station-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--shadow-lg);
 }
 
-.favorites-container .station-card h3 {
+.station-details {
+    flex: 1;
+}
+
+.station-card h3 {
     font-size: 20px;
-    color: #388e3c;
-    margin: 0;
-    font-weight: bold;
+    color: var(--primary);
+    margin-bottom: var(--spacing-sm);
+    padding-right: 35px;
+    /* Space for remove button */
 }
 
-.favorites-container .station-card p {
-    margin: 5px 0;
+.station-info {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.station-info-item {
+    display: flex;
+    align-items: center;
     font-size: 14px;
-    color: #4caf50;
+    color: var(--text-secondary);
 }
 
-.favorites-container .station-card p strong {
-    color: #2e7d32;
+.station-info-item svg {
+    color: var(--primary-light);
+    margin-right: var(--spacing-sm);
+    flex-shrink: 0;
 }
 
-/* 🌟 כפתור הסרה - אייקון איקס בתוך ריבוע */
+.station-info-item strong {
+    margin-right: var(--spacing-xs);
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.station-info-item span {
+    color: var(--text-secondary);
+}
+
+/* Remove Button */
 .remove-button {
-    margin-top: 5px;
-    background-color: #ce0e0e;
-    color: white;
+    position: absolute;
+    top: var(--spacing-md);
+    right: var(--spacing-md);
+    background-color: rgba(244, 67, 54, 0.1);
+    color: var(--accent);
     border: none;
-    border-radius: 4px;
-    width: 24px;
-    height: 24px;
-    font-size: 14px;
-    font-weight: bold;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    text-align: center;
-    line-height: 24px;
-    display: inline-block;
-    transition: background-color 0.3s, transform 0.2s;
+    transition: all var(--transition-fast);
+    font-size: 14px;
+    z-index: 5;
 }
 
 .remove-button:hover {
-    background-color: #c70e0e;
+    background-color: var(--accent);
+    color: white;
     transform: scale(1.1);
 }
 
-/* 🌟 הודעת אין מועדפים */
-.favorites-container .no-favorites {
+/* Empty State */
+.no-favorites {
     text-align: center;
-    font-size: 16px;
-    color: #757575;
-    margin-top: 20px;
+    padding: var(--spacing-lg);
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    margin: var(--spacing-lg) auto;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
 }
 
-/* 🌟 כפתור חזרה לדף הבית */
-.favorites-container .back-button {
-    display: block;
-    text-align: center;
-    margin: 30px auto 0;
-    width: 200px;
-    padding: 12px;
+.no-favorites svg {
+    color: rgba(27, 94, 32, 0.2);
+    margin-bottom: var(--spacing-sm);
+}
+
+.no-favorites p {
+    color: var(--text-secondary);
     font-size: 16px;
-    color: #ffffff;
-    background: linear-gradient(to right, #66bb6a, #388e3c);
-    border-radius: 8px;
+    margin-bottom: var(--spacing-sm);
+}
+
+/* Back Button */
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: linear-gradient(to right, var(--primary-light), var(--primary));
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-xl);
+    font-weight: 500;
+    font-size: 16px;
     text-decoration: none;
-    font-weight: bold;
-    transition: background-color 0.3s, transform 0.2s;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+    margin-top: var(--spacing-md);
 }
 
-.favorites-container .back-button:hover {
-    background: linear-gradient(to right, #43a047, #2e7d32);
+.back-button:hover {
+    transform: scale(1.05);
+    box-shadow: var(--shadow-md);
+}
+
+/* Bottom Bar (matching Home.css) */
+.bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #ffffff !important;
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
+    height: 52px;
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border-top: 1px solid #e0e0e0;
+    z-index: 1000;
+}
+
+.bottom-bar-button {
+    text-align: center;
+    color: #333 !important;
+    font-size: 10px;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.3s ease, transform 0.2s ease-in-out;
+    flex: 1;
+    position: relative;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+}
+
+.bottom-bar-button i,
+.bottom-bar-button svg {
+    font-size: 20px;
+    margin-bottom: 3px;
+    color: #555;
+}
+
+.bottom-bar-button span {
+    font-size: 10px !important;
+    color: #555;
+    font-weight: 500;
+}
+
+.bottom-bar-button.active i,
+.bottom-bar-button.active span,
+.bottom-bar-button.favorites i,
+.bottom-bar-button.favorites span {
+    color: var(--primary) !important;
+}
+
+.bottom-bar-button:hover {
+    color: var(--primary) !important;
     transform: scale(1.05);
 }
 
-/* 🎯 רספונסיביות - מסכים קטנים */
-@media (max-width: 768px) {
-    .favorites-container {
-        padding: 15px;
-        border-radius: 0;
+.bottom-bar-button:hover i,
+.bottom-bar-button:hover span {
+    color: var(--primary) !important;
+}
+
+/* Loading State */
+.loading-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    min-height: 60vh;
+    color: var(--text-secondary);
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(76, 175, 80, 0.1);
+    border-top: 3px solid var(--primary-light);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
     }
 
-    .favorites-container h2 {
-        font-size: 24px;
-    }
-
-    .favorites-container .station-card {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
-        padding: 15px;
-    }
-
-    .favorites-container .station-card h3 {
-        font-size: 18px;
-    }
-
-    .favorites-container .station-card p {
-        font-size: 12px;
-    }
-
-    .remove-button {
-        width: 20px;
-        height: 20px;
-        font-size: 12px;
-        line-height: 20px;
-    }
-
-    .favorites-container .back-button {
-        width: 160px;
-        padding: 10px;
-        font-size: 14px;
+    100% {
+        transform: rotate(360deg);
     }
 }
 
-/* 🎯 רספונסיביות - מסכים גדולים במיוחד */
-@media (min-width: 1200px) {
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    background-color: white;
+    border-radius: var(--border-radius-sm);
+    padding: var(--spacing-md);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    transform: translateX(150%);
+    transition: transform var(--transition-normal);
+    z-index: 1000;
+    max-width: 350px;
+}
+
+.toast.show {
+    transform: translateX(0);
+}
+
+.toast.success {
+    border-left: 4px solid var(--success);
+}
+
+.toast.error {
+    border-left: 4px solid var(--accent);
+}
+
+.toast svg {
+    font-size: 1.5rem;
+}
+
+.toast.success svg {
+    color: var(--success);
+}
+
+.toast.error svg {
+    color: var(--accent);
+}
+
+.toast-message {
+    color: var(--text-primary);
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
     .favorites-container {
-        padding: 50px;
+        padding: var(--spacing-sm);
     }
 
-    .favorites-container .station-card {
-        padding: 25px;
+    .station-card {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .favorites-container .station-card h3 {
-        font-size: 22px;
+    .station-info-item {
+        font-size: 12px;
     }
 
-    .favorites-container .station-card p {
-        font-size: 16px;
+    .favorites-summary h2 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+    .station-list {
+        max-width: 800px;
+    }
+}
+
+@media (min-width: 1201px) {
+    .station-list {
+        max-width: 1000px;
+    }
+
+    .favorites-container {
+        padding: var(--spacing-lg);
     }
 }
