@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import Landing from './Landing';
 import Login from './Login';
 import Register from './Register';
 import Home from './Home';
@@ -18,8 +19,6 @@ import Charging from './Charging';
 import ChargingQueue from './ChargingQueue';
 import NavigateToToday from './NavigateToToday';
 
-
-
 function App() {
   return (
     <Router>
@@ -27,16 +26,15 @@ function App() {
         <ToastContainer position="top-right" autoClose={5000} hideProgressBar />
 
         <Routes>
+          <Route path="/" element={<Landing />} />
 
           <Route path="/verify-email" element={<VerifyCode />} />
-          <Route path="/login" element={<Login />} /> {/* ✅ תיקון הוספת נתיב התחברות */}
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/Change-Password/:token" element={<ChangePassword />} />
           <Route path="/charging" element={<Charging />} />
           <Route path="/charging-queue/:stationName" element={<NavigateToToday />} />
           <Route path="/navigate-to-today/:stationName" element={<NavigateToToday />} />
-
-
 
           <Route
             path="/home"
@@ -79,14 +77,10 @@ function App() {
             }
           />
 
-
-
           <Route path="/logout" element={<Logout />} />
-
           <Route path="/charging-queue/:stationName/:selectedDate" element={<ChargingQueue />} />
 
-
-          <Route path="*" element={<Login />} />
+          <Route path="*" element={<Landing />} />
         </Routes>
       </div>
     </Router>

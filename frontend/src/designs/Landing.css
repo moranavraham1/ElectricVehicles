@@ -1,0 +1,524 @@
+/* Modern Landing Page Styles 2025 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ========== Base & Reset ========== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: scroll !important;
+    font-family: 'Inter', sans-serif;
+    background: #FFFFFF;
+    color: #1E293B;
+    line-height: 1.6;
+}
+
+/* ========== Scrollbar ========== */
+::-webkit-scrollbar {
+    width: 12px;
+    background-color: #FFFFFF;
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #CBD5E1;
+    border-radius: 6px;
+}
+
+/* ========== Layout ========== */
+.landing-container {
+    width: 100vw;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: #FFFFFF;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding-top: 70px;
+}
+
+.hero-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 2rem 20px;
+    margin-top: 300px;
+}
+
+.hero-content h1 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1E293B;
+    margin-bottom: 1.5rem;
+}
+
+.hero-content h2 {
+    font-size: 1.8rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 2rem;
+}
+
+.hero-content h3 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: #475569;
+    margin-bottom: 2rem;
+}
+
+.features-section {
+    margin-top: auto;
+    width: 100%;
+    padding: 3rem;
+    background: #FFFFFF;
+}
+
+.features-grid {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3rem;
+}
+
+.feature-item {
+    background: #FFFFFF;
+    padding: 2.5rem;
+    border-radius: 15px;
+    text-align: center;
+    border: 1px solid #E2E8F0;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.3s ease;
+}
+
+.feature-item h3 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #1E293B;
+    font-weight: 700;
+}
+
+.feature-item p {
+    color: #475569;
+    font-size: 1.3rem;
+    font-weight: 500;
+}
+
+/* ========== Navigation ========== */
+.nav-bar {
+    height: 70px;
+    width: 100%;
+    background: #FFFFFF;
+    position: fixed;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nav-content {
+    max-width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-logo {
+    height: 100%;
+    display: flex;
+    align-items: center;
+}
+
+.logo-image {
+    height: 75px;
+    width: auto;
+    transition: transform 0.3s ease;
+    margin: -5px 0;
+}
+
+.nav-buttons {
+    display: flex;
+    gap: 1.5rem;
+    margin-right: 0;
+}
+
+.nav-button {
+    padding: 0.6rem 1.8rem;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.nav-button.login {
+    color: #1E293B;
+    border: 2px solid #1E293B;
+    background: transparent;
+}
+
+.nav-button.register {
+    background: #1E293B;
+    color: #fff;
+    border: 2px solid #1E293B;
+}
+
+.nav-left {
+    display: flex;
+    align-items: center;
+    margin-left: 0;
+}
+
+.nav-title {
+    color: #1E293B;
+    font-size: 1.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+/* ========== Features & Stats Sections ========== */
+.stats-section,
+.stat-item,
+.stat-number,
+.stat-label {
+    display: none;
+}
+
+/* ========== Footer ========== */
+.footer {
+    background: #1E293B;
+    padding: 2rem 2rem 2rem;
+    color: #fff;
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+.footer-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.footer-section h4 {
+    color: #fff;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+.footer-section a {
+    color: #CBD5E1;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+}
+
+.footer-bottom {
+    max-width: 1200px;
+    margin: 2rem auto 0;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    text-align: center;
+    color: #94A3B8;
+}
+
+/* ========== Hover Effects ========== */
+.logo-image:hover,
+.nav-button:hover,
+.feature-item:hover {
+    transform: translateY(-2px);
+}
+
+.footer-section a:hover {
+    color: #fff;
+    transform: translateX(5px);
+}
+
+/* ========== Responsive Design ========== */
+@media (max-width: 1024px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-content {
+        padding: 0 1rem;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        padding: 1rem;
+    }
+
+    .feature-item {
+        padding: 1.5rem;
+    }
+
+    .feature-item h3 {
+        font-size: 1.5rem;
+    }
+
+    .feature-item p {
+        font-size: 1rem;
+    }
+
+    .nav-buttons {
+        gap: 0.8rem;
+    }
+
+    .nav-button {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+
+    .logo-image {
+        height: 65px;
+    }
+
+    .nav-title {
+        font-size: 1.4rem;
+    }
+
+    .main-title {
+        font-size: 2.8rem;
+        margin: 4rem 0;
+    }
+
+    .welcome-title {
+        font-size: 2.2rem;
+    }
+
+    .welcome-subtitle {
+        font-size: 1.2rem;
+    }
+
+    .top-title {
+        margin-top: 30px;
+        margin-bottom: 30px;
+    }
+
+    .top-title h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+    }
+
+    .top-title h2 {
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+    }
+
+    .top-title h3 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-content h1 {
+        font-size: 2rem;
+    }
+
+    .hero-content h2 {
+        font-size: 1.8rem;
+    }
+
+    .hero-content h3 {
+        font-size: 1.5rem;
+    }
+
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .nav-content {
+        padding: 0 0.5rem;
+    }
+
+    .logo-image {
+        height: 50px;
+    }
+
+    .nav-buttons {
+        gap: 0.5rem;
+    }
+
+    .nav-button {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+
+    .feature-item {
+        margin: 0.5rem 0;
+        padding: 1rem;
+    }
+
+    .feature-item h3 {
+        font-size: 1.2rem;
+    }
+
+    .feature-item p {
+        font-size: 0.9rem;
+    }
+
+    .nav-title {
+        display: none;
+    }
+
+    .main-title {
+        font-size: 2.2rem;
+        margin: 3rem 0;
+    }
+}
+
+@media (max-width: 320px) {
+    .nav-button {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+    }
+
+    .logo-image {
+        height: 40px;
+    }
+}
+
+@media (max-height: 600px) {
+    .hero-content {
+        margin-top: 0;
+    }
+
+    .hero-content h1 {
+        margin-bottom: 0.8rem;
+    }
+
+    .hero-content h2 {
+        margin-bottom: 0.8rem;
+    }
+}
+
+/* ========== CTA Button ========== */
+.cta-button {
+    padding: 2rem 6rem;
+    background: #000000;
+    color: #ffffff;
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 2rem;
+}
+
+.cta-button:hover {
+    background: #333333;
+}
+
+.main-title {
+    text-align: center;
+    color: #1E293B;
+    font-size: 3.5rem;
+    font-weight: 800;
+    padding: 2rem;
+    margin-top: 50px;
+    margin-bottom: 100px;
+}
+
+/* הוספת סגנונות לכותרת החדשה */
+.welcome-section {
+    text-align: center;
+    padding: 8rem 2rem 4rem;
+    background: #ffffff;
+    margin-bottom: 2rem;
+}
+
+.welcome-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: #1E293B;
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+.welcome-subtitle {
+    font-size: 1.5rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+.top-title {
+    text-align: center;
+    padding: 2rem;
+    margin-top: 50px;
+    margin-bottom: 50px;
+}
+
+.top-title h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1E293B;
+    margin-bottom: 1.5rem;
+}
+
+.top-title h2 {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 1.5rem;
+}
+
+.top-title h3 {
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: #475569;
+}
+
+/* הוספת אפקט hover */
+.feature-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
+}
+
+.start-button {
+    margin-top: 1rem;
+    padding: 1rem 2.5rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #FFFFFF;
+    background: #1E293B;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.start-button:hover {
+    background: #334155;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    color: #FFFFFF;
+}
