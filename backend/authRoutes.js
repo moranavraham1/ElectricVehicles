@@ -12,6 +12,8 @@ router.post('/logout', authController.logout);
 router.post('/verify-code', authController.verifyCode);
 router.post('/resend-verification-code', authController.resendVerificationCode);
 router.post('/forgot-password', authController.forgotPassword);
+router.post('/reset-password', authController.resetPassword);
+router.post('/verify-reset-token', authController.verifyResetToken);
 router.post("/change-password", authController.changePassword);
 
 router.get('/fetch-details', authController.fetchDetails);

@@ -1,21 +1,23 @@
-/* PersonalArea.css - Consistent with Favorites Design 2025 */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+/* PersonalArea.css - Matching login style with blue colors */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
-  /* Color palette (consistent with other pages) */
-  --primary: #1b5e20;
-  --primary-light: #4caf50;
-  --primary-gradient: linear-gradient(135deg, #1b5e20, #4caf50);
-  --background-gradient: linear-gradient(160deg, #e8f5e9, #728872);
+  /* Color palette (matching login page exactly) */
+  --primary: #3B82F6;
+  --primary-light: #60a5fa;
+  --primary-gradient: linear-gradient(90deg, #3B82F6, #0EA5E9);
+  --background-gradient: linear-gradient(135deg, #0c0e21, #1c294a);
   --card-bg: #ffffff;
-  --text-primary: #333333;
-  --text-secondary: #555555;
-  --text-light: #777777;
+  --text-primary: #1E293B;
+  --text-secondary: #64748B;
+  --text-light: #94A3B8;
   --accent: #f44336;
   --accent-light: #ef9a9a;
-  --success: #388e3c;
-  --border-color: #82b984;
-  --tab-inactive: #a5d6a7;
+  --success: #2563EB;
+  --border-color: rgba(59, 130, 246, 0.3);
+  --tab-inactive: #F1F5F9;
+  --button-gradient: linear-gradient(90deg, #1E293B, #334155);
+  --button-hover-gradient: linear-gradient(90deg, #334155, #475569);
 
   /* Spacing */
   --spacing-xs: 5px;
@@ -25,9 +27,9 @@
   --spacing-xl: 40px;
 
   /* Shadows */
-  --shadow-sm: 0 2px 5px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 4px 8px rgba(0, 0, 0, 0.1);
   --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 8px 25px rgba(0, 0, 0, 0.15);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.3);
 
   /* Borders */
   --border-radius-sm: 8px;
@@ -49,61 +51,123 @@
 
 body,
 .personal-area-page {
-  font-family: 'Poppins', Arial, sans-serif;
+  font-family: 'Inter', sans-serif;
   color: var(--text-primary);
-  background: var(--background-gradient);
+  background: linear-gradient(135deg, #0c0e21, #1c294a);
   line-height: 1.5;
+}
+
+/* Remove height and overflow for body to fix positioning */
+body {
   min-height: 100vh;
-  width: 100vw;
-  overflow-x: hidden;
+  width: 100%;
+  overflow: hidden !important;
+  /* Prevent scrolling */
 }
 
 .personal-area-page {
+  min-height: 100vh;
+  width: 100%;
+  padding-top: 0;
+  padding-bottom: 70px;
+  overflow: hidden !important;
+  /* Prevent scrolling */
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding-bottom: 70px;
-  /* Space for bottom bar */
 }
 
-/* Logo Header removed */
+/* Stronger animated background circles - exact match with Favorites */
+.personal-area-page::before,
+.personal-area-page::after {
+  content: '';
+  position: absolute;
+  width: 500px;
+  height: 500px;
+  border-radius: 50%;
+  z-index: 0;
+}
 
-/* Main Content Container */
+.personal-area-page::before {
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, rgba(59, 130, 246, 0) 70%);
+  top: -250px;
+  right: -100px;
+  animation: personal-float 15s infinite alternate ease-in-out;
+}
+
+.personal-area-page::after {
+  background: radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, rgba(14, 165, 233, 0) 70%);
+  bottom: -300px;
+  left: -150px;
+  animation: personal-float 20s infinite alternate-reverse ease-in-out;
+}
+
+@keyframes personal-float {
+  0% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(-50px, 20px);
+  }
+
+  100% {
+    transform: translate(50px, -20px);
+  }
+}
+
+/* Page title - moved down to be visible */
+h1 {
+  color: white;
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
+  /* Positive margin to move down instead of up */
+  text-align: center;
+  position: relative;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 5;
+}
+
+/* Main Content Container - adjusted margin to position properly */
 .content-container {
   width: 90%;
   max-width: 900px;
-  margin: 80px auto var(--spacing-xl);
-  background: var(--card-bg);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-md);
-  padding: var(--spacing-lg) var(--spacing-md);
+  margin: 0 auto var(--spacing-lg);
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  padding: 1.5rem;
   position: relative;
+  z-index: 5;
+  animation: formAppear 0.8s ease forwards;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  height: calc(100vh - 180px);
+  /* Adjust height to account for title */
+  overflow: auto;
+  /* Allow scrolling inside container only */
 }
 
-h1 {
-  font-size: 28px;
-  color: var(--primary);
-  text-align: center;
-  margin-bottom: var(--spacing-md);
-  font-weight: 600;
-  position: relative;
-  display: block;
-  width: 100%;
+@keyframes formAppear {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 h1::after {
-  content: "";
-  position: absolute;
-  bottom: -8px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 80px;
-  height: 3px;
-  background: var(--primary-light);
-  border-radius: 3px;
+  display: none;
 }
 
-/* Tab Navigation */
+/* Tab Navigation with glass effect */
 .tab-navigation {
   display: flex;
   justify-content: center;
@@ -113,13 +177,13 @@ h1::after {
 }
 
 .tab-navigation button {
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: var(--tab-inactive);
-  color: var(--text-primary);
+  padding: 0.875rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
   border: none;
-  border-radius: var(--border-radius-xl);
+  border-radius: 10px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 600;
   cursor: pointer;
   transition: all var(--transition-normal);
   flex: 1;
@@ -129,33 +193,40 @@ h1::after {
   align-items: center;
   justify-content: center;
   gap: var(--spacing-xs);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .tab-navigation button.active {
-  background: var(--primary-gradient);
+  background: rgba(59, 130, 246, 0.3);
   color: white;
   box-shadow: var(--shadow-sm);
   transform: translateY(-2px);
 }
 
 .tab-navigation button:hover:not(.active) {
-  background: #b9e4bb;
+  background: rgba(255, 255, 255, 0.2);
   transform: translateY(-1px);
 }
 
-/* Tab Content */
+/* Tab Content - with glass morphism effect like Favorites */
 .tab-content {
-  background: #f9f9f9;
+  background: rgba(255, 255, 255, 0.1);
   padding: var(--spacing-lg);
   border-radius: var(--border-radius-md);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   width: 100%;
-  min-height: 300px;
-  max-height: calc(100vh - 320px);
+  height: calc(100% - 80px);
   overflow-y: auto;
+  overflow-x: hidden;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-height: calc(100% - 80px);
+  /* Account for tab navigation */
+  padding-right: 10px;
 }
 
-/* Profile Information */
+/* Profile Information - with glassy effect like Favorites cards */
 .profile-info {
   display: flex;
   flex-direction: column;
@@ -165,18 +236,26 @@ h1::after {
 
 .profile-info p {
   font-size: 16px;
-  color: var(--text-secondary);
-  padding: var(--spacing-sm) var(--spacing-md);
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: var(--border-radius-sm);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  color: #E2E8F0;
+  padding: 1rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+}
+
+.profile-info p:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
 }
 
 .profile-info p span {
   font-weight: 600;
-  color: var(--primary);
+  color: white;
   min-width: 120px;
   display: inline-block;
 }
@@ -185,12 +264,12 @@ h1::after {
 .edit-btn,
 .save-btn,
 .cancel-btn {
-  padding: var(--spacing-sm) var(--spacing-md);
-  font-size: 16px;
-  font-weight: 500;
+  padding: 1rem;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: white;
   border: none;
-  border-radius: var(--border-radius-md);
+  border-radius: 12px;
   cursor: pointer;
   transition: all var(--transition-normal);
   display: inline-flex;
@@ -198,26 +277,56 @@ h1::after {
   justify-content: center;
   gap: var(--spacing-xs);
   margin-top: var(--spacing-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.edit-btn::before,
+.save-btn::before,
+.cancel-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.7s ease;
+}
+
+.edit-btn:hover::before,
+.save-btn:hover::before,
+.cancel-btn:hover::before {
+  left: 100%;
 }
 
 .edit-btn {
-  background: var(--primary-gradient);
+  background: var(--button-gradient);
+}
+
+.edit-btn:hover {
+  background: var(--button-hover-gradient);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
 }
 
 .save-btn {
-  background: linear-gradient(135deg, #388e3c, #4caf50);
+  background: var(--primary-gradient);
   margin-right: var(--spacing-sm);
+}
+
+.save-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
 
 .cancel-btn {
   background: linear-gradient(135deg, #d32f2f, #f44336);
 }
 
-.edit-btn:hover,
-.save-btn:hover,
 .cancel-btn:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2);
 }
 
 /* Form Fields */
@@ -229,21 +338,29 @@ h1::after {
 
 .editable-user-info input {
   width: 100%;
-  padding: var(--spacing-md);
-  border: 1px solid #ddd;
-  border-radius: var(--border-radius-md);
-  font-size: 16px;
-  transition: border var(--transition-fast), box-shadow var(--transition-fast);
+  padding: 1rem 1.5rem;
+  background: #FFFFFF;
+  border: 2px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  position: relative;
+  z-index: 1;
 }
 
 .editable-user-info input:focus {
-  border-color: var(--primary-light);
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
   outline: none;
+  border-color: #3B82F6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.editable-user-info input::placeholder {
+  color: #94A3B8;
 }
 
 .editable-user-info input[readonly] {
-  background-color: #f5f5f5;
+  background-color: #F1F5F9;
   color: var(--text-light);
   cursor: not-allowed;
 }
@@ -253,6 +370,52 @@ h1::after {
   display: flex;
   gap: var(--spacing-sm);
   margin-top: var(--spacing-md);
+}
+
+/* Toast Notification */
+.toast {
+  position: fixed;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  background-color: white;
+  border-radius: var(--border-radius-sm);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  transform: translateX(150%);
+  transition: transform var(--transition-normal);
+  z-index: 1000;
+  max-width: 350px;
+}
+
+.toast.show {
+  transform: translateX(0);
+}
+
+.toast.success {
+  border-left: 4px solid var(--success);
+}
+
+.toast.error {
+  border-left: 4px solid var(--accent);
+}
+
+.toast svg {
+  font-size: 1.5rem;
+}
+
+.toast.success svg {
+  color: var(--success);
+}
+
+.toast.error svg {
+  color: var(--accent);
+}
+
+.toast-message {
+  color: var(--text-primary);
 }
 
 /* Bottom Navigation Bar */
@@ -336,7 +499,7 @@ h1::after {
   content: "";
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(76, 175, 80, 0.1);
+  border: 3px solid rgba(59, 130, 246, 0.1);
   border-top: 3px solid var(--primary-light);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -361,11 +524,11 @@ h1::after {
 @media (max-width: 768px) {
   .content-container {
     width: 95%;
-    padding: var(--spacing-md) var(--spacing-sm);
+    padding: 2rem;
   }
 
   h1 {
-    font-size: 24px;
+    font-size: 2rem;
   }
 
   .tab-navigation button {
@@ -389,8 +552,42 @@ h1::after {
   }
 }
 
-@media (min-width: 1024px) {
+@media (max-width: 480px) {
+  .content-container {
+    padding: 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .content-container {
+    max-width: 800px;
+  }
+}
+
+@media (min-width: 1201px) {
   .content-container {
     max-width: 1000px;
   }
+}
+
+/* Add custom scrollbar for content container */
+.content-container::-webkit-scrollbar,
+.tab-content::-webkit-scrollbar {
+  width: 8px;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.content-container::-webkit-scrollbar-thumb,
+.tab-content::-webkit-scrollbar-thumb {
+  background-color: rgba(59, 130, 246, 0.3);
+  border-radius: 4px;
+}
+
+.content-container::-webkit-scrollbar-thumb:hover,
+.tab-content::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(59, 130, 246, 0.5);
 }

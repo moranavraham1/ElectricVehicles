@@ -190,8 +190,6 @@ function PersonalArea() {
     }
   };
 
-
-
   return (
     <div className="personal-area-page">
       {/* Toast Notification */}
@@ -211,10 +209,9 @@ function PersonalArea() {
         <span className="toast-message">{toast.message}</span>
       </div>
 
+      <h1>Personal Area</h1>
 
       <div className="content-container">
-        <h1>Personal Area</h1>
-
         <nav className="tab-navigation">
           <button
             className={view === "profile" ? "active" : ""}

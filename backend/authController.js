@@ -12,7 +12,34 @@ const transporter = nodemailer.createTransport({
     user: process.env.EMAIL,
     pass: process.env.EMAIL_PASSWORD,
   },
+  pool: true,               // שימוש ב-pool להגברת ביצועים
+  maxConnections: 5,       // מקסימום חיבורים במקביל
+  maxMessages: 100,        // מקסימום הודעות לחיבור
+  rateDelta: 1000,         // הפרש זמן בין ניסיונות
+  rateLimit: 5             // מספר ניסיונות בחלון הזמן
 });
+
+// עדכון הגדרות השליחה להוספת שם החברה
+const mailOptions = {
+  from: '"EVISION" <' + process.env.EMAIL + '>',
+  priority: 'high'        // סימון עדיפות גבוהה למייל
+};
+
+// פונקציה אסינכרונית לשליחת מייל ללא המתנה לתשובה
+const sendEmailAsync = async (options) => {
+  try {
+    // שליחת המייל בלי להמתין לתוצאה (נשלח ברקע)
+    transporter.sendMail({
+      ...mailOptions,
+      ...options
+    }).catch(err => console.error('Error sending email:', err));
+
+    return true;
+  } catch (error) {
+    console.error('Error preparing email:', error);
+    return false;
+  }
+};
 
 // Registration Endpoint
 exports.register = async (req, res) => {
@@ -46,12 +73,29 @@ exports.register = async (req, res) => {
 
     await user.save();
 
-    // Send verification code
-    await transporter.sendMail({
-      from: process.env.EMAIL,
+    // שלח את המייל ברקע ללא המתנה
+    sendEmailAsync({
       to: email,
       subject: 'Your Verification Code',
-      text: `Your verification code is: ${verificationCode}`,
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">Welcome to EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">Verify Your Email</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Thank you for registering. Please use the verification code below to complete your registration:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 24px; letter-spacing: 5px; font-weight: bold; color: #1E293B;">${verificationCode}</div>
+            </div>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 14px;">This code will expire in 1 hour. If you didn't request this verification, please ignore this email.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
     });
 
     // Ensure proper success response
@@ -152,12 +196,29 @@ exports.resendVerificationCode = async (req, res) => {
     user.verificationCode = newVerificationCode;
     await user.save();
 
-    // Send the new verification code via email
-    await transporter.sendMail({
-      from: process.env.EMAIL,
+    // שלח את המייל ברקע ללא המתנה
+    sendEmailAsync({
       to: email,
       subject: 'Your New Verification Code',
-      text: `Your new verification code is: ${newVerificationCode}`,
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">New Verification Code</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">You requested a new verification code. Please use the code below to verify your email:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <div style="background-color: #f1f5f9; padding: 15px; border-radius: 8px; font-family: monospace; font-size: 24px; letter-spacing: 5px; font-weight: bold; color: #1E293B;">${newVerificationCode}</div>
+            </div>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 14px;">This code will expire in 1 hour. If you didn't request this verification, please ignore this email.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
     });
 
     res.status(200).json({ message: 'Verification code resent successfully.' });
@@ -189,10 +250,30 @@ exports.forgotPassword = async (req, res) => {
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     await transporter.sendMail({
-      from: process.env.EMAIL,
+      ...mailOptions,
       to: email,
       subject: 'Password Reset Request',
-      text: `You requested a password reset. Click the link below to reset your password:\n\n${resetUrl}\n\nIf you didn't request this, please ignore this email.`,
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">Password Reset Request</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">You requested to reset your password. Click the button below to set a new password:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(90deg, #1E293B, #334155); color: #ffffff; text-decoration: none; padding: 12px 25px; border-radius: 8px; font-weight: bold; font-size: 16px;">Reset Password</a>
+            </div>
+            <p style="margin-bottom: 10px; color: #475569; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="margin-bottom: 20px; color: #3B82F6; font-size: 14px; word-break: break-all;">${resetUrl}</p>
+            <p style="margin-bottom: 0; color: #475569; font-size: 14px;">This link will expire in 1 hour. If you didn't request a password reset, please ignore this email.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
     });
 
     res.status(200).json({ message: 'Password reset link sent to your email.' });
@@ -236,10 +317,25 @@ exports.changePassword = async (req, res) => {
 
     // ✅ שליחת מייל למשתמש על שינוי סיסמה
     await transporter.sendMail({
-      from: process.env.EMAIL,
+      ...mailOptions,
       to: user.email,
       subject: "Password Changed Successfully",
-      text: "Your password has been successfully changed.",
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">Password Changed Successfully</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Your password has been successfully changed.</p>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 14px;">If you did not make this change, please contact our support team immediately.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
     });
 
     res.status(200).json({ message: "Password has been successfully changed." });
@@ -304,10 +400,32 @@ exports.updateDetails = async (req, res) => {
 
     await user.save();
     await transporter.sendMail({
-      from: process.env.EMAIL,
+      ...mailOptions,
       to: user.email,
       subject: "Profile Updated",
-      text: `Hello ${user.firstName},\n\nYour profile has been updated successfully.\n\nUpdated details:\nFirst Name: ${user.firstName}\nLast Name: ${user.lastName}\nPhone: ${user.phone}\n\nIf you didn't make this change, please contact support.`,
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">Profile Updated Successfully</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Hello ${user.firstName},</p>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Your profile has been updated successfully.</p>
+            <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="color: #1E293B; font-size: 18px; margin-bottom: 15px;">Updated Details:</h3>
+              <p style="margin-bottom: 10px; color: #475569;"><strong>First Name:</strong> ${user.firstName}</p>
+              <p style="margin-bottom: 10px; color: #475569;"><strong>Last Name:</strong> ${user.lastName}</p>
+              <p style="margin-bottom: 0; color: #475569;"><strong>Phone:</strong> ${user.phone}</p>
+            </div>
+            <p style="margin-bottom: 0; color: #475569; font-size: 14px;">If you didn't make this change, please contact our support team immediately.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
     });
 
     res.status(200).json(user);
@@ -343,10 +461,32 @@ exports.createBooking = async (req, res) => {
 
 
     await transporter.sendMail({
-      from: process.env.EMAIL,
+      ...mailOptions,
       to: user.email,
       subject: 'Appointment Confirmation',
-      text: `Hello ${user.firstName},\n\nYour appointment has been confirmed for ${station} on ${date} at ${time}.\n\nThank you for choosing us!`,
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">Appointment Confirmed</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Hello ${user.firstName},</p>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Your charging appointment has been confirmed.</p>
+            <div style="background-color: #f1f5f9; padding: 20px; border-radius: 8px; margin-bottom: 20px;">
+              <h3 style="color: #1E293B; font-size: 18px; margin-bottom: 15px;">Appointment Details:</h3>
+              <p style="margin-bottom: 10px; color: #475569;"><strong>Station:</strong> ${station}</p>
+              <p style="margin-bottom: 10px; color: #475569;"><strong>Date:</strong> ${date}</p>
+              <p style="margin-bottom: 0; color: #475569;"><strong>Time:</strong> ${time}</p>
+            </div>
+            <p style="margin-bottom: 0; color: #475569; font-size: 14px;">Thank you for choosing EVISION for your charging needs.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
     });
 
     res.status(201).json({ message: 'Booking confirmed and email sent.', booking: newBooking });
@@ -371,7 +511,7 @@ exports.cancelBooking = async (req, res) => {
 
 
     await transporter.sendMail({
-      from: process.env.EMAIL,
+      ...mailOptions,
       to: user.email,
       subject: 'Appointment Cancelled',
       text: `Hello ${user.firstName},\n\nYour appointment for ${booking.station} on ${booking.date} at ${booking.time} has been cancelled.\n\nIf this was a mistake, please rebook your appointment.`,
@@ -400,7 +540,7 @@ const sendUpcomingBookingReminder = async () => {
 
     for (const booking of upcomingBookings) {
       await transporter.sendMail({
-        from: process.env.EMAIL,
+        ...mailOptions,
         to: booking.user.email,
         subject: 'Reminder: Your Appointment is in One Hour',
         text: `Hello ${booking.user.firstName},\n\nThis is a reminder that your appointment at ${booking.station} is in one hour.\n\nDate: ${booking.date}\nTime: ${booking.time}\n\nPlease be on time.`,
@@ -454,5 +594,95 @@ exports.unlikeStation = async (req, res) => {
 
 
 setInterval(sendUpcomingBookingReminder, 30 * 60 * 1000);
+
+// פונקציה לבדיקת תקפות של טוקן לאיפוס סיסמה
+exports.verifyResetToken = async (req, res) => {
+  const { token } = req.body;
+
+  if (!token) {
+    return res.status(400).json({ message: 'Token is required.' });
+  }
+
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    res.status(200).json({ message: 'Token is valid.' });
+  } catch (error) {
+    console.error('Error verifying reset token:', error);
+    res.status(500).json({ message: 'Error verifying reset token.' });
+  }
+};
+
+// פונקציה לאיפוס סיסמה באמצעות טוקן
+exports.resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ message: 'Token and new password are required.' });
+  }
+
+  // בדיקת תקינות הסיסמה
+  if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(newPassword)) {
+    return res.status(400).json({
+      message: 'Password must be at least 8 characters, include one uppercase letter, and one number.'
+    });
+  }
+
+  try {
+    // מציאת המשתמש עם הטוקן התקף
+    const user = await User.findOne({
+      resetPasswordToken: token,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    // הצפנת הסיסמה החדשה
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // עדכון הסיסמה וניקוי שדות טוקן האיפוס
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    // שליחת מייל עדכון למשתמש
+    sendEmailAsync({
+      to: user.email,
+      subject: 'Your Password Has Been Reset',
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">Password Reset Successful</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Your password has been successfully reset. You can now log in with your new password.</p>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">If you did not request this change, please contact our support team immediately.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    res.status(200).json({ message: 'Password has been reset successfully.' });
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).json({ message: 'Error resetting password.' });
+  }
+};
 
 

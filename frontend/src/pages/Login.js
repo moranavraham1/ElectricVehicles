@@ -3,66 +3,102 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../designs/login.css';
+import logo from '../assets/logo.jpg';
 
 function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
-  const [forgotPasswordEmail, setForgotPasswordEmail] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
 
   const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
   console.log(BACKEND_URL);
 
-  // Validate form fields
   const validateForm = () => {
     const newErrors = {};
+
     if (!email) {
-      newErrors.email = 'Email is required.';
+      newErrors.email = 'Email field cannot be empty';
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Please enter a valid email address.';
+      newErrors.email = 'Invalid email format';
     }
+
     if (!password) {
-      newErrors.password = 'Password is required.';
+      newErrors.password = 'Password field cannot be empty';
+    } else if (password.length < 6) {
+      newErrors.password = 'Password too short (min. 6 characters)';
     }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+
     if (!validateForm()) return;
-  
+
     try {
       const response = await fetch(`${BACKEND_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-  
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'An error occurred. Please try again.');
+
+        if (response.status === 401) {
+          setErrors({
+            password: 'Wrong password',
+            email: null
+          });
+        } else if (response.status === 404) {
+          setErrors({
+            email: 'User not found',
+            password: null
+          });
+        } else if (errorData.message) {
+          const errorMsg = errorData.message.toLowerCase();
+
+          if (errorMsg.includes('password') || errorMsg.includes('credentials')) {
+            setErrors({
+              password: 'Wrong password',
+              email: null
+            });
+          } else if (errorMsg.includes('email') || errorMsg.includes('user') || errorMsg.includes('not found')) {
+            setErrors({
+              email: 'User not found',
+              password: null
+            });
+          } else {
+            toast.error(errorData.message || 'Login failed');
+          }
+        } else {
+          toast.error('Login failed');
+        }
+        return;
       }
-  
+
       const data = await response.json();
       localStorage.setItem('token', data.token);
-      localStorage.setItem('loggedInUser', email); // שמירת המייל של המשתמש המחובר
+      localStorage.setItem('loggedInUser', email);
       toast.success('Login successful!');
       navigate('/home');
     } catch (error) {
-      toast.error(error.message);
+      toast.error('Connection error');
     }
   };
-  
 
-  // Handle forgot password submission
   const handleForgotPassword = async () => {
-    if (!forgotPasswordEmail || !/\S+@\S+\.\S+/.test(forgotPasswordEmail)) {
-      toast.error('Please enter a valid email address for password reset.');
+    if (!email) {
+      toast.error('Email field is empty');
+      return;
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      toast.error('Invalid email format');
       return;
     }
 
@@ -70,17 +106,16 @@ function Login() {
       const response = await fetch(`${BACKEND_URL}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: forgotPasswordEmail }),
+        body: JSON.stringify({ email }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to send password reset link.');
+        throw new Error(errorData.message || 'Reset link failed');
       }
 
-      toast.success(`Password reset link sent to ${forgotPasswordEmail}`);
+      toast.success(`Reset link sent to ${email}`);
       setShowForgotPassword(false);
-      setForgotPasswordEmail('');
     } catch (error) {
       toast.error(error.message);
     }
@@ -88,78 +123,72 @@ function Login() {
 
   return (
     <div className="login-container">
-      <form onSubmit={handleSubmit} noValidate>
-        <h1>Welcome Back!</h1>
+      <img src={logo} alt="Logo" className="login-logo" />
 
-        {/* Email Input */}
-        <div>
-          <input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          {errors.email && <small style={{ color: 'red' }}>{errors.email}</small>}
-        </div>
+      <h1 className="main-heading">Welcome Back</h1>
 
-        {/* Password Input */}
-        <div>
-          <input
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-          {errors.password && <small style={{ color: 'red' }}>{errors.password}</small>}
-        </div>
+      <div className="login-wrapper">
+        <form onSubmit={handleSubmit} noValidate>
+          <div className="input-group">
+            <input
+              type="email"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {errors.email && <small>{errors.email}</small>}
+          </div>
 
-        {/* Login Button */}
-        <button type="submit">Login</button>
+          <div className="input-group">
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {errors.password && <small>{errors.password}</small>}
+          </div>
 
-        {/* Forgot Password Button */}
-        <button
-          type="button"
-          className="forgot-password-btn"
-          onClick={() => setShowForgotPassword(true)}
-        >
-          Forgot Password?
-        </button>
+          <button type="submit">Login</button>
 
-        {/* Link to Registration Page */}
-        <p>
-          Not registered?{' '}
-          <Link to="/register" className="register-link">
-            Create an account
-          </Link>
-        </p>
-      </form>
+          <button
+            type="button"
+            className="forgot-password-btn"
+            onClick={() => setShowForgotPassword(true)}
+          >
+            Forgot Password?
+          </button>
 
-      {/* Forgot Password Modal */}
+          <p>
+            Not registered?{' '}
+            <Link to="/register" className="register-link">
+              Create an account
+            </Link>
+          </p>
+        </form>
+      </div>
+
       {showForgotPassword && (
         <div className="forgot-password-modal">
           <div className="modal-content">
-            {/* Close Button */}
             <button
               className="close-modal"
               onClick={() => setShowForgotPassword(false)}
             >
               &times;
             </button>
-            <h3>Reset Your Password</h3>
-            <p>Enter your email address below, and we'll send you a link to reset your password.</p>
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={forgotPasswordEmail}
-              onChange={(e) => setForgotPasswordEmail(e.target.value)}
-            />
-            {forgotPasswordEmail && !/\S+@\S+\.\S+/.test(forgotPasswordEmail) && (
-              <small style={{ color: 'red' }}>Please enter a valid email address.</small>
+            <h3>Reset Password</h3>
+            <p>Send reset link to: <strong>{email}</strong></p>
+            {!email || !/\S+@\S+\.\S+/.test(email) ? (
+              <div className="warning-message">
+                <p>Enter valid email first</p>
+              </div>
+            ) : (
+              <div className="modal-buttons">
+                <button onClick={handleForgotPassword}>Send Link</button>
+                <button onClick={() => setShowForgotPassword(false)}>Cancel</button>
+              </div>
             )}
-            <div className="modal-buttons">
-              <button onClick={handleForgotPassword}>Send Reset Link</button>
-              <button onClick={() => setShowForgotPassword(false)}>Cancel</button>
-            </div>
           </div>
         </div>
       )}

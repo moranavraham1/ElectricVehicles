@@ -1,13 +1,50 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import '../designs/Home.css';
-import wazeIcon from '../assets/WAZE.jpg';
 import logo from '../assets/logo.jpg';
+import wazeIcon from '../assets/WAZE.jpg';
+
+// SVG Icons
+const HomeIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+  </svg>
+);
+
+const MapIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+    <line x1="8" y1="2" x2="8" y2="18"></line>
+    <line x1="16" y1="6" x2="16" y2="22"></line>
+  </svg>
+);
+
+const UserIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+    <circle cx="12" cy="7" r="4"></circle>
+  </svg>
+);
+
+const HeartIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+  </svg>
+);
+
+const LogoutIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+    <polyline points="16 17 21 12 16 7"></polyline>
+    <line x1="21" y1="12" x2="9" y2="12"></line>
+  </svg>
+);
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
 
-
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 const Home = () => {
   const [userLocation, setUserLocation] = useState('');
@@ -27,7 +64,49 @@ const Home = () => {
   const [availableTimes, setAvailableTimes] = useState([]);
   const [isAvailable, setIsAvailable] = useState(null);
   const today = new Date().toISOString().split("T")[0];
-  const [urgencyLevel, setUrgencyLevel] = useState(1); // ערך ברירת מחדל
+  const [urgencyLevel, setUrgencyLevel] = useState(1); // Default value
+  const [userName, setUserName] = useState(""); // User's full name
+  const location = useLocation();
+
+  // Check if we're navigating from Map or Favorites with a station to book
+  useEffect(() => {
+    if (location.state?.selectedStation && location.state?.openBookingModal) {
+      setSelectedStation(location.state.selectedStation);
+      setShowModal(true);
+
+      // Clear the location state to prevent modal from reopening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    // Fetch user's actual first and last name from the backend
+    const fetchUserDetails = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await axios.get(
+          `${process.env.REACT_APP_BACKEND_URL}/api/auth/fetch-details`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        if (response.data && response.data.firstName && response.data.lastName) {
+          const fullName = `${response.data.firstName} ${response.data.lastName}`;
+          setUserName(fullName);
+        }
+      } catch (err) {
+        console.error("Error fetching user details:", err);
+      }
+    };
+
+    fetchUserDetails();
+  }, []);
 
   const closeModal = () => {
     setShowModal(false);
@@ -41,22 +120,22 @@ const Home = () => {
   };
   const goToAppointmentPage = async (station) => {
     try {
-      const battery = await navigator.getBattery(); 
+      const battery = await navigator.getBattery();
       const level = Math.round(battery.level * 100);
       navigate('/appointment', {
         state: {
           station,
-          batteryLevel: level 
+          batteryLevel: level
         }
       });
     } catch (err) {
       console.error('Battery API not available:', err);
       navigate('/appointment', {
-        state: { station } 
+        state: { station }
       });
     }
   };
-  
+
 
   const carModelsData = {
     "Tesla Model 3": { fullChargeTime: 80 },
@@ -90,7 +169,6 @@ const Home = () => {
     const time = (baseTime * diff) / 100;
     setEstimatedChargeTime(Math.round(time));
 
-    // חישוב דחיפות (רמה 1 עד 3)
     if (diff >= 60) setUrgencyLevel(3);
     else if (diff >= 30) setUrgencyLevel(2);
     else setUrgencyLevel(1);
@@ -99,7 +177,7 @@ const Home = () => {
 
   useEffect(() => {
     let batteryRef;
-  
+
     const getBattery = async () => {
       try {
         const battery = await navigator.getBattery();
@@ -107,26 +185,26 @@ const Home = () => {
         const updateLevel = () => {
           setBatteryLevel(Math.round(battery.level * 100));
         };
-  
-        updateLevel(); // עדכון ראשוני
+
+        updateLevel(); // Initial update
         battery.addEventListener("levelchange", updateLevel);
       } catch (err) {
         console.error("Battery API not supported", err);
       }
     };
-  
+
     if (showModal) {
       getBattery();
     }
-  
+
     return () => {
       if (batteryRef) {
-        batteryRef.removeEventListener("levelchange", () => {});
+        batteryRef.removeEventListener("levelchange", () => { });
       }
     };
   }, [showModal]);
-  
-  
+
+
   useEffect(() => {
     if (!selectedCarModel || batteryLevel >= targetLevel) return;
 
@@ -167,6 +245,17 @@ const Home = () => {
 
   useEffect(() => {
     fetchUserLocation();
+  }, []);
+
+  useEffect(() => {
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
   }, []);
 
   useEffect(() => {
@@ -278,7 +367,7 @@ const Home = () => {
         const slotDateTime = new Date(selectedDate);
         slotDateTime.setHours(parseInt(hour));
         slotDateTime.setMinutes(parseInt(minute));
-        return slotDateTime > now; // רק שעות עתידיות
+        return slotDateTime > now; s
       });
 
       setAvailableTimes(availableTimeSlots);
@@ -320,11 +409,10 @@ const Home = () => {
       alert("Please select a station, date, and time.");
       return;
     }
-  
-    try {
-      const battery = await navigator.getBattery(); // 🔄 שליפת אחוז סוללה
+
+    try {// Get battery percentage
       const level = Math.round(battery.level * 100);
-  
+
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/book`,
         {
@@ -333,8 +421,8 @@ const Home = () => {
           time,
           estimatedChargeTime,
           urgencyLevel,
-          currentBattery: batteryLevel, 
-          targetBattery: targetLevel 
+          currentBattery: batteryLevel,
+          targetBattery: targetLevel
         },
         {
           headers: {
@@ -342,9 +430,9 @@ const Home = () => {
           }
         }
       );
-  
+
       alert("Booking successful!");
-  
+
       setChargingSlots(prevSlots => {
         const updatedSlots = { ...prevSlots };
         if (updatedSlots[time] > 1) {
@@ -355,14 +443,14 @@ const Home = () => {
         }
         return updatedSlots;
       });
-  
+
       closeModal();
     } catch (error) {
       console.error("Error booking appointment:", error);
       alert("Failed to book appointment. Please try again later.");
     }
   };
-  
+
 
 
 
@@ -387,30 +475,32 @@ const Home = () => {
     }
 
     try {
-      const isFavorite = station.likedBy.includes(loggedInUser.toLowerCase());
+      const userEmail = loggedInUser.toLowerCase();
+      const isFavorite = station.likedBy && Array.isArray(station.likedBy) && station.likedBy.includes(userEmail);
+
       if (isFavorite) {
         await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
-          data: { user: loggedInUser.toLowerCase() },
+          data: { user: userEmail },
         });
 
         setStations((prevStations) =>
           prevStations.map((s) =>
             s._id === station._id
-              ? { ...s, likedBy: s.likedBy.filter((email) => email !== loggedInUser.toLowerCase()) }
+              ? { ...s, likedBy: Array.isArray(s.likedBy) ? s.likedBy.filter((email) => email !== userEmail) : [] }
               : s
           )
         );
       } else {
         await axios.post(`http://localhost:3001/api/stations/${station._id}/like`,
-          { user: loggedInUser.toLowerCase() },
+          { user: userEmail },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
 
         setStations((prevStations) =>
           prevStations.map((s) =>
             s._id === station._id
-              ? { ...s, likedBy: [...s.likedBy, loggedInUser.toLowerCase()] }
+              ? { ...s, likedBy: [...(Array.isArray(s.likedBy) ? s.likedBy : []), userEmail] }
               : s
           )
         );
@@ -432,17 +522,24 @@ const Home = () => {
     }
   }, []);
 
-
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
       <div className="logo-container">
         <img src={logo} alt="EVision Logo" className="logo" />
       </div>
 
+      {/* Welcome user by name */}
+      <div className="user-welcome-bar">
+        <h2>Welcome, {userName || 'User'}</h2>
+      </div>
+
       <div className="location-bar">
-        <p>{loadingLocation ? 'Loading...' : userLocation} 📍</p>
+        <p>{loadingLocation ? 'Loading...' : userLocation} </p>
         <button className="refresh-location-button" onClick={fetchUserLocation}>
-          🔄 Refresh Location
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+          </svg>
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -471,31 +568,160 @@ const Home = () => {
 
       <div className="station-list">
         {filteredStations.map((station, index) => (
-          <div key={index} className="station-card">
-            <div className="distance-badge">
-              {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
-            </div>
+          <div key={index} className="station-card" style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr auto 1fr',
+            padding: '15px',
+            margin: '0 0 16px 0',
+            borderRadius: '12px',
+            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+            background: 'white',
+            position: 'relative',
+            overflow: 'hidden',
+            gap: '10px'
+          }}>
+            {/* Right side - station info and details */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between'
+            }}>
+              {/* Station details */}
+              <div>
+                <h3 style={{
+                  fontSize: '22px',
+                  fontWeight: 'bold',
+                  marginTop: '0',
+                  marginBottom: '10px'
+                }}>{station['Station Name']}</h3>
 
-            <div className="station-details">
-              <h3>{station['Station Name']}</h3>
-              <p><strong>Address:</strong> {station.Address}</p>
-              <p><strong>City:</strong> {station.City}</p>
-              <p><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
-              <div className="waze-container">
-                <a
-                  href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="waze-button"
-                >
-                  <img src={wazeIcon} alt="Waze" />
-                </a>
+                <div style={{ marginBottom: '10px' }}>
+                  <p style={{
+                    margin: '5px 0',
+                    fontSize: '16px',
+                    fontWeight: '500'
+                  }}><strong>Address:</strong> {station.Address}</p>
+                  <p style={{
+                    margin: '5px 0',
+                    fontSize: '16px',
+                    fontWeight: '500'
+                  }}><strong>City:</strong> {station.City}</p>
+                  <p style={{
+                    margin: '5px 0',
+                    fontSize: '16px',
+                    fontWeight: '500'
+                  }}><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
+                </div>
               </div>
+
+              {/* Waze logo and button */}
+              <img
+                src={wazeIcon}
+                alt="Waze Navigation"
+                className="waze-logo"
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  bottom: '10px',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  padding: '5px',
+                  backgroundColor: 'white',
+                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                  zIndex: 999,
+                  cursor: 'pointer',
+                  border: 'none',
+                  display: 'block'
+                }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&navigate=yes`, '_blank')
+                }}
+              />
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {/* Buttons in the station card */}
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-start',
+              alignItems: 'center',
+              padding: '0 15px',
+              gap: '10px',
+              position: 'relative',
+              marginRight: '35px',
+              marginLeft: '-40px',
+              marginTop: '-10px'
+            }}>
+              {/* Distance and favorites icon */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '5px',
+                marginBottom: '5px',
+                position: 'relative',
+                width: '100%',
+                marginRight: '15px',
+                marginTop: '5px'
+              }}>
+                {/* Favorites icon */}
+                <div
+                  style={{
+                    cursor: 'pointer'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(station);
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill={station.likedBy && localStorage.getItem('loggedInUser') ?
+                      (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : 'none') : 'none'}
+                    stroke={station.likedBy && localStorage.getItem('loggedInUser') ?
+                      (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : '#777777') : '#777777'}
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                  </svg>
+                </div>
+
+                {/* Distance icon */}
+                <div style={{
+                  backgroundColor: '#4f46e5',
+                  color: 'white',
+                  padding: '2px 8px',
+                  borderRadius: '10px',
+                  fontSize: '12px',
+                  fontWeight: '600'
+                }}>
+                  {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
+                </div>
+              </div>
+
               <button
                 type="button"
+                style={{
+                  border: '2px solid #3B82F6',
+                  background: 'white',
+                  color: '#333333',
+                  padding: '10px 15px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  width: '100%',
+                  textAlign: 'center',
+                  minWidth: '140px'
+                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -505,70 +731,83 @@ const Home = () => {
                   setAvailableTimes([]);
                   setShowModal(true);
                 }}
-
               >
-                📅 Book Appointment
+                Book Appointment
               </button>
 
               <button
                 type="button"
+                style={{
+                  border: '2px solid #3B82F6',
+                  background: 'white',
+                  color: '#333333',
+                  padding: '10px 15px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  width: '100%',
+                  textAlign: 'center',
+                  minWidth: '140px'
+                }}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   startCharging(station);
                 }}
               >
-                ⚡ Start Charging
+                Start Charging
+              </button>
+
+              <button
+                type="button"
+                style={{
+                  border: '2px solid #3B82F6',
+                  background: 'white',
+                  color: '#333333',
+                  padding: '10px 15px',
+                  borderRadius: '6px',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  width: '100%',
+                  textAlign: 'center',
+                  minWidth: '140px'
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigate(`/charging-queue/${encodeURIComponent(station['Station Name'])}/${today}`);
+                }}
+              >
+                View Queue
               </button>
             </div>
-            {/* כפתור לניווט לדף התור */}
-            <Link
-              to={`/charging-queue/${encodeURIComponent(station['Station Name'])}/${today}`}
-              style={{
-                padding: "10px",
-                backgroundColor: "#4CAF50",
-                color: "white",
-                border: "none",
-                borderRadius: "5px",
-                textDecoration: "none",
-                textAlign: "center",
-              }}
-            >
-              📝 View Charging Queue
-            </Link>
 
-            {/* Favorite Button */}
-            <div
-              className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(station);
-              }}
-            >
-              <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
+            {/* Left side - the map */}
+            <div style={{
+              position: 'relative',
+              overflow: 'hidden',
+              borderRadius: '8px',
+              height: '220px',
+              minWidth: '220px'
+            }}>
+              {/* Google Street View iframe */}
+              <iframe
+                src={`https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${station.Latitude},${station.Longitude}&heading=210&pitch=10&fov=90`}
+                width="100%"
+                height="100%"
+                style={{
+                  border: 'none',
+                  height: '220px'
+                }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
             </div>
-
-            {/* Google Maps Street View */}
-            <iframe
-              title={`Street View of ${station['Station Name']}`}
-              className="station-image-small"
-              style={{
-                borderRadius: '10px',
-                border: 'none',
-                marginLeft: 'auto',
-                width: '100%',
-                maxWidth: '400px',
-                height: '180px',
-              }}
-              src={`https://www.google.com/maps/embed/v1/streetview?location=${station.Latitude},${station.Longitude}&key=${GOOGLE_MAPS_API_KEY}&language=en&region=US`}
-              allowFullScreen
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              onError={(e) => {
-                console.error('Error loading street view:', e);
-                e.target.src = 'https://placehold.co/400x250?text=No+Image';
-              }}
-            ></iframe>
           </div>
         ))}
       </div>
@@ -579,12 +818,15 @@ const Home = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Book an appointment for {selectedStation['Station Name']}</h2>
             <div style={{
-              backgroundColor: '#f1f8e9',
+              backgroundColor: 'rgba(59, 130, 246, 0.3)',
               padding: '10px',
               borderRadius: '8px',
               fontWeight: 'bold',
-              color: '#1b5e20',
-              marginBottom: '15px'
+              color: '#ffffff',
+              marginBottom: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
             }}>
               🔋 Current Battery Level: {batteryLevel}%
             </div>
@@ -674,38 +916,56 @@ const Home = () => {
             )}
 
             {/* Modal to book an appointment */}
-            
 
-            <button onClick={bookAppointment} disabled={!isAvailable || !time}>
-              📌 Confirm Booking
+            <button
+              onClick={bookAppointment}
+              disabled={!isAvailable || !time}
+              style={{
+                background: "white",
+                color: "#3B82F6",
+                border: "2px solid #3B82F6",
+                padding: "14px 28px",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                marginTop: "15px",
+                width: "100%",
+                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)"
+              }}
+            >
+              Confirm Booking
             </button>
-            <button onClick={closeModal}>❌ Close</button>
           </div>
         </div>
       )}
 
-
-      <div className="bottom-bar">
-        <button className="bottom-bar-button logout" onClick={handleLogout}>
-          <i className="fas fa-sign-out-alt"></i> Logout
-        </button>
-        <Link to="/personal-area" className="bottom-bar-button">
-          <i className="fas fa-user"></i> Personal Area
-        </Link>
-        <Link to="/favorites" className="bottom-bar-button">
-          <i className="fas fa-heart"></i> Favorites
-        </Link>
-        <Link to="/home" className="bottom-bar-button">
-          <i className="fas fa-home"></i> Home
-        </Link>
-        <Link to="/map" className="bottom-bar-button">
-          <i className="fas fa-map-marked-alt"></i> Search on Map
-        </Link>
+      {/* Bottom Navigation */}
+      <div className="bottom-navigation">
+        <div className="nav-item active">
+          <HomeIcon />
+          <span>Home</span>
+        </div>
+        <div className="nav-item" onClick={() => navigate('/map')}>
+          <MapIcon />
+          <span>Map</span>
+        </div>
+        <div className="nav-item" onClick={() => navigate('/favorites')}>
+          <HeartIcon />
+          <span>Favorites</span>
+        </div>
+        <div className="nav-item" onClick={() => navigate('/profile')}>
+          <UserIcon />
+          <span>Profile</span>
+        </div>
+        <div className="nav-item" onClick={handleLogout}>
+          <LogoutIcon />
+          <span>Logout</span>
+        </div>
       </div>
-    </div >
+    </div>
   );
-
-
-}
+};
 
 export default Home;
