@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import '../designs/VerifyCode.css';
+import logo from '../assets/logo.jpg';
 
 function VerifyCode() {
   const [code, setCode] = useState('');
@@ -10,43 +11,48 @@ function VerifyCode() {
   const navigate = useNavigate();
   const email = searchParams.get('email');
   const [isResending, setIsResending] = useState(false);
-  const [timer, setTimer] = useState(60); 
-  const [intervalId, setIntervalId] = useState(null);
+  const [timer, setTimer] = useState(60);
+  const intervalRef = useRef(null);
 
   useEffect(() => {
     startTimer();
-
-    return () => clearInterval(intervalId); 
+    return () => clearInterval(intervalRef.current);
   }, []);
 
   const startTimer = () => {
-    if (intervalId) clearInterval(intervalId); 
-    const newIntervalId = setInterval(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    intervalRef.current = setInterval(() => {
       setTimer((prev) => {
         if (prev > 0) return prev - 1;
-        clearInterval(newIntervalId); 
+        clearInterval(intervalRef.current);
         return 0;
       });
     }, 1000);
-    setIntervalId(newIntervalId);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/verify-code', { email, code });
-      toast.success(response.data.message);
-      navigate('/');
+      await axios.post('http://localhost:3001/api/auth/verify-code', { email, code });
+
+      toast.success('Email verification successful! Redirecting to login page...');
+
+      console.log("Verification successful, redirecting to login page");
+
+
+      window.location.href = '/login';
     } catch (error) {
+      console.error("Verification error:", error);
       toast.error(error.response?.data?.message || 'Verification failed.');
     }
   };
 
   const handleResend = async () => {
     setIsResending(true);
-    setTimer(60); 
-    startTimer(); 
+    setTimer(60);
+    startTimer();
 
     try {
       const response = await axios.post('http://localhost:3001/api/auth/resend-verification-code', { email });
@@ -66,6 +72,8 @@ function VerifyCode() {
 
   return (
     <div className="verify-container">
+      <img src={logo} alt="Logo" className="login-logo" />
+      <h1 className="verify-title">Email Verification</h1>
       <div className="verify-card">
         <h1>Verify Your Email</h1>
         <p>We sent a verification code to <strong>{email}</strong></p>
@@ -83,13 +91,13 @@ function VerifyCode() {
         </form>
         <p className="timer">Time remaining: {formatTime()}</p>
         <p className="verify-footer">
-          Didn’t receive the code?{' '}
+          Didn't receive the code?{' '}
           <button
             className="resend-link"
             onClick={handleResend}
-            disabled={isResending}
+            disabled={isResending || timer > 0}
           >
-            {isResending ? 'Resending...' : 'Resend'}
+            {isResending ? 'Resending...' : timer > 0 ? `Wait ${formatTime()}` : 'Resend'}
           </button>
         </p>
       </div>

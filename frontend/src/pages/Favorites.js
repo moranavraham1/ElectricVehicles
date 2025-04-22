@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import '../designs/Favorites.css';
+import wazeIcon from '../assets/WAZE.jpg';
 
 // SVG Icons
 const HeartIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
     </svg>
 );
@@ -39,13 +40,6 @@ const LogoutIcon = () => (
     </svg>
 );
 
-const BackIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="19" y1="12" x2="5" y2="12"></line>
-        <polyline points="12 19 5 12 12 5"></polyline>
-    </svg>
-);
-
 const LocationIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
@@ -69,45 +63,88 @@ const ChargingIcon = () => (
     </svg>
 );
 
+const BackIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+    </svg>
+);
+
 const EmptyHeartIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
     </svg>
 );
 
+const CloseIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+);
+
+const SuccessIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+    </svg>
+);
+
+const ErrorIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+    </svg>
+);
+
+const LoadingScreen = () => (
+    <div className="loading-screen">
+        <div className="loading-logo">
+            <div className="loading-circle"></div>
+            <div className="loading-text">Loading favorites...</div>
+        </div>
+    </div>
+);
+
 const Favorites = () => {
     const [favoriteStations, setFavoriteStations] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [pageLoading, setPageLoading] = useState(true);
     const [toast, setToast] = useState({ show: false, message: '', type: '' });
+    const [showModal, setShowModal] = useState(false);
+    const [selectedStation, setSelectedStation] = useState(null);
+    const [date, setDate] = useState('');
+    const [time, setTime] = useState('');
+    const [availableTimes, setAvailableTimes] = useState([]);
+    const [isAvailable, setIsAvailable] = useState(null);
+    const today = new Date().toISOString().split("T")[0];
+    const [latitude, setLatitude] = useState(null);
+    const [longitude, setLongitude] = useState(null);
     const navigate = useNavigate();
-
-    const showToast = (message, type = 'success') => {
-        setToast({ show: true, message, type });
-        setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
-    };
-
-    const handleLogout = () => {
-        try {
-            localStorage.clear();
-            showToast('You have been logged out successfully!');
-            setTimeout(() => {
-                navigate('/login');
-            }, 1500);
-        } catch (error) {
-            console.error('Logout error:', error);
-            showToast('Logout failed. Please try again.', 'error');
-        }
-    };
 
     useEffect(() => {
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                setLatitude(latitude);
+                setLongitude(longitude);
+            },
+            (error) => {
+                console.error('Error fetching location:', error);
+            }
+        );
+
+>>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
         const fetchFavorites = async () => {
             const loggedInUser = localStorage.getItem('loggedInUser');
             const token = localStorage.getItem('token');
 
             if (!loggedInUser || !token) {
                 showToast('Please log in to view favorites!', 'error');
-                setLoading(false);
                 setTimeout(() => navigate('/login'), 2000);
                 return;
             }
@@ -132,11 +169,32 @@ const Favorites = () => {
                 showToast('Failed to load favorites. Please try again.', 'error');
             } finally {
                 setLoading(false);
+                setTimeout(() => {
+                    setPageLoading(false);
+                }, 1000);
             }
         };
 
         fetchFavorites();
     }, [navigate]);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ show: true, message, type });
+        setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
+    };
+
+    const handleLogout = () => {
+        try {
+            localStorage.clear();
+            showToast('You have been logged out successfully!');
+            setTimeout(() => {
+                navigate('/login');
+            }, 1500);
+        } catch (error) {
+            console.error('Logout error:', error);
+            showToast('Logout failed. Please try again.', 'error');
+        }
+    };
 
     const removeFromFavorites = async (station, event) => {
         // Prevent the click from bubbling up to parent elements
@@ -177,81 +235,144 @@ const Favorites = () => {
         }
     };
 
-    // We don't want to navigate when clicking on the card
     const handleCardClick = (event) => {
         // Just prevent default behavior, no navigation
         if (event.target.closest('.remove-button')) {
-            return; // Let the remove button handler work
+            return;
         }
 
-        // Do nothing else when clicking on the card
         return;
     };
 
-    return (
-        <div className="favorites-container">
-            {/* Toast Notification */}
-            <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>
-                {toast.type === 'success' ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                    </svg>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="8" x2="12" y2="12"></line>
-                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                    </svg>
-                )}
-                <span className="toast-message">{toast.message}</span>
-            </div>
+    const startCharging = (station) => {
+        navigate('/charging', { state: { station } });
+    };
 
-            {/* Loading State */}
-            {loading ? (
-                <div className="loading-message">
-                    <div className="loading-spinner"></div>
-                    <p>Loading your favorite stations...</p>
-                </div>
+    const goToAppointmentPage = async (station) => {
+        try {
+            navigate('/home', {
+                state: {
+                    selectedStation: station,
+                    openBookingModal: true
+                }
+            });
+        } catch (error) {
+            console.error('Error handling booking:', error);
+        }
+    };
+
+    const calculateDistance = (lat1, lon1, lat2, lon2) => {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
+        const R = 6371;
+        const dLat = (lat2 - lat1) * (Math.PI / 180);
+        const dLon = (lon2 - lon1) * (Math.PI / 180);
+        const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) *
+            Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return parseFloat((R * c).toFixed(2));
+    };
+
+    return (
+        <>
+            {pageLoading ? (
+                <LoadingScreen />
             ) : (
-                <>
-                    <div className="favorites-summary">
-                        <h2>Favorite Charging Stations</h2>
-                        <p>
-                            You have <strong>{favoriteStations.length}</strong> favorite station{favoriteStations.length !== 1 ? 's' : ''}
-                        </p>
+                <div className="favorites-container">
+                    {/* Toast Notification */}
+                    <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>
+                        {toast.type === 'success' ? (
+                            <SuccessIcon />
+                        ) : (
+                            <ErrorIcon />
+                        )}
+                        <span className="toast-message">{toast.message}</span>
                     </div>
 
+                    <div className="favorites-summary">
+                        <h2>Your Favorites</h2>
+                        <p>Manage your collection of <strong>{favoriteStations.length}</strong> favorite charging stations</p>
+                    </div>
+
+                    {/* תוכן דף המועדפים */}
                     {favoriteStations.length > 0 ? (
                         <div className="station-list">
                             {favoriteStations.map((station, index) => (
-                                <div key={index} className="station-card" onClick={handleCardClick}>
-                                    <div className="station-details">
-                                        <h3>{station['Station Name']}</h3>
-                                        <div className="station-info">
-                                            <div className="station-info-item">
-                                                <LocationIcon />
-                                                <strong>Address:</strong>
-                                                <span>{station.Address || 'N/A'}</span>
-                                            </div>
-                                            <div className="station-info-item">
-                                                <CityIcon />
-                                                <strong>City:</strong>
-                                                <span>{station.City || 'N/A'}</span>
-                                            </div>
-                                            <div className="station-info-item">
-                                                <ChargingIcon />
-                                                <strong>Charging Points:</strong>
-                                                <span>{station['Duplicate Count'] || '1'}</span>
-                                            </div>
+                                <div
+                                    key={index}
+                                    className="station-card"
+                                    onClick={handleCardClick}
+                                    style={{ "--item-index": index }}
+                                >
+                                    <h3>{station['Station Name']}</h3>
+                                    <div className="station-info">
+                                        <div className="station-info-item">
+                                            <LocationIcon />
+                                            <span>{station.Address || 'N/A'}</span>
+                                        </div>
+                                        <div className="station-info-item">
+                                            <CityIcon />
+                                            <span>{station.City || 'N/A'}</span>
+                                        </div>
+                                        <div className="station-info-item">
+                                            <ChargingIcon />
+                                            <span>{station['Duplicate Count'] || '1'} charging points</span>
                                         </div>
                                     </div>
+
+                                    {/* Add distance badge if location is available */}
+                                    {latitude && longitude && station.Latitude && station.Longitude && (
+                                        <div className="distance-badge">
+                                            {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
+                                        </div>
+                                    )}
+
+                                    {/* Station action buttons */}
+                                    <div className="station-buttons">
+                                        <button
+                                            type="button"
+                                            className="book-button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                goToAppointmentPage(station);
+                                            }}
+                                        >
+                                            Book Appointment
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            className="charge-button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                startCharging(station);
+                                            }}
+                                        >
+                                            Start Charging
+                                        </button>
+
+                                        <a
+                                            href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="waze-button"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <img src={wazeIcon} alt="Waze" />
+                                            <span>Navigate</span>
+                                        </a>
+                                    </div>
+
                                     <button
                                         className="remove-button"
                                         onClick={(e) => removeFromFavorites(station, e)}
-                                        aria-label="Remove from favorites"
+                                        title="Remove from favorites"
                                     >
-                                        ✕
+                                        <CloseIcon />
                                     </button>
                                 </div>
                             ))}
@@ -259,16 +380,15 @@ const Favorites = () => {
                     ) : (
                         <div className="no-favorites">
                             <EmptyHeartIcon />
-                            <p>You haven't added any favorite stations yet.</p>
-                            <Link to="/map" className="back-button">
-                                Find stations on map
+                            <p>You haven't added any stations to your favorites yet.</p>
+                            <Link to="/home" className="back-button">
+                                <BackIcon />
+                                <span>Go to Home</span>
                             </Link>
                         </div>
                     )}
 
-
-
-                    {/* Bottom Navigation Bar */}
+                    {/* Bottom Navigation Bar - Exactly like Home page */}
                     <div className="bottom-bar">
                         <Link to="/home" className="bottom-bar-button">
                             <HomeIcon />
@@ -278,7 +398,7 @@ const Favorites = () => {
                             <MapIcon />
                             <span>Map</span>
                         </Link>
-                        <Link to="/favorites" className="bottom-bar-button favorites">
+                        <Link to="/favorites" className="bottom-bar-button favorites active" style={{ color: "#27ae60" }}>
                             <HeartIcon />
                             <span>Favorites</span>
                         </Link>
@@ -291,9 +411,9 @@ const Favorites = () => {
                             <span>Logout</span>
                         </button>
                     </div>
-                </>
+                </div>
             )}
-        </div>
+        </>
     );
 };
 

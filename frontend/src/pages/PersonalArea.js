@@ -197,8 +197,6 @@ function PersonalArea() {
     }
   };
 
-
-
   return (
     <div className="personal-area-page">
 <<<<<<< HEAD
@@ -226,12 +224,16 @@ function PersonalArea() {
         <span className="toast-message">{toast.message}</span>
       </div>
 
+      <h1>Personal Area</h1>
 
 >>>>>>> 8d5d0857 (designs)
       <div className="content-container">
+<<<<<<< HEAD
         <h1>Personal Area</h1>
 
         {/* 🔹 כפתורי ניווט */}
+=======
+>>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
         <nav className="tab-navigation">
           <button
             className={view === "profile" ? "active" : ""}

@@ -68,7 +68,7 @@ function FutureBookings() {
   const [currentTime, setCurrentTime] = useState({ date: "", hour: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("all"); // New state for tracking active tab
+  const [activeTab, setActiveTab] = useState("all");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -114,14 +114,13 @@ function FutureBookings() {
       });
 
       if (!res.ok) {
-        return; // No active charging or error, which is fine
+        return;
       }
 
       const data = await res.json();
       setActiveCharging(data);
     } catch (error) {
       console.error("Error fetching active charging:", error);
-      // Not setting error state here as it's not critical
     }
   };
 
@@ -208,7 +207,7 @@ function FutureBookings() {
       if (res.ok) {
         showNotification(data.message);
         setActiveCharging(null);
-        fetchBookings(); // Refresh bookings after stopping
+        fetchBookings();
       } else {
         showNotification(data.message || "Error stopping charging", "error");
       }
@@ -221,8 +220,7 @@ function FutureBookings() {
   };
 
   const showNotification = (message, type = "success") => {
-    // In a real app, this would be a toast notification
-    // For simplicity, we're using alert but would be replaced with a proper notification system
+
     if (type === "error") {
       alert(`Error: ${message}`);
     } else {
@@ -230,13 +228,11 @@ function FutureBookings() {
     }
   };
 
-  // Helper function to format date to be more readable
   const formatDate = (dateString) => {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Determine if a booking is upcoming, active, or past
   const getBookingStatus = (booking) => {
     const now = new Date();
     const bookingTime = new Date(`${booking.date}T${booking.time}`);
@@ -258,7 +254,7 @@ function FutureBookings() {
     }
   };
 
-  // Filter bookings based on active tab
+
   const getFilteredBookings = () => {
     if (activeTab === "all") {
       return bookings;
@@ -267,12 +263,10 @@ function FutureBookings() {
     return bookings.filter(booking => getBookingStatus(booking) === activeTab);
   };
 
-  // Get count of bookings by status
   const getBookingCountByStatus = (status) => {
     return bookings.filter(booking => getBookingStatus(booking) === status).length;
   };
 
-  // Handle tab change
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   };

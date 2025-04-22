@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../designs/Charging.css';
+import { FaBatteryHalf, FaBatteryFull, FaClock, FaBolt } from 'react-icons/fa';
 
 // SVG Icons
 const PlugIcon = () => (
@@ -121,6 +122,13 @@ const Charging = () => {
     const timerRef = useRef(null);
     const [batteryLevel, setBatteryLevel] = useState(incomingBatteryLevel || 20); // Use user-provided level or default
     const [targetLevel, setTargetLevel] = useState(incomingTargetLevel || 80); // Use user-provided target or default
+    const [showSummary, setShowSummary] = useState(false);
+    const [chargingSummary, setChargingSummary] = useState({
+        duration: 0,
+        initialBattery: 0,
+        finalBattery: 0,
+        batteryGained: 0
+    });
 
     // Format date for display
     const formatDisplayDate = (dateStr) => {
@@ -198,33 +206,20 @@ const Charging = () => {
     const startCharging = async () => {
         try {
             setLoading(true);
-            // For demo, simulate an API call
+            console.log("Starting charging process...");
+
             setTimeout(() => {
                 setIsCharging(true);
                 setError('');
                 setElapsedTime(0);
                 startTimer();
                 setLoading(false);
-            }, 1500);
+                console.log("Charging started successfully");
+            }, 500);
 
-            /* Actual API implementation
-            const response = await axios.post(
-                `${process.env.REACT_APP_BACKEND_URL}/api/bookings/start-charging`,
-                {
-                    station: station,
-                    date,
-                    time,
-                    batteryLevel,
-                    targetLevel
-                },
-                {
-                    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                }
-            );
-            */
         } catch (err) {
-            console.error(err);
-            setError(err.response?.data?.message || 'Error starting charging.');
+            console.error("Error in startCharging:", err);
+            setError('Error starting charging. Please try again.');
             setLoading(false);
         }
     };
@@ -232,33 +227,21 @@ const Charging = () => {
     const stopCharging = async () => {
         try {
             setLoading(true);
-            // For demo, simulate an API call
-            setTimeout(() => {
-                setIsCharging(false);
-                setError('');
-                stopTimer();
-                setLoading(false);
-            }, 1500);
+            stopTimer();
+            setIsCharging(false);
 
-            /* Actual API implementation
-            const stationName =
-                typeof station === 'string' ? station : station?.['Station Name'];
-            if (!stationName) {
-                setError('Station name is missing.');
-                setLoading(false);
-                return;
-            }
+            const batteryGained = batteryLevel - incomingBatteryLevel;
+            setChargingSummary({
+                duration: elapsedTime,
+                initialBattery: incomingBatteryLevel,
+                finalBattery: batteryLevel,
+                batteryGained: batteryGained.toFixed(1)
+            });
+            setShowSummary(true);
 
-            const response = await axios.post(
-                `${process.env.REACT_APP_BACKEND_URL}/api/bookings/stop-charging`,
-                { station: stationName },
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`
-                    }
-                }
-            );
-            */
+            setLoading(false);
+
+
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.message || 'Error stopping charging.');
@@ -307,6 +290,24 @@ const Charging = () => {
         return "Excellent";
     };
 
+    const formatTime = (seconds) => {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const remainingSeconds = seconds % 60;
+
+        return `${hours > 0 ? hours + 'h ' : ''}${minutes}m ${remainingSeconds}s`;
+    };
+
+    const goToPayment = () => {
+
+        navigate('/home');
+    };
+
+    const handleStartButtonClick = () => {
+        console.log("Start button clicked");
+        startCharging();
+    };
+
     if (!station) {
         return (
             <div className="charging-container">
@@ -314,7 +315,7 @@ const Charging = () => {
                     Station not selected. Please go back and select a charging station.
                 </div>
                 <Link to="/map" className="action-button">
-                    Find a Charging Station
+                    Close
                 </Link>
             </div>
         );
@@ -322,107 +323,148 @@ const Charging = () => {
 
     return (
         <div className="charging-container">
-            {/* Header */}
-            <div className="charging-header">
-                <h2>Session</h2>
-                <div className="station-name">{station['Station Name']}</div>
-            </div>
+            <div className="content-area">
+                {/* Header */}
+                <div className="charging-header">
+                    <h2>Charging Session</h2>
+                    <div className="station-name">{station['Station Name']}</div>
+                </div>
 
-            {/* Station Details */}
-            <div className="station-details">
-                <div className="detail-item">
-                    <LocationIcon />
-                    <span className="label">Address:</span>
-                    <span className="value">{station.Address || 'N/A'}</span>
+                {/* Station Details */}
+                <div className="station-details">
+                    <div className="detail-item">
+                        <LocationIcon />
+                        <span className="label">Address:</span>
+                        <span className="value">{station.Address || 'N/A'}</span>
+                    </div>
+                    <div className="detail-item">
+                        <CityIcon />
+                        <span className="label">City:</span>
+                        <span className="value">{station.City || 'N/A'}</span>
+                    </div>
+                    <div className="detail-item">
+                        <CalendarIcon />
+                        <span className="label">Date:</span>
+                        <span className="value rtl-text">{date.includes('-') ? formatDisplayDate(date) : date}</span>
+                    </div>
+                    <div className="detail-item">
+                        <ClockIcon />
+                        <span className="label">Start Time:</span>
+                        <span className="value">{time}</span>
+                    </div>
                 </div>
-                <div className="detail-item">
-                    <CityIcon />
-                    <span className="label">City:</span>
-                    <span className="value">{station.City || 'N/A'}</span>
-                </div>
-                <div className="detail-item">
-                    <CalendarIcon />
-                    <span className="label">Date:</span>
-                    <span className="value rtl-text">{date.includes('-') ? formatDisplayDate(date) : date}</span>
-                </div>
-                <div className="detail-item">
-                    <ClockIcon />
-                    <span className="label">Start Time:</span>
-                    <span className="value">{time}</span>
-                </div>
-            </div>
 
-            {/* Battery Level */}
-            <div className="battery-section">
-                <div className="battery-label">
-                    <BatteryIcon />
-                    <span>Battery Level:</span>
-                </div>
-                <div className="battery-container">
-                    <div className="battery-bar">
-                        <div
-                            className={`battery-level ${isCharging ? 'charging' : ''}`}
-                            style={{ width: `${batteryLevel}%` }}>
-                            <span className="battery-percentage">{Math.round(batteryLevel)}%</span>
+                {/* Battery Level */}
+                <div className="battery-section">
+                    <div className="battery-label">
+                        <BatteryIcon />
+                        <span>Battery Level:</span>
+                    </div>
+                    <div className="battery-container">
+                        <div className="battery-bar">
+                            <div
+                                className={`battery-level ${isCharging ? 'charging' : ''}`}
+                                style={{ width: `${batteryLevel}%` }}>
+                                <span className="battery-percentage">{Math.round(batteryLevel)}%</span>
+                            </div>
+                        </div>
+                        <div style={{ textAlign: 'center', marginTop: 'var(--spacing-sm)' }}>
+                            <span className="battery-status">{getBatteryStatus(batteryLevel)}</span>
+                            {targetLevel && (
+                                <div style={{ marginTop: 'var(--spacing-sm)', color: 'var(--text-secondary)' }}>
+                                    Target: <strong>{targetLevel}%</strong>
+                                </div>
+                            )}
                         </div>
                     </div>
-                    <div style={{ textAlign: 'center', marginTop: 'var(--spacing-sm)' }}>
-                        <span className="battery-status">{getBatteryStatus(batteryLevel)}</span>
-                        {targetLevel && (
-                            <div style={{ marginTop: 'var(--spacing-sm)', color: 'var(--text-secondary)' }}>
-                                Target: <strong>{targetLevel}%</strong>
-                            </div>
-                        )}
-                    </div>
                 </div>
-            </div>
 
-            {/* Charging Status / Timer */}
-            <div className="timer-section">
-                {isCharging ? (
-                    <>
-                        <div className="timer-display">{formatElapsedTime(elapsedTime)}</div>
-                        <div className="charging-status">⚡ Charging in progress</div>
-                        {estimatedChargeTime && endTime && (
-                            <div className="estimated-end">
-                                Estimated completion at <strong>{endTime}</strong>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="charging-status">
-                        Ready to start charging
+                {/* Charging Status / Timer */}
+                <div className="timer-section">
+                    {isCharging ? (
+                        <>
+                            <div className="timer-display">{formatElapsedTime(elapsedTime)}</div>
+                            <div className="charging-status">⚡ Charging in progress</div>
+                            {estimatedChargeTime && endTime && (
+                                <div className="estimated-end">
+                                    Estimated completion at <strong>{endTime}</strong>
+                                </div>
+                            )}
+                        </>
+                    ) : (
+                        <div className="charging-status">
+                            Ready to start charging
+                        </div>
+                    )}
+                </div>
+
+                {/* Instructions */}
+                {!isCharging && !showSummary && (
+                    <div className="charging-instructions">
+                        Connect and press start to begin charging
                     </div>
                 )}
+
+                {/* Error Message */}
+                {error && <div className="error-message">{error}</div>}
+
+                {/* Action Button */}
+                {isCharging ? (
+                    <button
+                        className="action-button stop-button"
+                        onClick={stopCharging}
+                        disabled={loading}
+                    >
+                        Stop Charging
+                    </button>
+                ) : !showSummary ? (
+                    <button
+                        className="action-button start-button"
+                        onClick={handleStartButtonClick}
+                        disabled={loading}
+                    >
+                        Confirm Booking
+                    </button>
+                ) : null}
             </div>
 
-            {/* Instructions */}
-            {!isCharging && (
-                <div className="charging-instructions">
-                    Connect and press start to begin charging
-                </div>
-            )}
+            {/* Charging Summary Modal with Overlay */}
+            {showSummary && (
+                <>
+                    <div className="modal-overlay" onClick={goToPayment}></div>
+                    <div className="charging-summary">
+                        <div className="summary-header">
+                            <h2 className="summary-title">Charging Complete</h2>
+                            <p className="summary-subtitle">Charging Session Summary</p>
+                        </div>
 
-            {/* Error Message */}
-            {error && <div className="error-message">{error}</div>}
+                        <div className="summary-content">
+                            <div className="summary-item">
+                                <FaClock className="summary-icon" />
+                                <span className="summary-label">Total Charging Time</span>
+                                <span className="summary-value">{formatTime(chargingSummary.duration)}</span>
+                            </div>
 
-            {/* Action Button */}
-            {isCharging ? (
-                <button
-                    className="action-button stop-button"
-                    onClick={stopCharging}
-                    disabled={loading}
-                >
-                    <StopIcon /> Stop Charging
-                </button>
-            ) : (
-                <button
-                    className="action-button"
-                    onClick={startCharging}
-                    disabled={loading}
-                >
-                    <PlayIcon /> Start Charging
-                </button>
+                            <div className="summary-item">
+                                <FaBatteryHalf className="summary-icon" />
+                                <span className="summary-label">Initial Battery</span>
+                                <span className="summary-value">{chargingSummary.initialBattery}%</span>
+                            </div>
+
+                            <div className="summary-item">
+                                <FaBatteryFull className="summary-icon" />
+                                <span className="summary-label">Final Battery</span>
+                                <span className="summary-value">{Math.round(chargingSummary.finalBattery)}%</span>
+                            </div>
+                        </div>
+
+                        <div className="summary-actions">
+                            <button onClick={goToPayment} className="action-button primary-button">
+                                Proceed to Payment
+                            </button>
+                        </div>
+                    </div>
+                </>
             )}
 
             {/* Bottom Navigation Bar */}

@@ -32,6 +32,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/Change-Password/:token" element={<ChangePassword />} />
+          <Route path="/reset-password/:token" element={<ChangePassword />} />
           <Route path="/charging" element={<Charging />} />
           <Route path="/charging-queue/:stationName" element={<NavigateToToday />} />
           <Route path="/navigate-to-today/:stationName" element={<NavigateToToday />} />

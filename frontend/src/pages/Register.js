@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../designs/Register.css';
+import logo from '../assets/logo.jpg';
 
 function Register() {
   // Form steps
@@ -20,6 +21,7 @@ function Register() {
 
   const [errors, setErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [fieldsTouched, setFieldsTouched] = useState({});
   const navigate = useNavigate();
 
   // Calculate password strength
@@ -49,7 +51,11 @@ function Register() {
     switch (field) {
       case 'firstName':
         if (!value.trim()) {
-          error = 'First name is required.';
+          error = 'First name empty';
+        } else if (value.trim().length < 2) {
+          error = 'First name too short';
+        } else if (/\d/.test(value)) {
+          error = 'No numbers allowed';
         } else {
           isValid = true;
         }
@@ -57,7 +63,11 @@ function Register() {
 
       case 'lastName':
         if (!value.trim()) {
-          error = 'Last name is required.';
+          error = 'Last name empty';
+        } else if (value.trim().length < 2) {
+          error = 'Last name too short';
+        } else if (/\d/.test(value)) {
+          error = 'No numbers allowed';
         } else {
           isValid = true;
         }
@@ -65,9 +75,9 @@ function Register() {
 
       case 'email':
         if (!value.trim()) {
-          error = 'Email is required.';
+          error = 'Email empty';
         } else if (!/\S+@\S+\.\S+/.test(value)) {
-          error = 'Invalid email address.';
+          error = 'Invalid email format';
         } else {
           isValid = true;
         }
@@ -75,9 +85,11 @@ function Register() {
 
       case 'phone':
         if (!value.trim()) {
-          error = 'Phone number is required.';
-        } else if (!/^\d{10}$/.test(value)) {
-          error = 'Phone number must be 10 digits.';
+          error = 'Phone empty';
+        } else if (!/^\d+$/.test(value)) {
+          error = 'Numbers only';
+        } else if (value.length !== 10) {
+          error = 'Must be 10 digits';
         } else {
           isValid = true;
         }
@@ -85,17 +97,23 @@ function Register() {
 
       case 'password':
         if (!value) {
-          error = 'Password is required.';
-        } else if (!/^(?=.*[A-Z])(?=.*\d).{8,}$/.test(value)) {
-          error = 'Password must be at least 8 characters, include one uppercase letter, and one number.';
+          error = 'Password empty';
+        } else if (value.length < 8) {
+          error = 'Min 8 characters';
+        } else if (!/[A-Z]/.test(value)) {
+          error = 'Need uppercase letter';
+        } else if (!/\d/.test(value)) {
+          error = 'Need a number';
         } else {
           isValid = true;
         }
         break;
 
       case 'confirmPassword':
-        if (value !== formData.password) {
-          error = 'Passwords do not match.';
+        if (!value) {
+          error = 'Confirm password empty';
+        } else if (value !== formData.password) {
+          error = 'Passwords don\'t match';
         } else {
           isValid = true;
         }
@@ -105,13 +123,19 @@ function Register() {
         break;
     }
 
-    setErrors((prevErrors) => ({ ...prevErrors, [field]: error }));
+    // Only set the error if the field has been touched
+    if (fieldsTouched[field]) {
+      setErrors((prevErrors) => ({ ...prevErrors, [field]: error }));
+    }
+
     return isValid;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    // Mark field as touched
+    setFieldsTouched(prev => ({ ...prev, [name]: true }));
     validateField(name, value);
   };
 
@@ -125,15 +149,23 @@ function Register() {
       fieldsToValidate = ['email', 'phone'];
     }
 
+    // Mark all relevant fields as touched
+    const newTouchedFields = {};
+    fieldsToValidate.forEach(field => {
+      newTouchedFields[field] = true;
+    });
+    setFieldsTouched(prev => ({ ...prev, ...newTouchedFields }));
+
     const isStepValid = fieldsToValidate.every(field =>
       validateField(field, formData[field])
     );
 
     if (isStepValid) {
       setCurrentStep(currentStep + 1);
-    } else {
-      toast.error('Please correct the errors before proceeding.');
+      // Clear existing errors when moving to a new step
+      setErrors({});
     }
+    // No toast needed - field-specific errors are displayed
   };
 
   const prevStep = () => {
@@ -143,14 +175,20 @@ function Register() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Mark password fields as touched
+    setFieldsTouched(prev => ({
+      ...prev,
+      password: true,
+      confirmPassword: true
+    }));
+
     // Validate final step fields
     const finalFieldsValid = ['password', 'confirmPassword'].every(field =>
       validateField(field, formData[field])
     );
 
     if (!finalFieldsValid) {
-      toast.error('Please correct the errors before submitting.');
-      return;
+      return; // No toast needed, field-specific errors are shown
     }
 
     try {
@@ -168,17 +206,48 @@ function Register() {
         }),
       });
 
-      // Check if response status is ok
+      // Process specific error types from API response
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Registration failed.');
+        const errorMsg = errorData.message ? errorData.message.toLowerCase() : '';
+
+        // Email-related errors
+        if (errorMsg.includes('email') && errorMsg.includes('exists')) {
+          setCurrentStep(1); // Move back to email step
+          setErrors(prev => ({ ...prev, email: 'Email already registered' }));
+          return;
+        }
+
+        // Phone-related errors
+        if (errorMsg.includes('phone')) {
+          setCurrentStep(1); // Move back to contact step
+          setErrors(prev => ({ ...prev, phone: 'Invalid phone number' }));
+          return;
+        }
+
+        // Password-related errors
+        if (errorMsg.includes('password')) {
+          setErrors(prev => ({ ...prev, password: 'Password requirements not met' }));
+          return;
+        }
+
+        // Generic validation error
+        if (errorMsg.includes('validation')) {
+          toast.error('Please check your information');
+          return;
+        }
+
+        // Fallback for unexpected errors
+        toast.error(errorData.message || 'Registration failed');
+        return;
       }
 
       const data = await response.json();
-      toast.success(data.message || 'Registration successful!');
+      toast.success('Registration successful!');
       navigate(`/verify-email?email=${formData.email}`);
     } catch (error) {
-      toast.error(error.message || 'An error occurred during registration.');
+      // Network or server error
+      toast.error('Connection error');
     }
   };
 
@@ -204,7 +273,7 @@ function Register() {
                 onChange={handleChange}
                 autoFocus
               />
-              {errors.firstName && <span className="error-message">{errors.firstName}</span>}
+              {fieldsTouched.firstName && errors.firstName && <span className="error-message">{errors.firstName}</span>}
             </div>
 
             <div className="form-group">
@@ -215,7 +284,7 @@ function Register() {
                 value={formData.lastName}
                 onChange={handleChange}
               />
-              {errors.lastName && <span className="error-message">{errors.lastName}</span>}
+              {fieldsTouched.lastName && errors.lastName && <span className="error-message">{errors.lastName}</span>}
             </div>
           </>
         );
@@ -232,7 +301,7 @@ function Register() {
                 onChange={handleChange}
                 autoFocus
               />
-              {errors.email && <span className="error-message">{errors.email}</span>}
+              {fieldsTouched.email && errors.email && <span className="error-message">{errors.email}</span>}
             </div>
 
             <div className="form-group">
@@ -244,7 +313,7 @@ function Register() {
                 onChange={handleChange}
                 pattern="[0-9]{10}"
               />
-              {errors.phone && <span className="error-message">{errors.phone}</span>}
+              {fieldsTouched.phone && errors.phone && <span className="error-message">{errors.phone}</span>}
             </div>
           </>
         );
@@ -261,6 +330,9 @@ function Register() {
                 onChange={handleChange}
                 autoFocus
               />
+              <div className="password-hint">
+                Required: 8+ chars, 1 uppercase, 1 number
+              </div>
               <div className="password-strength" style={{ opacity: formData.password ? 1 : 0 }}>
                 <div className="password-strength-bar" style={{
                   width: `${passwordStrength}%`,
@@ -268,13 +340,19 @@ function Register() {
                 }}></div>
               </div>
               <div className="password-strength-text" style={{ color: getPasswordStrengthColor() }}>
-                {passwordStrength === 0 && formData.password && "Very Weak"}
-                {passwordStrength === 25 && "Weak"}
-                {passwordStrength === 50 && "Fair"}
-                {passwordStrength === 75 && "Good"}
-                {passwordStrength === 100 && "Strong"}
+                {formData.password ? (
+                  <>
+                    {passwordStrength === 0 && "Very Weak"}
+                    {passwordStrength === 25 && "Weak"}
+                    {passwordStrength === 50 && "Fair"}
+                    {passwordStrength === 75 && "Good"}
+                    {passwordStrength === 100 && "Strong"}
+                  </>
+                ) : (
+                  <span>&nbsp;</span>
+                )}
               </div>
-              {errors.password && <span className="error-message">{errors.password}</span>}
+              {fieldsTouched.password && errors.password && <span className="error-message">{errors.password}</span>}
             </div>
 
             <div className="form-group">
@@ -285,7 +363,7 @@ function Register() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
               />
-              {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
+              {fieldsTouched.confirmPassword && errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
             </div>
           </>
         );
@@ -297,54 +375,89 @@ function Register() {
 
   return (
     <div className="register-container">
-      <form onSubmit={handleSubmit}>
-        <h1>Create an Account</h1>
+      <img src={logo} alt="Logo" className="register-logo" />
 
-        <div className="progress-indicator">
-          {steps.map((step, index) => (
-            <div
-              key={index}
-              className={`progress-step ${index === currentStep ? 'active' : ''} ${index < currentStep ? 'completed' : ''}`}
-            >
-              {index < currentStep ? '✓' : index + 1}
-            </div>
-          ))}
-        </div>
+      <h1 className="main-heading">Create Your Account</h1>
+      <div className="register-wrapper">
+        <form onSubmit={handleSubmit} className={`step-${currentStep}`}>
+          <div className="progress-indicator">
+            {steps.map((step, index) => (
+              <div
+                key={index}
+                className={`progress-step ${index === currentStep
+                  ? 'active'
+                  : index < currentStep
+                    ? 'completed'
+                    : ''
+                  }`}
+              >
+                {index + 1}
+              </div>
+            ))}
+          </div>
 
-        <h2 className="step-title">{steps[currentStep]}</h2>
+          <div className="step-title">{steps[currentStep]}</div>
 
-        {renderForm()}
+          <div className="form-content">
+            {renderForm()}
+          </div>
 
-        <div className="button-group">
-          {currentStep > 0 && (
-            <button
-              type="button"
-              className="back-button"
-              onClick={prevStep}
-            >
-              Back
-            </button>
-          )}
+          <div className="button-group">
+            {currentStep > 0 && (
+              <button
+                type="button"
+                className="back-button"
+                onClick={prevStep}
+                style={{
+                  height: '48px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                Back
+              </button>
+            )}
 
-          {currentStep < steps.length - 1 ? (
-            <button
-              type="button"
-              className="next-button"
-              onClick={nextStep}
-            >
-              Next
-            </button>
-          ) : (
-            <button type="submit" className="submit-button">
-              Register
-            </button>
-          )}
-        </div>
+            {currentStep < steps.length - 1 ? (
+              <button
+                type="button"
+                className="next-button"
+                onClick={nextStep}
+                style={{
+                  height: '48px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                Next
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="submit-button"
+                style={{
+                  height: '48px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                Register
+              </button>
+            )}
+          </div>
 
-        <p>
-          Already have an account? <Link to="/">Login here</Link>
-        </p>
-      </form>
+          <p>
+            Already have an account?{' '}
+            <Link to="/login">Login here</Link>
+          </p>
+        </form>
+      </div>
     </div>
   );
 }
