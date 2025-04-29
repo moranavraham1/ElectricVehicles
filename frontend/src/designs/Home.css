@@ -410,32 +410,35 @@ input[type="text"] {
 }
 
 /* Station list with scrolling */
-.station-list-container {
+.station-list {
   flex: 1;
   padding: 15px;
   /* Dynamic height for station list */
-  height: calc(100vh - 70px - 60px);
+  height: calc(100vh - 200px);
   /* Allow scrolling only in station list */
   overflow-y: auto;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 /* Custom scrollbar for station list in webkit browsers */
-.home-container .station-list::-webkit-scrollbar {
+.station-list::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.home-container .station-list::-webkit-scrollbar-track {
+.station-list::-webkit-scrollbar-track {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 4px;
 }
 
-.home-container .station-list::-webkit-scrollbar-thumb {
+.station-list::-webkit-scrollbar-thumb {
   background: rgba(59, 130, 246, 0.5);
   border-radius: 4px;
 }
 
-.home-container .station-list::-webkit-scrollbar-thumb:hover {
+.station-list::-webkit-scrollbar-thumb:hover {
   background: rgba(59, 130, 246, 0.7);
 }
 

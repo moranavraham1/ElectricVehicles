@@ -444,9 +444,7 @@ const Home = () => {
       return;
     }
 
-    try {// Get battery percentage
-      const level = Math.round(battery.level * 100);
-
+    try {
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/book`,
         {
