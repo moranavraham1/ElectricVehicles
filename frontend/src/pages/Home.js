@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import axios from 'axios';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import '../designs/Home.css';
@@ -44,7 +44,40 @@ const LogoutIcon = () => (
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001';
 
+// קוד לטיפול במטמון
+const STATIONS_CACHE_KEY = 'cached_stations';
+const CACHE_EXPIRY = 1000 * 60 * 15; // 15 דקות
 
+const getCachedStations = () => {
+  try {
+    const cached = localStorage.getItem(STATIONS_CACHE_KEY);
+    if (!cached) return null;
+
+    const { data, timestamp } = JSON.parse(cached);
+    // בדיקה שהמטמון לא פג תוקף
+    if (Date.now() - timestamp > CACHE_EXPIRY) {
+      localStorage.removeItem(STATIONS_CACHE_KEY);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error reading from cache:', error);
+    return null;
+  }
+};
+
+const setCachedStations = (data) => {
+  try {
+    const cacheData = {
+      data,
+      timestamp: Date.now()
+    };
+    localStorage.setItem(STATIONS_CACHE_KEY, JSON.stringify(cacheData));
+  } catch (error) {
+    console.error('Error setting cache:', error);
+  }
+};
 
 const Home = () => {
   const [userLocation, setUserLocation] = useState('');
@@ -67,6 +100,12 @@ const Home = () => {
   const [urgencyLevel, setUrgencyLevel] = useState(1); // Default value
   const [userName, setUserName] = useState(""); // User's full name
   const location = useLocation();
+  const [loadingStations, setLoadingStations] = useState(true);
+  const [showFullMap, setShowFullMap] = useState({});
+  const [stationsPage, setStationsPage] = useState(1);
+  const STATIONS_PER_PAGE = 5;
+  const [mapLoading, setMapLoading] = useState({});
+  const [fullMapLoading, setFullMapLoading] = useState({});
 
   // Check if we're navigating from Map or Favorites with a station to book
   useEffect(() => {
@@ -323,6 +362,24 @@ const Home = () => {
 
   const fetchStations = async () => {
     try {
+      setLoadingStations(true);
+
+      // ניסיון לקבל נתונים מהמטמון תחילה
+      const cachedData = getCachedStations();
+      if (cachedData) {
+        const stationsWithDistance = cachedData.map((station) => ({
+          ...station,
+          distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
+        }));
+
+        const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
+        setStations(sortedStations);
+        setFilteredStations(sortedStations);
+        setLoadingStations(false);
+        return;
+      }
+
+      // אם אין מטמון תקף, נטען מהשרת
       const response = await axios.get('http://localhost:3001/api/stations');
       const stationsWithDistance = response.data.map((station) => ({
         ...station,
@@ -332,10 +389,50 @@ const Home = () => {
       const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
       setStations(sortedStations);
       setFilteredStations(sortedStations);
+
+      // שמירה במטמון
+      setCachedStations(response.data);
     } catch (error) {
       console.error('Error fetching stations:', error);
+    } finally {
+      setLoadingStations(false);
     }
   };
+
+  // הדפסה של רק כמות מוגבלת של תחנות בכל פעם
+  const paginatedStations = filteredStations.slice(
+    0,
+    stationsPage * STATIONS_PER_PAGE
+  );
+
+  // טעינת תחנות נוספות בגלילה
+  const handleLoadMoreStations = () => {
+    setStationsPage(prev => prev + 1);
+  };
+
+  // הפונקציה להצגת מפה מלאה
+  const toggleFullMap = (index) => {
+    // סימון שהמפה בטעינה
+    setFullMapLoading(prev => ({
+      ...prev,
+      [index]: true
+    }));
+
+    // החלפת מצב תצוגת המפה
+    setShowFullMap(prev => ({
+      ...prev,
+      [index]: !prev[index]
+    }));
+  };
+
+  // פונקציה לטיפול בסיום טעינת המפה המלאה
+  const handleFullMapLoad = (index) => {
+    setFullMapLoading(prev => ({
+      ...prev,
+      [index]: false
+    }));
+  };
+
   const [chargingSlots, setChargingSlots] = useState({});
 
   const fetchAvailableTimes = async (selectedDate) => {
@@ -520,6 +617,38 @@ const Home = () => {
     }
   }, []);
 
+  // פונקציה לטיפול בסיום טעינת המפה
+  const handleMapLoad = (index) => {
+    setMapLoading(prev => ({
+      ...prev,
+      [index]: false
+    }));
+  };
+
+  // פונקציה לטיפול בתחילת טעינת המפה
+  const handleMapLoadStart = (index) => {
+    setMapLoading(prev => ({
+      ...prev,
+      [index]: true
+    }));
+  };
+
+  // הוספת סגנון האנימציה ל-head
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
       <div className="logo-container">
@@ -564,251 +693,422 @@ const Home = () => {
         )}
       </div>
 
-      <div className="station-list">
-        {filteredStations.map((station, index) => (
-          <div key={index} className="station-card" style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto 1fr',
-            padding: '15px',
-            margin: '0 0 16px 0',
-            borderRadius: '12px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            background: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            gap: '10px'
-          }}>
-            {/* Right side - station info and details */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}>
-              {/* Station details */}
-              <div>
-                <h3 style={{
-                  fontSize: '22px',
-                  fontWeight: 'bold',
-                  marginTop: '0',
-                  marginBottom: '10px'
-                }}>{station['Station Name']}</h3>
-
-                <div style={{ marginBottom: '10px' }}>
-                  <p style={{
-                    margin: '5px 0',
-                    fontSize: '16px',
-                    fontWeight: '500'
-                  }}><strong>Address:</strong> {station.Address}</p>
-                  <p style={{
-                    margin: '5px 0',
-                    fontSize: '16px',
-                    fontWeight: '500'
-                  }}><strong>City:</strong> {station.City}</p>
-                  <p style={{
-                    margin: '5px 0',
-                    fontSize: '16px',
-                    fontWeight: '500'
-                  }}><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
-                </div>
+      {loadingStations ? (
+        <div className="station-list">
+          {/* תבנית טעינה (סקלטון UI) */}
+          {[1, 2, 3].map((skeleton, index) => (
+            <div key={`skeleton-${index}`} className="station-card skeleton">
+              <div className="skeleton-section">
+                <div className="skeleton-line title"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line"></div>
+                <div className="skeleton-line"></div>
               </div>
-
-              {/* Waze logo and button */}
-              <img
-                src={wazeIcon}
-                alt="Waze Navigation"
-                className="waze-logo"
-                style={{
-                  position: 'absolute',
-                  left: '10px',
-                  bottom: '10px',
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  padding: '5px',
-                  backgroundColor: 'white',
-                  boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-                  zIndex: 999,
-                  cursor: 'pointer',
-                  border: 'none',
-                  display: 'block'
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&navigate=yes`, '_blank')
-                }}
-              />
+              <div className="skeleton-section buttons">
+                <div className="skeleton-button"></div>
+                <div className="skeleton-button"></div>
+                <div className="skeleton-button"></div>
+              </div>
+              <div className="skeleton-map"></div>
             </div>
-
-            {/* Buttons in the station card */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              padding: '0 15px',
-              gap: '10px',
+          ))}
+        </div>
+      ) : (
+        <div className="station-list">
+          {paginatedStations.map((station, index) => (
+            <div key={index} className="station-card" style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr auto 1fr',
+              padding: '15px',
+              margin: '0 0 16px 0',
+              borderRadius: '12px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              background: 'white',
               position: 'relative',
-              marginRight: '35px',
-              marginLeft: '-40px',
-              marginTop: '-10px'
+              overflow: 'hidden',
+              gap: '10px'
             }}>
-              {/* Distance and favorites icon */}
+              {/* Right side - station info and details */}
               <div style={{
                 display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '5px',
-                marginBottom: '5px',
-                position: 'relative',
-                width: '100%',
-                marginRight: '15px',
-                marginTop: '5px'
+                flexDirection: 'column',
+                justifyContent: 'space-between'
               }}>
-                {/* Favorites icon */}
-                <div
+                {/* Station details */}
+                <div>
+                  <h3 style={{
+                    fontSize: '22px',
+                    fontWeight: 'bold',
+                    marginTop: '0',
+                    marginBottom: '10px'
+                  }}>{station['Station Name']}</h3>
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <p style={{
+                      margin: '5px 0',
+                      fontSize: '16px',
+                      fontWeight: '500'
+                    }}><strong>Address:</strong> {station.Address}</p>
+                    <p style={{
+                      margin: '5px 0',
+                      fontSize: '16px',
+                      fontWeight: '500'
+                    }}><strong>City:</strong> {station.City}</p>
+                    <p style={{
+                      margin: '5px 0',
+                      fontSize: '16px',
+                      fontWeight: '500'
+                    }}><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
+                  </div>
+                </div>
+
+                {/* Waze logo and button */}
+                <img
+                  src={wazeIcon}
+                  alt="Waze Navigation"
+                  className="waze-logo"
                   style={{
-                    cursor: 'pointer'
+                    position: 'absolute',
+                    left: '10px',
+                    bottom: '10px',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    padding: '5px',
+                    backgroundColor: 'white',
+                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                    zIndex: 999,
+                    cursor: 'pointer',
+                    border: 'none',
+                    display: 'block'
                   }}
                   onClick={(e) => {
                     e.stopPropagation();
-                    toggleFavorite(station);
+                    window.open(`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&navigate=yes`, '_blank')
                   }}
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill={station.likedBy && localStorage.getItem('loggedInUser') ?
-                      (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : 'none') : 'none'}
-                    stroke={station.likedBy && localStorage.getItem('loggedInUser') ?
-                      (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : '#777777') : '#777777'}
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                  </svg>
-                </div>
-
-                {/* Distance icon */}
-                <div style={{
-                  backgroundColor: '#4f46e5',
-                  color: 'white',
-                  padding: '2px 8px',
-                  borderRadius: '10px',
-                  fontSize: '12px',
-                  fontWeight: '600'
-                }}>
-                  {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
-                </div>
+                />
               </div>
 
-              <button
-                type="button"
-                style={{
-                  border: '2px solid #3B82F6',
-                  background: 'white',
-                  color: '#333333',
-                  padding: '10px 15px',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
+              {/* Buttons in the station card */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                padding: '0 15px',
+                gap: '10px',
+                position: 'relative',
+                marginRight: '35px',
+                marginLeft: '-40px',
+                marginTop: '-10px'
+              }}>
+                {/* Distance and favorites icon */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '5px',
+                  marginBottom: '5px',
+                  position: 'relative',
                   width: '100%',
-                  textAlign: 'center',
-                  minWidth: '140px'
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setSelectedStation(station);
-                  setDate("");
-                  setTime("");
-                  setAvailableTimes([]);
-                  setShowModal(true);
-                }}
-              >
-                Book Appointment
-              </button>
+                  marginRight: '15px',
+                  marginTop: '5px'
+                }}>
+                  {/* Favorites icon */}
+                  <div
+                    style={{
+                      cursor: 'pointer'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(station);
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill={station.likedBy && localStorage.getItem('loggedInUser') ?
+                        (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : 'none') : 'none'}
+                      stroke={station.likedBy && localStorage.getItem('loggedInUser') ?
+                        (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : '#777777') : '#777777'}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </div>
 
-              <button
-                type="button"
-                style={{
-                  border: '2px solid #3B82F6',
-                  background: 'white',
-                  color: '#333333',
-                  padding: '10px 15px',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  width: '100%',
-                  textAlign: 'center',
-                  minWidth: '140px'
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  startCharging(station);
-                }}
-              >
-                Start Charging
-              </button>
+                  {/* Distance icon */}
+                  <div style={{
+                    backgroundColor: '#4f46e5',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
+                  </div>
+                </div>
 
-              <button
-                type="button"
-                style={{
-                  border: '2px solid #3B82F6',
-                  background: 'white',
-                  color: '#333333',
-                  padding: '10px 15px',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  width: '100%',
-                  textAlign: 'center',
-                  minWidth: '140px'
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  navigate(`/charging-queue/${encodeURIComponent(station['Station Name'])}/${today}`);
-                }}
-              >
-                View Queue
-              </button>
+                <button
+                  type="button"
+                  style={{
+                    border: '2px solid #3B82F6',
+                    background: 'white',
+                    color: '#333333',
+                    padding: '10px 15px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    width: '100%',
+                    textAlign: 'center',
+                    minWidth: '140px'
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedStation(station);
+                    setDate("");
+                    setTime("");
+                    setAvailableTimes([]);
+                    setShowModal(true);
+                  }}
+                >
+                  Book Appointment
+                </button>
+
+                <button
+                  type="button"
+                  style={{
+                    border: '2px solid #3B82F6',
+                    background: 'white',
+                    color: '#333333',
+                    padding: '10px 15px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    width: '100%',
+                    textAlign: 'center',
+                    minWidth: '140px'
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    startCharging(station);
+                  }}
+                >
+                  Start Charging
+                </button>
+
+                <button
+                  type="button"
+                  style={{
+                    border: '2px solid #3B82F6',
+                    background: 'white',
+                    color: '#333333',
+                    padding: '10px 15px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    width: '100%',
+                    textAlign: 'center',
+                    minWidth: '140px'
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigate(`/charging-queue/${encodeURIComponent(station['Station Name'])}/${today}`);
+                  }}
+                >
+                  View Queue
+                </button>
+              </div>
+
+              {/* Left side - the map (now optimized) */}
+              <div style={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: '8px',
+                height: '220px',
+                minWidth: '220px'
+              }}>
+                {showFullMap[index] ? (
+                  // אם המשתמש לחץ, להציג iframe
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <iframe
+                      src={`https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${station.Latitude},${station.Longitude}&heading=210&pitch=10&fov=90`}
+                      width="100%"
+                      height="100%"
+                      style={{
+                        border: 'none',
+                        height: '220px',
+                        borderRadius: '8px'
+                      }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      onLoad={() => handleFullMapLoad(index)}
+                    ></iframe>
+
+                    {/* גלגל טעינה למפה המלאה */}
+                    {fullMapLoading[index] && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '8px',
+                        zIndex: 20
+                      }}>
+                        <div style={{
+                          width: '50px',
+                          height: '50px',
+                          border: '5px solid rgba(0, 0, 0, 0.1)',
+                          borderLeft: '5px solid #3B82F6',
+                          borderRadius: '50%',
+                          animation: 'spin 1.2s linear infinite'
+                        }} />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // תמונה סטטית כברירת מחדל
+                  <div
+                    onClick={() => toggleFullMap(index)}
+                    style={{
+                      backgroundImage: `url(https://www.openstreetmap.org/export/embed.html?bbox=${station.Longitude - 0.005},${station.Latitude - 0.005},${station.Longitude + 0.005},${station.Latitude + 0.005}&layer=mapnik)`,
+                      backgroundColor: '#e9eef2',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      height: '100%',
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      position: 'relative'
+                    }}
+                  >
+                    {/* כאן נשים iframe של מפה במקום רק תמונה */}
+                    <iframe
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${station.Longitude - 0.005},${station.Latitude - 0.005},${station.Longitude + 0.005},${station.Latitude + 0.005}&layer=mapnik&marker=${station.Latitude},${station.Longitude}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        borderRadius: '8px',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
+                      onLoad={() => handleMapLoad(index)}
+                      onLoadStart={() => handleMapLoadStart(index)}
+                    />
+
+                    {/* גלגל טעינה - יוצג רק כשהמפה בטעינה */}
+                    {(mapLoading[index] === true) && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#e9eef2',
+                        borderRadius: '8px',
+                        zIndex: 15
+                      }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          border: '4px solid rgba(0, 0, 0, 0.1)',
+                          borderLeft: '4px solid #3B82F6',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }} />
+                      </div>
+                    )}
+
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(200, 200, 200, 0.2)',
+                      borderRadius: '8px',
+                      zIndex: 10
+                    }}>
+                      <div className="map-overlay" style={{
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        color: 'white',
+                        padding: '8px 15px',
+                        borderRadius: '20px',
+                        fontWeight: 'bold',
+                        position: 'absolute',
+                        top: '45%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 'max-content',
+                        maxWidth: '90%',
+                        textAlign: 'center',
+                        fontSize: 'clamp(14px, 3vw, 16px)'
+                      }}>
+                        Click to view map
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '10px',
+                        right: '10px',
+                        background: 'white',
+                        borderRadius: '5px',
+                        padding: '3px 6px',
+                        fontSize: '11px',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                        zIndex: 10
+                      }}
+                    >
+                      OpenStreetMap
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
+          ))}
 
-            {/* Left side - the map */}
-            <div style={{
-              position: 'relative',
-              overflow: 'hidden',
-              borderRadius: '8px',
-              height: '220px',
-              minWidth: '220px'
-            }}>
-              {/* Google Street View iframe */}
-              <iframe
-                src={`https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${station.Latitude},${station.Longitude}&heading=210&pitch=10&fov=90`}
-                width="100%"
-                height="100%"
-                style={{
-                  border: 'none',
-                  height: '220px'
-                }}
-                allowFullScreen=""
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              ></iframe>
-            </div>
-          </div>
-        ))}
-      </div>
+          {/* כפתור לטעינת תחנות נוספות */}
+          {paginatedStations.length < filteredStations.length && (
+            <button
+              className="load-more-button"
+              onClick={handleLoadMoreStations}
+            >
+              Load more stations
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Booking Modal */}
       {showModal && (
