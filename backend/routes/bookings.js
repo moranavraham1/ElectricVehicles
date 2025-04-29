@@ -27,25 +27,25 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
       date
     });
     const now = new Date();
-    const agingFactor = 0.08; 
+    const agingFactor = 0.08;
 
     const bookingsWithPriority = queue.map((b) => {
       const bookingTime = new Date(`${b.date}T${b.time}:00`);
       const estimatedChargeTime = b.estimatedChargeTime || 30;
       const createdAt = new Date(b.createdAt);
-      const waitingMinutes = (now - createdAt) / (60 * 1000); 
+      const waitingMinutes = (now - createdAt) / (60 * 1000);
 
-      const maxWaitTime = 40; 
-      const maxBoost = 20; 
+      const maxWaitTime = 40;
+      const maxBoost = 20;
 
-      const waitFactor = Math.min(waitingMinutes / maxWaitTime, 1); 
+      const waitFactor = Math.min(waitingMinutes / maxWaitTime, 1);
       const agingBoost = waitFactor * maxBoost;
 
- 
-      const priorityScore = 
-        (b.urgencyLevel ?? 100) - 
-        (waitingMinutes * agingFactor) - 
-        ((b.currentBattery ?? 100) / 5) - 
+
+      const priorityScore =
+        (b.urgencyLevel ?? 100) -
+        (waitingMinutes * agingFactor) -
+        ((b.currentBattery ?? 100) / 5) -
         agingBoost;
 
 
@@ -59,27 +59,27 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
         estimatedChargeTime,
         createdAt,
         currentBattery: b.currentBattery,
-        priorityScore 
+        priorityScore
       };
     });
 
-   
+
     bookingsWithPriority.sort((a, b) => {
       if (a.priorityScore !== b.priorityScore) {
         return a.priorityScore - b.priorityScore;
       }
-    
+
       if (a.estimatedChargeTime !== b.estimatedChargeTime) {
         return a.estimatedChargeTime - b.estimatedChargeTime;
       }
-    
+
       if (a.currentBattery !== b.currentBattery) {
-        return a.currentBattery - b.currentBattery; 
+        return a.currentBattery - b.currentBattery;
       }
-    
-      return new Date(a.createdAt) - new Date(b.createdAt); 
+
+      return new Date(a.createdAt) - new Date(b.createdAt);
     });
-    
+
 
     res.json(bookingsWithPriority);
   } catch (error) {
@@ -93,7 +93,16 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const userEmail = req.user.email;
-    const bookings = await Booking.find({ user: userEmail });
+
+    // במידה והמייל לא נמצא בטוקן, ננסה למצוא לפי המייל בתוך req.user.id
+    const query = {
+      $or: [
+        { user: userEmail },
+        { user: req.user.id }
+      ]
+    };
+
+    const bookings = await Booking.find(query);
     res.json(bookings);
   } catch (error) {
     console.error('Error fetching bookings:', error);
@@ -180,7 +189,8 @@ const sendBookingCancellationEmail = async (email, station, date, time) => {
 router.post('/book', authMiddleware, async (req, res) => {
   try {
     const { station, date, time, urgencyLevel, estimatedChargeTime, currentBattery } = req.body;
-    const userEmail = req.user.email;
+    // נשתמש במייל מהטוקן תמיד אם הוא קיים
+    const userEmail = req.user.email || req.user.id;
     const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ');
     const trimmedStation = normalize(station);
 

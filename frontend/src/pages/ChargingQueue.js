@@ -125,6 +125,23 @@ const ChargingQueue = () => {
         }
     };
 
+    const calculateWaitingTime = (index, queue) => {
+        if (index === 0) return "You're next!";
+
+        let totalWaitTime = 0;
+        for (let i = 0; i < index; i++) {
+            totalWaitTime += queue[i].estimatedChargeTime || 30;
+        }
+
+        if (totalWaitTime < 60) {
+            return `Estimated wait: ${totalWaitTime} minutes`;
+        } else {
+            const hours = Math.floor(totalWaitTime / 60);
+            const minutes = totalWaitTime % 60;
+            return `Estimated wait: ${hours} hour${hours > 1 ? 's' : ''} ${minutes > 0 ? `${minutes} minutes` : ''}`;
+        }
+    };
+
     return (
         <div className="queue-container">
             <div className="queue-header">
@@ -157,6 +174,7 @@ const ChargingQueue = () => {
                     <div className="queue-list">
                         {queue.map((booking, index) => {
                             const urgency = getUrgencyInfo(booking.urgencyLevel);
+                            const waitingTime = calculateWaitingTime(index, queue);
                             return (
                                 <div key={index} className="queue-item">
                                     <div className="queue-item-content">
@@ -171,6 +189,9 @@ const ChargingQueue = () => {
                                         </div>
                                         <div className="queue-item-row">
                                             <span className="charging-icon">⏱️</span> <strong>Charging Time:</strong> {booking.estimatedChargeTime} minutes
+                                        </div>
+                                        <div className="queue-item-row">
+                                            <span className="waiting-icon">⏳</span> <strong>{waitingTime}</strong>
                                         </div>
                                     </div>
                                 </div>
