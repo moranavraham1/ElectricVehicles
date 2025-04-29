@@ -1814,34 +1814,54 @@ input[type="text"] {
 }
 
 .map-overlay {
+  padding: 8px 16px;
+  border-radius: 30px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  letter-spacing: 0.5px;
+}
+
+.map-overlay:hover {
+  background: #3B82F6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Image placeholder for maps */
+.map-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f5f5f5;
+  background-size: cover;
+  background-position: center;
+  color: #666;
+  font-size: 14px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.map-placeholder::before {
+  content: '';
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 1;
+  background: linear-gradient(rgba(0, 0, 0, 0.2), rgba(0, 0, 0, 0.4));
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
 }
 
-.navigate-button {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 900;
-  background-color: #1E293B;
-  color: #fff;
-  padding: 5px 10px;
-  border-radius: 5px;
-  font-size: 12px;
-  font-weight: bold;
-  cursor: pointer;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-  transition: all 0.3s ease;
-}
-
-.navigate-button:hover {
-  background-color: #2563EB;
-  transform: translateY(-2px);
+.map-placeholder:hover::before {
+  opacity: 0.4;
 }
 
 /* Block scrolling completely */
@@ -1867,4 +1887,104 @@ body.no-scroll {
   border-radius: 8px;
   overflow: hidden;
 }
+<<<<<<< HEAD
 >>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+=======
+
+/* Skeleton loading UI */
+.station-card.skeleton {
+  background: white;
+  padding: 15px;
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 10px;
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.skeleton-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-line {
+  height: 12px;
+  background: #f0f0f0;
+  border-radius: 4px;
+  width: 90%;
+}
+
+.skeleton-line.title {
+  height: 20px;
+  width: 70%;
+  margin-bottom: 5px;
+}
+
+.skeleton-section.buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.skeleton-button {
+  height: 40px;
+  width: 140px;
+  background: #f0f0f0;
+  border-radius: 6px;
+}
+
+.skeleton-map {
+  height: 220px;
+  background: #f0f0f0;
+  border-radius: 8px;
+}
+
+/* Load more button */
+.load-more-button {
+  display: block;
+  width: 80%;
+  max-width: 300px;
+  margin: 20px auto 30px;
+  padding: 12px 20px;
+  background: #3B82F6;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(59, 130, 246, 0.2);
+}
+
+.load-more-button:hover {
+  background: #2563EB;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(59, 130, 246, 0.25);
+}
+
+.load-more-button:active {
+  transform: translateY(0);
+}
+>>>>>>> eb8bbd89 (Map update)
