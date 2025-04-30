@@ -1,0 +1,352 @@
+.queue-management {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.queue-management-header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 1rem;
+}
+
+.header-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.header-title h1 {
+  font-size: 1.8rem;
+  margin: 0;
+  color: #333;
+}
+
+.header-subtitle {
+  color: #666;
+  margin: 0;
+}
+
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  align-items: flex-end;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.filter-group input,
+.filter-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.reset-filters-btn {
+  padding: 0.5rem 1rem;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.reset-filters-btn:hover {
+  background-color: #e9ecef;
+}
+
+.loading,
+.error-message,
+.no-appointments {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.error-message {
+  color: #dc3545;
+}
+
+.appointments-table-container {
+  overflow-x: auto;
+}
+
+.appointments-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.appointments-table th,
+.appointments-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.appointments-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  color: #333;
+}
+
+.appointments-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* Status-specific row styling */
+.status-pending {
+  border-left: 3px solid #ffc107;
+}
+
+.status-approved {
+  border-left: 3px solid #28a745;
+}
+
+.status-rejected {
+  border-left: 3px solid #dc3545;
+}
+
+.status-late {
+  border-left: 3px solid #9c27b0;
+}
+
+/* Station info styling */
+.station-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.station-name {
+  font-weight: 500;
+}
+
+.station-location {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 0.25rem;
+}
+
+/* Date and time info styling */
+.date-time-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.appointment-date,
+.appointment-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Status badge styling */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  font-weight: 500;
+}
+
+.status-pending .status-badge {
+  background-color: rgba(255, 193, 7, 0.2);
+  color: #9c6500;
+}
+
+.status-approved .status-badge {
+  background-color: rgba(40, 167, 69, 0.2);
+  color: #155724;
+}
+
+.status-rejected .status-badge {
+  background-color: rgba(220, 53, 69, 0.2);
+  color: #721c24;
+}
+
+.status-late .status-badge {
+  background-color: rgba(156, 39, 176, 0.2);
+  color: #6a1b9a;
+}
+
+.rejection-reason {
+  font-size: 0.8rem;
+  color: #dc3545;
+  margin-top: 0.5rem;
+}
+
+/* Action buttons styling */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.approve-btn,
+.reject-btn {
+  padding: 0.35rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.approve-btn {
+  background-color: #e6f7ed;
+  color: #28a745;
+}
+
+.approve-btn:hover {
+  background-color: #d1e7dd;
+}
+
+.reject-btn {
+  background-color: #fef1f2;
+  color: #dc3545;
+}
+
+.reject-btn:hover {
+  background-color: #f8d7da;
+}
+
+/* Modal styling */
+.modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.modal-content h2 {
+  margin-top: 0;
+  color: #333;
+}
+
+.appointment-details {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  margin: 1rem 0;
+}
+
+.appointment-details p {
+  margin: 0.5rem 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.cancel-btn,
+.confirm-reject-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #ddd;
+}
+
+.cancel-btn:hover {
+  background-color: #e9ecef;
+}
+
+.confirm-reject-btn {
+  background-color: #dc3545;
+  color: white;
+  border: none;
+}
+
+.confirm-reject-btn:hover {
+  background-color: #c82333;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .queue-management {
+    padding: 1rem;
+  }
+  
+  .filters-container {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .filter-group {
+    width: 100%;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+  
+  .appointments-table th,
+  .appointments-table td {
+    padding: 0.5rem;
+  }
+} 

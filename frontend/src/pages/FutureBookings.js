@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "../designs/FutureBookings.css";
+import AppointmentStatus from "../components/AppointmentStatus";
+import AppointmentAlternatives from "../components/AppointmentAlternatives";
+import axios from "axios";
 
 // SVG Icons
 const CalendarIcon = () => (
@@ -62,14 +65,45 @@ const CarIcon = () => (
   </svg>
 );
 
+// New payment icon
+const PaymentIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+    <line x1="1" y1="10" x2="23" y2="10"></line>
+  </svg>
+);
+
+// New completed icon
+const CompletedIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+  </svg>
+);
+
 function FutureBookings() {
   const [bookings, setBookings] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [activeCharging, setActiveCharging] = useState(null);
   const [currentTime, setCurrentTime] = useState({ date: "", hour: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [showAlternatives, setShowAlternatives] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [appointmentAlternatives, setAppointmentAlternatives] = useState([]);
+  const [sortOrder, setSortOrder] = useState("upcoming"); // "upcoming" or "past"
+  const [filterStatus, setFilterStatus] = useState("all"); // "all", "approved", "rejected", "paid"
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Show success notification if redirected from payment page
+  useEffect(() => {
+    if (location.state?.paymentSuccess) {
+      showNotification("Payment completed successfully!");
+    }
+  }, [location.state]);
 
   useEffect(() => {
     const now = new Date();
@@ -81,6 +115,8 @@ function FutureBookings() {
   useEffect(() => {
     fetchBookings();
     fetchActiveCharging();
+    fetchPayments();
+    fetchAppointments();
   }, []);
 
   const fetchBookings = async () => {
@@ -105,6 +141,24 @@ function FutureBookings() {
       setLoading(false);
     }
   };
+  
+  const fetchPayments = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/payments/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch payment history");
+      }
+
+      const data = await response.json();
+      setPayments(data);
+    } catch (error) {
+      console.error("Error fetching payment history:", error);
+    }
+  };
 
   const fetchActiveCharging = async () => {
     try {
@@ -121,6 +175,45 @@ function FutureBookings() {
       setActiveCharging(data);
     } catch (error) {
       console.error("Error fetching active charging:", error);
+    }
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const email = localStorage.getItem("loggedInUser");
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/appointments`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { email }
+      });
+
+      if (response.data && response.data.appointments) {
+        setAppointments(response.data.appointments);
+      }
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+    }
+  };
+
+  const fetchAppointmentAlternatives = async (appointmentId) => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/appointments/alternatives/${appointmentId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      setAppointmentAlternatives(response.data.alternatives || []);
+      setShowAlternatives(true);
+    } catch (error) {
+      console.error("Error fetching appointment alternatives:", error);
+      setAppointmentAlternatives([]);
+      setShowAlternatives(true);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -220,7 +313,6 @@ function FutureBookings() {
   };
 
   const showNotification = (message, type = "success") => {
-
     if (type === "error") {
       alert(`Error: ${message}`);
     } else {
@@ -234,37 +326,84 @@ function FutureBookings() {
   };
 
   const getBookingStatus = (booking) => {
+    // Check if the booking has been paid
+    if (booking.paymentStatus === 'paid' || booking.status === 'paid') {
+      return "completed";
+    }
+    
     const now = new Date();
-    const bookingTime = new Date(`${booking.date}T${booking.time}`);
-    const diffMinutes = (bookingTime - now) / 60000;
+    const bookingDate = new Date(`${booking.date}T${booking.time}`);
+    const isPast = bookingDate < now;
 
-    const isActive = activeCharging &&
-      activeCharging.station === booking.station &&
-      activeCharging.date === booking.date &&
-      activeCharging.time === booking.time;
-
-    if (isActive) {
-      return "active";
-    } else if (diffMinutes > 5) {
-      return "upcoming";
-    } else if (diffMinutes >= -5 && diffMinutes <= 60) {
-      return "ready";
-    } else {
+    if (isPast) {
       return "past";
     }
-  };
 
-
-  const getFilteredBookings = () => {
-    if (activeTab === "all") {
-      return bookings;
+    if (activeCharging && activeCharging.station === booking.station) {
+      return "charging";
     }
 
-    return bookings.filter(booking => getBookingStatus(booking) === activeTab);
+    // Check if current time matches the booking's time
+    const today = now.toISOString().split("T")[0];
+    const currentHour = now.getHours();
+    const bookingHour = parseInt(booking.time.split(":")[0]);
+    const isToday = booking.date === today;
+    const isCurrentHour = isToday && bookingHour === currentHour;
+
+    if (isCurrentHour) {
+      return "now";
+    }
+
+    return "upcoming";
+  };
+
+  // Sort bookings by date and time
+  const sortBookings = (bookingsToSort) => {
+    return [...bookingsToSort].sort((a, b) => {
+      const dateA = new Date(`${a.date || a.appointmentDate}T${a.time || a.appointmentTime}`);
+      const dateB = new Date(`${b.date || b.appointmentDate}T${b.time || b.appointmentTime}`);
+      
+      // For "upcoming" sort (default) - closest date first
+      if (sortOrder === "upcoming") {
+        return dateA - dateB;
+      }
+      // For "past" sort - most recent past appointment first
+      return dateB - dateA;
+    });
+  };
+
+  const getFilteredBookings = () => {
+    let filtered = bookings;
+    
+    // First apply the tab filters
+    if (activeTab === "upcoming") filtered = filtered.filter((b) => getBookingStatus(b) === "upcoming");
+    else if (activeTab === "past") filtered = filtered.filter((b) => ["past", "completed"].includes(getBookingStatus(b)));
+    else if (activeTab === "completed") filtered = filtered.filter((b) => getBookingStatus(b) === "completed");
+    
+    // Then apply status filters if they're set
+    if (filterStatus === "paid") {
+      filtered = filtered.filter(b => {
+        const payment = findPaymentForBooking(b);
+        return payment !== undefined;
+      });
+    }
+    
+    // Finally sort the results
+    return sortBookings(filtered);
   };
 
   const getBookingCountByStatus = (status) => {
-    return bookings.filter(booking => getBookingStatus(booking) === status).length;
+    return bookings.filter((b) => {
+      if (status === "past") return ["past", "completed"].includes(getBookingStatus(b));
+      return getBookingStatus(b) === status;
+    }).length;
+  };
+
+  const findPaymentForBooking = (booking) => {
+    return payments.find(p => 
+      p.bookingId === booking._id || 
+      (p.station === booking.station && p.bookingDate === booking.date && p.bookingTime === booking.time)
+    );
   };
 
   const handleTabChange = (tab) => {
@@ -273,11 +412,94 @@ function FutureBookings() {
 
   const filteredBookings = getFilteredBookings();
 
-  if (loading && bookings.length === 0) {
+  const handleViewAlternatives = (appointment) => {
+    setSelectedAppointment(appointment);
+    fetchAppointmentAlternatives(appointment._id);
+  };
+
+  const handleSelectAlternative = async (alternative) => {
+    try {
+      const token = localStorage.getItem("token");
+      const email = localStorage.getItem("loggedInUser");
+      
+      // Book the alternative slot
+      await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/appointments`,
+        {
+          email,
+          stationName: alternative.stationName,
+          appointmentDate: alternative.appointmentDate,
+          appointmentTime: alternative.appointmentTime,
+          address: alternative.address,
+          city: alternative.city
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      
+      // Refresh appointments
+      fetchAppointments();
+      setShowAlternatives(false);
+      showNotification("New appointment booked successfully!");
+    } catch (error) {
+      console.error("Error booking alternative appointment:", error);
+      showNotification("Failed to book alternative appointment", "error");
+    }
+  };
+
+  // Reset all filters
+  const resetFilters = () => {
+    setActiveTab('appointments'); // Reset to all appointments tab
+    setFilterStatus('all'); // Reset status filter
+    setSortOrder('upcoming'); // Reset sort order to default
+  };
+
+  // Get filtered appointments based on tab
+  const getFilteredAppointments = () => {
+    let filtered = appointments;
+    
+    // Apply tab filters first
+    if (activeTab === 'pending') {
+      filtered = filtered.filter(app => app.status === 'pending');
+    } else if (activeTab === 'approved') {
+      filtered = filtered.filter(app => app.status === 'approved');
+    } else if (activeTab === 'rejected') {
+      filtered = filtered.filter(app => app.status === 'rejected' || app.status === 'late_registration');
+    }
+    
+    // Apply status filters if set
+    if (filterStatus === "paid") {
+      filtered = filtered.filter(app => {
+        // Check if this appointment has a payment associated
+        return payments.some(p => 
+          p.appointmentId === app._id || 
+          (p.station === app.stationName && p.date === app.appointmentDate && p.time === app.appointmentTime)
+        );
+      });
+    }
+    
+    // Sort the results
+    return sortBookings(filtered);
+  };
+
+  const getAppointmentCountByStatus = (status) => {
+    if (status === 'rejected') {
+      return appointments.filter(app => app.status === 'rejected' || app.status === 'late_registration').length;
+    }
+    return appointments.filter(app => app.status === status).length;
+  };
+
+  // Toggle sort order
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === "upcoming" ? "past" : "upcoming");
+  };
+
+  if (loading && bookings.length === 0 && appointments.length === 0) {
     return (
       <div className="loading-container">
         <div className="loading-spinner"></div>
-        <p>Loading your bookings...</p>
+        <p>Loading your appointments...</p>
       </div>
     );
   }
@@ -297,174 +519,328 @@ function FutureBookings() {
         <h3>Your Charging Appointments</h3>
       </div>
 
-      {loading && bookings.length === 0 ? (
+      {loading && bookings.length === 0 && appointments.length === 0 ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
-          <p>Loading your bookings...</p>
+          <p>Loading your appointments...</p>
         </div>
       ) : error ? (
         <div className="error-message">
           <WarningIcon />
           <p>{error}</p>
         </div>
-      ) : bookings.length === 0 ? (
+      ) : bookings.length === 0 && appointments.length === 0 ? (
         <div className="no-bookings">
           <CalendarIcon />
-          <p>You have no upcoming bookings</p>
+          <p>You have no upcoming appointments</p>
           <button className="book-now-btn" onClick={() => navigate('/home')}>
             Book a charging station
           </button>
         </div>
       ) : (
         <div className="bookings-wrapper">
-          <div className="bookings-categories">
-            <div className="category-tabs">
-              <button
-                className={`category-tab ${activeTab === 'all' ? 'active' : ''}`}
-                onClick={() => handleTabChange('all')}
+          {/* Sort and Filter Controls */}
+          <div className="controls-container">
+            <div className="sort-controls">
+              <label>Sort by:</label>
+              <button 
+                className={`sort-btn ${sortOrder === "upcoming" ? "active" : ""}`}
+                onClick={toggleSortOrder}
               >
-                All Bookings ({bookings.length})
+                {sortOrder === "upcoming" ? "Upcoming First" : "Recent First"}
               </button>
-              <button
-                className={`category-tab ${activeTab === 'active' ? 'active' : ''}`}
-                onClick={() => handleTabChange('active')}
+            </div>
+            
+            <div className="filter-controls">
+              <label>Filter:</label>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="filter-select"
               >
-                Active ({getBookingCountByStatus('active')})
-              </button>
-              <button
-                className={`category-tab ${activeTab === 'upcoming' ? 'active' : ''}`}
-                onClick={() => handleTabChange('upcoming')}
-              >
-                Upcoming ({getBookingCountByStatus('upcoming')})
-              </button>
-              <button
-                className={`category-tab ${activeTab === 'past' ? 'active' : ''}`}
-                onClick={() => handleTabChange('past')}
-              >
-                Past ({getBookingCountByStatus('past')})
-              </button>
-              <button
-                className={`category-tab ${activeTab === 'ready' ? 'active' : ''}`}
-                onClick={() => handleTabChange('ready')}
-              >
-                Ready ({getBookingCountByStatus('ready')})
-              </button>
+                <option value="all">All Statuses</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="paid">Paid</option>
+              </select>
             </div>
           </div>
-
-          {filteredBookings.length === 0 ? (
-            <div className="no-bookings">
-              <p>No {activeTab !== 'all' ? activeTab : ''} bookings found</p>
-              {activeTab !== 'all' && (
-                <button className="view-all-btn" onClick={() => handleTabChange('all')}>
-                  View all bookings
+          
+          {/* Existing Bookings Categories */}
+          {bookings.length > 0 && (
+            <div className="bookings-categories">
+              <div className="category-tabs">
+                <button
+                  className={`category-tab ${activeTab === 'all' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('all')}
+                >
+                  All Bookings ({bookings.length})
                 </button>
-              )}
+                <button
+                  className={`category-tab ${activeTab === 'active' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('active')}
+                >
+                  Active ({getBookingCountByStatus('active')})
+                </button>
+                <button
+                  className={`category-tab ${activeTab === 'upcoming' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('upcoming')}
+                >
+                  Upcoming ({getBookingCountByStatus('upcoming')})
+                </button>
+                <button
+                  className={`category-tab ${activeTab === 'past' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('past')}
+                >
+                  Past ({getBookingCountByStatus('past')})
+                </button>
+                <button
+                  className={`category-tab ${activeTab === 'completed' ? 'active' : ''}`}
+                  onClick={() => handleTabChange('completed')}
+                >
+                  Completed ({getBookingCountByStatus('completed')})
+                </button>
+              </div>
             </div>
-          ) : (
-            <div className="bookings-list">
-              {filteredBookings.map((booking, index) => {
-                const status = getBookingStatus(booking);
+          )}
+          
+          {/* Appointment Categories */}
+          {appointments.length > 0 && (
+            <div className="appointments-categories">
+              <h4>Appointment Status</h4>
+              <div className="category-tabs">
+                <button
+                  className={`category-tab ${activeTab === 'appointments' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('appointments')}
+                >
+                  All Appointments ({appointments.length})
+                </button>
+                <button
+                  className={`category-tab ${activeTab === 'pending' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('pending')}
+                >
+                  Pending ({getAppointmentCountByStatus('pending')})
+                </button>
+                <button
+                  className={`category-tab ${activeTab === 'approved' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('approved')}
+                >
+                  Approved ({getAppointmentCountByStatus('approved')})
+                </button>
+                <button
+                  className={`category-tab ${activeTab === 'rejected' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('rejected')}
+                >
+                  Rejected ({getAppointmentCountByStatus('rejected')})
+                </button>
+              </div>
+            </div>
+          )}
 
-                return (
-                  <div key={index} className={`booking-card ${status}`}>
-                    <div className="booking-details">
-                      <div className="booking-station-name">
-                        <LocationIcon />
-                        <h4>{booking.station}</h4>
-                        <div className="status-container">
-                          <span className={`status-badge ${status}`}>
-                            {status === 'active' ? 'Active' :
-                              status === 'upcoming' ? 'Upcoming' :
-                                status === 'ready' ? 'Ready to Start' : 'Past'}
-                          </span>
-                          {status === 'active' && (
-                            <span className="pulse-indicator"></span>
-                          )}
-                        </div>
-                      </div>
+          {/* Display filtered bookings if not in appointment tabs */}
+          {!['appointments', 'pending', 'approved', 'rejected'].includes(activeTab) && (
+            <>
+              {filteredBookings.length === 0 ? (
+                <div className="no-bookings">
+                  <p>No {activeTab !== 'all' ? activeTab : ''} bookings found with the current filters</p>
+                  {(activeTab !== 'all' || filterStatus !== 'all') && (
+                    <button className="view-all-btn" onClick={resetFilters}>
+                      Reset all filters
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="bookings-list">
+                  {getFilteredBookings().map((booking, index) => {
+                    const status = getBookingStatus(booking);
+                    const payment = findPaymentForBooking(booking);
 
-                      <div className="booking-info-grid">
-                        <div className="info-item">
-                          <CalendarIcon />
-                          <div>
-                            <label>Date</label>
-                            <p>{formatDate(booking.date)}</p>
-                          </div>
-                        </div>
-
-                        <div className="info-item">
-                          <ClockIcon />
-                          <div>
-                            <label>Time</label>
-                            <p>{booking.time}</p>
-                          </div>
-                        </div>
-
-                        {booking.estimatedChargeTime && (
-                          <div className="info-item charging-time">
-                            <ChargingIcon />
-                            <div>
-                              <label>Duration</label>
-                              <p>{booking.estimatedChargeTime} minutes</p>
+                    return (
+                      <div key={index} className={`booking-card ${status}`}>
+                        <div className="booking-details">
+                          <div className="booking-station-name">
+                            <LocationIcon />
+                            <h4>{booking.station}</h4>
+                            <div className="status-container">
+                              <span className={`status-badge ${status}`}>
+                                {status === 'active' ? 'Active' :
+                                  status === 'upcoming' ? 'Upcoming' :
+                                    status === 'ready' ? 'Ready to Start' : 
+                                      status === 'completed' ? 'Completed' : 'Past'}
+                              </span>
+                              {status === 'active' && (
+                                <span className="pulse-indicator"></span>
+                              )}
                             </div>
                           </div>
-                        )}
+
+                          <div className="booking-info-grid">
+                            <div className="info-item">
+                              <CalendarIcon />
+                              <div>
+                                <label>Date</label>
+                                <p>{formatDate(booking.date)}</p>
+                              </div>
+                            </div>
+
+                            <div className="info-item">
+                              <ClockIcon />
+                              <div>
+                                <label>Time</label>
+                                <p>{booking.time}</p>
+                              </div>
+                            </div>
+
+                            {booking.estimatedChargeTime && (
+                              <div className="info-item charging-time">
+                                <ChargingIcon />
+                                <div>
+                                  <label>Duration</label>
+                                  <p>{booking.estimatedChargeTime} minutes</p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="booking-actions">
+                            {status === 'ready' && (
+                              <button
+                                className="action-btn start-btn"
+                                onClick={() => navigate('/charging', {
+                                  state: {
+                                    station: booking.station,
+                                    date: booking.date,
+                                    time: booking.time,
+                                    estimatedChargeTime: booking.estimatedChargeTime
+                                  }
+                                })}
+                              >
+                                <CarIcon /> Go to Charging
+                              </button>
+                            )}
+
+                            {status === 'active' && (
+                              <button
+                                className="action-btn stop-btn"
+                                onClick={() => handleStopCharging(booking.station)}
+                              >
+                                <StopIcon /> Stop Charging
+                              </button>
+                            )}
+
+                            {status === 'upcoming' && (
+                              <button
+                                className="action-btn cancel-btn"
+                                onClick={() => handleCancelBooking(booking._id)}
+                              >
+                                <CancelIcon /> Cancel Booking
+                              </button>
+                            )}
+
+                            {status === 'upcoming' && (
+                              <div className="status-message upcoming">
+                                <p>You can start charging 5 minutes before your scheduled time</p>
+                              </div>
+                            )}
+
+                            {status === 'past' && !payment && (
+                              <div className="status-message past">
+                                <p>This booking has expired</p>
+                              </div>
+                            )}
+
+                            {status === 'completed' && payment && (
+                              <div className="payment-info">
+                                <h5 className="payment-heading">Payment Details</h5>
+                                <div className="payment-detail">
+                                  <PaymentIcon />
+                                  <span>Amount: ₪{payment.amount}</span>
+                                </div>
+                                {payment.chargingTime && (
+                                  <div className="payment-detail">
+                                    <ClockIcon />
+                                    <span>Actual Charging: {payment.chargingTime} minutes</span>
+                                  </div>
+                                )}
+                                {payment.initialBattery && payment.finalBattery && (
+                                  <div className="payment-detail">
+                                    <ChargingIcon />
+                                    <span>Battery: {payment.initialBattery}% → {Math.round(payment.finalBattery)}%</span>
+                                  </div>
+                                )}
+                                <div className="payment-detail">
+                                  <CompletedIcon />
+                                  <span>Payment: Completed</span>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-
-                      <div className="booking-actions">
-                        {status === 'ready' && (
-                          <button
-                            className="action-btn start-btn"
-                            onClick={() => navigate('/charging', {
-                              state: {
-                                station: booking.station,
-                                date: booking.date,
-                                time: booking.time,
-                                estimatedChargeTime: booking.estimatedChargeTime
-                              }
-                            })}
-                          >
-                            <CarIcon /> Go to Charging
-                          </button>
-                        )}
-
-                        {status === 'active' && (
-                          <button
-                            className="action-btn stop-btn"
-                            onClick={() => handleStopCharging(booking.station)}
-                          >
-                            <StopIcon /> Stop Charging
-                          </button>
-                        )}
-
-                        {status === 'upcoming' && (
-                          <button
-                            className="action-btn cancel-btn"
-                            onClick={() => handleCancelBooking(booking._id)}
-                          >
-                            <CancelIcon /> Cancel Booking
-                          </button>
-                        )}
-
-                        {status === 'upcoming' && (
-                          <div className="status-message upcoming">
-                            <p>You can start charging 5 minutes before your scheduled time</p>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* Display appointments if in appointment tabs */}
+          {['appointments', 'pending', 'approved', 'rejected'].includes(activeTab) && (
+            <>
+              {getFilteredAppointments().length === 0 ? (
+                <div className="no-bookings">
+                  <p>No {activeTab !== 'appointments' ? activeTab : ''} appointments found with the current filters</p>
+                  {(activeTab !== 'appointments' || filterStatus !== 'all') && (
+                    <button className="view-all-btn" onClick={resetFilters}>
+                      Reset all filters
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="appointments-list">
+                  {getFilteredAppointments().map((appointment, index) => (
+                    <div key={index} className="appointment-card">
+                      <AppointmentStatus 
+                        status={appointment.status}
+                        date={appointment.appointmentDate}
+                        time={appointment.appointmentTime}
+                        onViewAlternatives={() => handleViewAlternatives(appointment)}
+                      />
+                      <div className="appointment-location">
+                        <div className="location-details">
+                          <LocationIcon />
+                          <div>
+                            <h4>{appointment.stationName}</h4>
+                            <p>{appointment.address}, {appointment.city}</p>
                           </div>
-                        )}
-
-                        {status === 'past' && (
-                          <div className="status-message past">
-                            <p>This booking has expired</p>
-                          </div>
+                        </div>
+                        
+                        {appointment.status !== 'approved' && (
+                          <button 
+                            className="cancel-btn"
+                            onClick={() => handleCancelBooking(appointment._id)}
+                          >
+                            <CancelIcon /> Cancel
+                          </button>
                         )}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
+        </div>
+      )}
+      
+      {/* Alternatives Modal */}
+      {showAlternatives && (
+        <div className="modal-overlay">
+          <AppointmentAlternatives 
+            alternatives={appointmentAlternatives}
+            onClose={() => setShowAlternatives(false)}
+            onSelectAlternative={handleSelectAlternative}
+          />
         </div>
       )}
     </div>

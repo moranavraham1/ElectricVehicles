@@ -1,8 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('./authMiddleware');
-const Appointment = require('./Appointment');
+const Appointment = require('./models/Appointment');
 const nodemailer = require('nodemailer');
+const { handleLateRegistration, manualCheckAllPendingAppointments } = require('./appointmentScheduler');
 
 // הגדרת transporter לשליחת מיילים
 const transporter = nodemailer.createTransport({
@@ -16,8 +17,9 @@ const transporter = nodemailer.createTransport({
 // יצירת תור חדש
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    // ניתן להוסיף שדות נוספים לפי הצורך (כמו address, city, chargingStations, distance)
     const { email, stationName, appointmentDate, appointmentTime, address, city, chargingStations, distance } = req.body;
+    
+    // Create new appointment
     const newAppointment = new Appointment({
       email,
       stationName,
@@ -26,18 +28,48 @@ router.post('/', authMiddleware, async (req, res) => {
       address,
       city,
       chargingStations,
-      distance
+      distance,
+      registrationTime: new Date(),
+      status: 'pending'
     });
+    
+    // Check if this is a late registration (less than 1 hour before appointment)
+    const appointmentDateTime = new Date(`${appointmentDate}T${appointmentTime}`);
+    const now = new Date();
+    const oneHourBefore = new Date(appointmentDateTime);
+    oneHourBefore.setHours(oneHourBefore.getHours() - 1);
+    
+    // Save the appointment
     await newAppointment.save();
-
-    // שליחת מייל עם פרטי התור
-    const mailOptions = {
-      from: process.env.EMAIL,
-      to: email, // כתובת המייל של המשתמש
-      subject: 'Appointment Confirmation',
-      text: `Dear User,
+    
+    // Handle late registration if needed
+    if (now >= oneHourBefore) {
+      await handleLateRegistration(newAppointment);
       
-Your appointment has been booked successfully.
+      // If the status is late_registration, inform the user
+      if (newAppointment.status === 'late_registration') {
+        return res.status(201).json({ 
+          message: 'Your appointment was registered after the booking deadline. The station is currently full. Please check your email for alternative options.',
+          appointment: newAppointment 
+        });
+      }
+      
+      // If automatically approved
+      if (newAppointment.status === 'approved') {
+        return res.status(201).json({ 
+          message: 'Your late registration was automatically approved as we still have capacity available.',
+          appointment: newAppointment 
+        });
+      }
+    } else {
+      // Regular booking confirmation email for non-late registrations
+      const mailOptions = {
+        from: process.env.EMAIL,
+        to: email,
+        subject: 'Appointment Confirmation',
+        text: `Dear User,
+        
+Your appointment has been booked successfully and is pending approval.
 
 Station: ${stationName}
 Address: ${address}, ${city}
@@ -46,21 +78,28 @@ Time: ${appointmentTime}
 Charging Stations: ${chargingStations}
 Distance: ${distance} km
 
+You will receive an approval email one hour before the appointment time.
+If the station reaches capacity, you will be notified with alternative options.
+
 Thank you for booking with us!
 
 Best regards,
 Your Service Team`
-    };
+      };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending confirmation email:', error);
-      } else {
-        console.log('Confirmation email sent:', info.response);
-      }
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Error sending confirmation email:', error);
+        } else {
+          console.log('Confirmation email sent:', info.response);
+        }
+      });
+    }
+
+    res.status(201).json({ 
+      message: 'Appointment booked successfully and is pending approval',
+      appointment: newAppointment
     });
-
-    res.status(201).json({ message: 'Appointment booked successfully', appointment: newAppointment });
   } catch (error) {
     console.error('Error booking appointment:', error);
     res.status(500).json({ message: 'Error booking appointment' });
@@ -131,14 +170,42 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
-    // שליחת מייל עם פרטי העדכון
-    const mailOptions = {
-      from: process.env.EMAIL,
-      to: updatedAppointment.email,
-      subject: 'Appointment Update Confirmation',
-      text: `Dear User,
+    // Check if this update creates a late registration scenario
+    const appointmentDateTime = new Date(`${updatedAppointment.appointmentDate}T${updatedAppointment.appointmentTime}`);
+    const now = new Date();
+    const oneHourBefore = new Date(appointmentDateTime);
+    oneHourBefore.setHours(oneHourBefore.getHours() - 1);
+    
+    // If it's a late registration, handle accordingly
+    if (now >= oneHourBefore) {
+      await handleLateRegistration(updatedAppointment);
       
-Your appointment has been updated successfully.
+      if (updatedAppointment.status === 'late_registration') {
+        return res.status(200).json({ 
+          message: 'Your appointment was updated after the booking deadline. The station is currently full. Please check your email for alternative options.',
+          appointment: updatedAppointment
+        });
+      }
+      
+      if (updatedAppointment.status === 'approved') {
+        return res.status(200).json({ 
+          message: 'Your late registration update was automatically approved as we still have capacity available.',
+          appointment: updatedAppointment
+        });
+      }
+    } else {
+      // Reset status to pending if time was changed to a non-late slot
+      updatedAppointment.status = 'pending';
+      await updatedAppointment.save();
+      
+      // Send update email
+      const mailOptions = {
+        from: process.env.EMAIL,
+        to: updatedAppointment.email,
+        subject: 'Appointment Update Confirmation',
+        text: `Dear User,
+        
+Your appointment has been updated successfully and is pending approval.
 
 Updated details:
 Station: ${updatedAppointment.stationName}
@@ -148,24 +215,210 @@ Time: ${updatedAppointment.appointmentTime}
 Charging Stations: ${updatedAppointment.chargingStations}
 Distance: ${updatedAppointment.distance} km
 
+You will receive an approval email one hour before the appointment time.
+If the station reaches capacity, you will be notified with alternative options.
+
 Thank you for using our service!
 
 Best regards,
 Your Service Team`
-    };
+      };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending update email:', error);
-      } else {
-        console.log('Update confirmation email sent:', info.response);
-      }
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Error sending update email:', error);
+        } else {
+          console.log('Update confirmation email sent:', info.response);
+        }
+      });
+    }
+
+    res.status(200).json({ 
+      message: 'Appointment updated successfully', 
+      appointment: updatedAppointment 
     });
-
-    res.status(200).json({ message: 'Appointment updated successfully', appointment: updatedAppointment });
   } catch (error) {
     console.error('Error updating appointment:', error);
     res.status(500).json({ message: 'Error updating appointment' });
+  }
+});
+
+// Get alternative appointments when registration is late
+router.get('/alternatives/:id', authMiddleware, async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    
+    if (appointment.nearbyAlternatives && appointment.nearbyAlternatives.length > 0) {
+      return res.status(200).json({ alternatives: appointment.nearbyAlternatives });
+    } else {
+      return res.status(200).json({ alternatives: [] });
+    }
+  } catch (error) {
+    console.error('Error fetching alternatives:', error);
+    res.status(500).json({ message: 'Error fetching alternative appointments' });
+  }
+});
+
+// Admin endpoint to manually approve appointments
+router.post('/approve/:id', authMiddleware, async (req, res) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    
+    // Update status to approved
+    appointment.status = 'approved';
+    appointment.approvalDate = new Date();
+    await appointment.save();
+    
+    // Send approval email
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: appointment.email,
+      subject: 'Appointment Manually Approved',
+      text: `Dear User,
+      
+Your appointment has been manually approved by an administrator.
+
+Station: ${appointment.stationName}
+Address: ${appointment.address}, ${appointment.city}
+Date: ${appointment.appointmentDate}
+Time: ${appointment.appointmentTime}
+
+Please arrive on time for your appointment.
+
+Best regards,
+Your Service Team`
+    };
+    
+    transporter.sendMail(mailOptions);
+    
+    res.status(200).json({ message: 'Appointment approved successfully', appointment });
+  } catch (error) {
+    console.error('Error approving appointment:', error);
+    res.status(500).json({ message: 'Error approving appointment' });
+  }
+});
+
+// Admin endpoint to reject appointments
+router.post('/reject/:id', authMiddleware, async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const appointment = await Appointment.findById(req.params.id);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    
+    // Update status to rejected
+    appointment.status = 'rejected';
+    appointment.rejectionReason = reason || 'Rejected by administrator';
+    await appointment.save();
+    
+    // Get alternatives
+    const alternatives = appointment.nearbyAlternatives || [];
+    
+    // Prepare alternative text
+    let alternativesText = '';
+    if (alternatives.length > 0) {
+      alternativesText = '\nAvailable alternatives:\n';
+      alternatives.forEach((alt, index) => {
+        alternativesText += `
+${index + 1}. Station: ${alt.stationName}
+   Address: ${alt.address}, ${alt.city}
+   Date: ${alt.appointmentDate}
+   Time: ${alt.appointmentTime}
+`;
+      });
+    } else {
+      alternativesText = '\nNo alternative appointments found at this time.';
+    }
+    
+    // Send rejection email
+    const mailOptions = {
+      from: process.env.EMAIL,
+      to: appointment.email,
+      subject: 'Appointment Rejected',
+      text: `Dear User,
+      
+We regret to inform you that your appointment has been rejected.
+
+Rejected Appointment Details:
+Station: ${appointment.stationName}
+Address: ${appointment.address}, ${appointment.city}
+Date: ${appointment.appointmentDate}
+Time: ${appointment.appointmentTime}
+Reason: ${appointment.rejectionReason}
+${alternativesText}
+
+You can book a new appointment through our app.
+
+Best regards,
+Your Service Team`
+    };
+    
+    transporter.sendMail(mailOptions);
+    
+    res.status(200).json({ message: 'Appointment rejected successfully', appointment });
+  } catch (error) {
+    console.error('Error rejecting appointment:', error);
+    res.status(500).json({ message: 'Error rejecting appointment' });
+  }
+});
+
+// Admin endpoint to get all appointments
+router.get('/all', authMiddleware, async (req, res) => {
+  try {
+    // Check if user is admin
+    const userEmail = req.user.email;
+    // Implement your admin check logic here - this is a simple example
+    const isAdmin = userEmail.endsWith('@admin.com') || req.user.role === 'admin';
+    
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Unauthorized: Admin access required' });
+    }
+    
+    // Get all appointments, sorted by date and time
+    const appointments = await Appointment.find().sort({ 
+      appointmentDate: 1, 
+      appointmentTime: 1, 
+      registrationTime: 1 
+    });
+    
+    res.status(200).json({ appointments });
+  } catch (error) {
+    console.error('Error fetching all appointments:', error);
+    res.status(500).json({ message: 'Error fetching appointments' });
+  }
+});
+
+// Admin endpoint to manually process all pending appointments
+router.post('/process-pending', authMiddleware, async (req, res) => {
+  try {
+    // Check if user is admin
+    const userEmail = req.user.email;
+    // Implement your admin check logic here - this is a simple example
+    const isAdmin = userEmail.endsWith('@admin.com') || req.user.role === 'admin';
+    
+    if (!isAdmin) {
+      return res.status(403).json({ message: 'Unauthorized: Admin access required' });
+    }
+    
+    console.log(`Manual processing triggered by admin: ${userEmail}`);
+    
+    // Run the manual processing
+    const result = await manualCheckAllPendingAppointments();
+    
+    res.status(200).json({ 
+      message: 'Manual processing completed',
+      result
+    });
+  } catch (error) {
+    console.error('Error in manual processing:', error);
+    res.status(500).json({ message: 'Error processing appointments', error: error.message });
   }
 });
 

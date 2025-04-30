@@ -437,6 +437,9 @@ const Home = () => {
 
   const fetchAvailableTimes = async (selectedDate) => {
     if (!selectedStation) return;
+    
+    console.log("💡 fetchAvailableTimes called with date:", selectedDate);
+    console.log("💡 selectedStation:", selectedStation);
 
     try {
       const response = await axios.post(
@@ -461,12 +464,14 @@ const Home = () => {
       const now = new Date();
       availableTimeSlots = availableTimeSlots.filter(time => {
         const [hour, minute] = time.split(":");
-        const slotDateTime = new Date(selectedDate);
-        slotDateTime.setHours(parseInt(hour));
-        slotDateTime.setMinutes(parseInt(minute));
-        return slotDateTime > now; s
+        // Ensure proper date format for creating date object (YYYY-MM-DD)
+        const slotDateTime = new Date(`${selectedDate}T${hour}:${minute}:00`);
+        const isAfterNow = slotDateTime > now;
+        console.log(`💡 Time slot ${time} - Date: ${slotDateTime.toISOString()} - Is after now (${now.toISOString()}): ${isAfterNow}`);
+        return isAfterNow;
       });
 
+      console.log("💡 Final available time slots:", availableTimeSlots);
       setAvailableTimes(availableTimeSlots);
       setChargingSlots(updatedChargingSlots);
       setIsAvailable(availableTimeSlots.length > 0);
@@ -1253,7 +1258,7 @@ const Home = () => {
           <HeartIcon />
           <span>Favorites</span>
         </div>
-        <div className="nav-item" onClick={() => navigate('/profile')}>
+        <div className="nav-item" onClick={() => navigate('/personal-area')}>
           <UserIcon />
           <span>Profile</span>
         </div>
