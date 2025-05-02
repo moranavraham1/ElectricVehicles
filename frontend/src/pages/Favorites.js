@@ -124,9 +124,7 @@ const Favorites = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
@@ -138,7 +136,7 @@ const Favorites = () => {
             }
         );
 
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+
         const fetchFavorites = async () => {
             const loggedInUser = localStorage.getItem('loggedInUser');
             const token = localStorage.getItem('token');

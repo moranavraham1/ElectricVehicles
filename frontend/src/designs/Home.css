@@ -168,20 +168,14 @@ body {
   transform: rotate(180deg);
 }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 .home-search-bar-container {
   margin-top: 10vh;
   width: 100vw !important;
   max-width: 100vw !important;
   padding: 0 20px;
-=======
 
-/* שורת החיפוש מתחת למיקום */
-.search-bar-container {
-  margin-top: 210px; /* מרווח אחרי כפתור הרענון */
-  width: 100%;
->>>>>>> 51f1ed20 (logo-p)
+
   display: flex;
   justify-content: center;
   align-items: center;
@@ -321,37 +315,29 @@ input[type="text"] {
 .distance-badge {
   background: #1b5e20;
   color: white;
-<<<<<<< HEAD
+
   padding: 4px 8px;
   border-radius: 15px;
-=======
-  padding: 4px 8px; 
-  border-radius: 15px; 
->>>>>>> 8d42dfa9 (Summoning queues)
+
   font-size: 12px;
   font-weight: bold;
   position: absolute;
   top: 10px;
   right: 10px;
-<<<<<<< HEAD
+
   min-width: 50px;
-=======
-  min-width: 50px; 
->>>>>>> 8d42dfa9 (Summoning queues)
+
   text-align: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-=======
+
 /* Search bar container */
 .home-container .search-bar-container {
   position: relative;
   width: 90%;
   max-width: 800px;
-<<<<<<< HEAD
-  margin-bottom: 15px;
->>>>>>> 8d5d0857 (designs)
-=======
+
   margin-bottom: 10px;
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+
   z-index: 10;
 }
 
@@ -660,16 +646,14 @@ input[type="text"] {
 
 .home-container .waze-button img {
   width: 100%;
-<<<<<<< HEAD
+
   background: linear-gradient(135deg, #1b5e20, #4caf50);
   padding: 2vh;
   display: flex;
   justify-content: space-around;
-<<<<<<< HEAD
+
   box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.2);
-=======
-  box-shadow: 0 -2px 5px rgba(0,0,0,0.2);
->>>>>>> 8d42dfa9 (Summoning queues)
+
   height: 50px;
 }
 
@@ -735,11 +719,9 @@ input[type="text"] {
 }
 
 .heart-icon {
-<<<<<<< HEAD
+
   color: gray;
-=======
-  color: gray; 
->>>>>>> 8d42dfa9 (Summoning queues)
+
   cursor: pointer;
   font-size: 1.5rem;
   transition: color 0.2s;
@@ -762,7 +744,7 @@ input[type="text"] {
   z-index: 10;
 }
 
-<<<<<<< HEAD
+
 .station-list {
   max-height: calc(100vh - 35vh);
 }
@@ -788,23 +770,22 @@ input[type="text"] {
 }
 
 .suggestion-item:hover {
-<<<<<<< HEAD
+
   background-color: #f7f7f7; 
   color: #333; 
-=======
+
 .heart-icon.active {
   color: red; /* צבע הלב כשהוא נבחר */
->>>>>>> 95979c7d (Adding stations to favorites)
-=======
+
   background-color: #f7f7f7;
   color: #333;
->>>>>>> 02d7dfa1 (Fixing Availability and Booking Display)
+
 }
-<<<<<<< HEAD
+
 
 .book-button {
   background-color: #4CAF50;
-=======
+
   height: 100%;
   object-fit: contain;
   display: block !important;
@@ -812,19 +793,19 @@ input[type="text"] {
   image-rendering: crisp-edges;
 }
 
-<<<<<<< HEAD
+
 /* Distance badge */
 .distance-badge {
   position: absolute;
   top: 15px;
   right: 15px;
   background: #4f46e5;
->>>>>>> 8d5d0857 (designs)
+
   color: white;
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 12px;
-=======
+
 /* Station buttons container - increase width a bit */
 .home-container .station-buttons {
   display: flex;
@@ -848,7 +829,7 @@ input[type="text"] {
   border-radius: 5px;
   padding: 5px 3px;
   font-size: 11px;
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1008,8 +989,7 @@ input[type="text"] {
   border-color: rgba(59, 130, 246, 0.5);
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.25);
 }
-<<<<<<< HEAD
-=======
+
 .appointment-button {
   position: absolute;
   top: 40px; 
@@ -1030,8 +1010,8 @@ input[type="text"] {
   background-color: #fb2100;
   transform: scale(1.05);
 }
->>>>>>> 8d42dfa9 (Summoning queues)
-=======
+)
+
 
 .home-container .modal-content button {
   width: 100%;
@@ -1044,10 +1024,7 @@ input[type="text"] {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-<<<<<<< HEAD
-}
->>>>>>> 510cb047 (LLLP algorithm for prioritizing vehicle charging)
-=======
+
   position: relative;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -1634,9 +1611,7 @@ input[type="text"] {
     height: 180px;
   }
 }
-<<<<<<< HEAD
->>>>>>> 8d5d0857 (designs)
-=======
+
 
 /* Map navigation overlay */
 .map-navigation-overlay {
@@ -1887,9 +1862,7 @@ body.no-scroll {
   border-radius: 8px;
   overflow: hidden;
 }
-<<<<<<< HEAD
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
-=======
+
 
 /* Skeleton loading UI */
 .station-card.skeleton {
@@ -1986,5 +1959,4 @@ body.no-scroll {
 
 .load-more-button:active {
   transform: translateY(0);
-}
->>>>>>> eb8bbd89 (Map update)
+

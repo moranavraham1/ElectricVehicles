@@ -34,6 +34,7 @@ const HeartIcon = () => (
   </svg>
 );
 
+
 const LogoutIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -79,8 +80,6 @@ const setCachedStations = (data) => {
   }
 };
 
-<<<<<<< HEAD
-const GOOGLE_MAPS_API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
 
 import wazeIcon from '../assets/WAZE.jpg'; // תמונת ה-Waze
@@ -89,8 +88,7 @@ import wazeIcon from '../assets/WAZE.jpg'; // תמונת ה-Waze
 import logo from '../assets/logo.jpg'; // ייבוא הלוגו
 
 
-=======
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+
 const Home = () => {
   const [userLocation, setUserLocation] = useState('');
   const [loadingLocation, setLoadingLocation] = useState(false);
@@ -282,9 +280,7 @@ const Home = () => {
     }
   };
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
+
   useEffect(() => {
     if (!selectedCarModel || batteryLevel >= targetLevel) return;
 
@@ -296,19 +292,14 @@ const Home = () => {
     const time = (baseTime * diff) / 100;
     setEstimatedChargeTime(Math.round(time));
   }, [selectedCarModel, batteryLevel, targetLevel, manualTime]);
->>>>>>> 510cb047 (LLLP algorithm for prioritizing vehicle charging)
 
-=======
-  // Step 1: Get the user's location
->>>>>>> 8d42dfa9 (Summoning queues)
+
+
   useEffect(() => {
     fetchUserLocation();
   }, []);
 
-<<<<<<< HEAD
-=======
-  // Step 2: Once location is available, fetch the stations
->>>>>>> 8d42dfa9 (Summoning queues)
+
   useEffect(() => {
 
     document.body.style.overflow = 'hidden';
@@ -337,10 +328,7 @@ const Home = () => {
     setFavorites(savedFavorites.map((station) => station['Station Name']));
   }, [navigate]);
 
-<<<<<<< HEAD
-=======
-  // Filtering and sorting stations
->>>>>>> 8d42dfa9 (Summoning queues)
+
   useEffect(() => {
     if (searchQuery) {
       const filtered = stations.filter(
@@ -413,22 +401,14 @@ const Home = () => {
         distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
       }));
 
-<<<<<<< HEAD
       const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
       setStations(sortedStations);
       setFilteredStations(sortedStations);
-<<<<<<< HEAD
-=======
-      // Sort stations by distance in ascending order
-      const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
-      setStations(sortedStations);
-      setFilteredStations(sortedStations); // Also sort the filtered stations
->>>>>>> 8d42dfa9 (Summoning queues)
-=======
 
       // שמירה במטמון
       setCachedStations(response.data);
->>>>>>> eb8bbd89 (Map update)
+
+
     } catch (error) {
       console.error('Error fetching stations:', error);
     } finally {
@@ -475,6 +455,11 @@ const Home = () => {
   const fetchAvailableTimes = async (selectedDate) => {
     if (!selectedStation) return;
 
+    
+    console.log("💡 fetchAvailableTimes called with date:", selectedDate);
+    console.log("💡 selectedStation:", selectedStation);
+
+
     try {
       const response = await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
@@ -498,11 +483,15 @@ const Home = () => {
       const now = new Date();
       availableTimeSlots = availableTimeSlots.filter(time => {
         const [hour, minute] = time.split(":");
-        const slotDateTime = new Date(selectedDate);
-        slotDateTime.setHours(parseInt(hour));
-        slotDateTime.setMinutes(parseInt(minute));
-        return slotDateTime > now; s
+
+        // Ensure proper date format for creating date object (YYYY-MM-DD)
+        const slotDateTime = new Date(`${selectedDate}T${hour}:${minute}:00`);
+        const isAfterNow = slotDateTime > now;
+        console.log(`💡 Time slot ${time} - Date: ${slotDateTime.toISOString()} - Is after now (${now.toISOString()}): ${isAfterNow}`);
+        return isAfterNow;
       });
+
+      console.log("💡 Final available time slots:", availableTimeSlots);
 
       setAvailableTimes(availableTimeSlots);
       setChargingSlots(updatedChargingSlots);
@@ -612,19 +601,13 @@ const Home = () => {
       const isFavorite = station.likedBy && Array.isArray(station.likedBy) && station.likedBy.includes(userEmail);
 
       if (isFavorite) {
-<<<<<<< HEAD
-=======
-        // Remove from favorites
->>>>>>> 8d42dfa9 (Summoning queues)
+
         await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           data: { user: userEmail },
         });
 
-<<<<<<< HEAD
-=======
-        // Update favorites list for the station
->>>>>>> 8d42dfa9 (Summoning queues)
+
         setStations((prevStations) =>
           prevStations.map((s) =>
             s._id === station._id
@@ -633,25 +616,20 @@ const Home = () => {
           )
         );
       } else {
-<<<<<<< HEAD
+
         await axios.post(`http://localhost:3001/api/stations/${station._id}/like`,
-<<<<<<< HEAD
-=======
-        // Add to favorites
-        await axios.post(
-          `http://localhost:3001/api/stations/${station._id}/like`,
->>>>>>> 8d42dfa9 (Summoning queues)
-          { user: loggedInUser.toLowerCase() },
-=======
           { user: userEmail },
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
 
-<<<<<<< HEAD
-=======
-        // Update favorites list for the station
->>>>>>> 8d42dfa9 (Summoning queues)
+          { user: loggedInUser.toLowerCase() },
+
+          { user: userEmail },
+
+          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+
+
         setStations((prevStations) =>
           prevStations.map((s) =>
             s._id === station._id
@@ -664,20 +642,15 @@ const Home = () => {
       console.error('Error updating favorites:', error);
     }
   };
-<<<<<<< HEAD
 
-=======
->>>>>>> 8d42dfa9 (Summoning queues)
+
 
   // Function to navigate to the appointment page with the station details
   const navigateToAppointment = (station) => {
     navigate('/appointment', { state: { station } });
   };
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 8d42dfa9 (Summoning queues)
   useEffect(() => {
     const loggedInUser = localStorage.getItem('loggedInUser');
     if (loggedInUser) {
@@ -686,16 +659,7 @@ const Home = () => {
       setFavorites(savedFavorites.map((station) => station['Station Name']));
     }
   }, []);
-<<<<<<< HEAD
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 8d42dfa9 (Summoning queues)
-
-=======
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
-=======
   // פונקציה לטיפול בסיום טעינת המפה
   const handleMapLoad = (index) => {
     setMapLoading(prev => ({
@@ -728,7 +692,32 @@ const Home = () => {
     };
   }, []);
 
->>>>>>> eb8bbd89 (Map update)
+
+  // פונקציה לטיפול בתחילת טעינת המפה
+  const handleMapLoadStart = (index) => {
+    setMapLoading(prev => ({
+      ...prev,
+      [index]: true
+    }));
+  };
+
+  // הוספת סגנון האנימציה ל-head
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
+
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
       <div className="logo-container">
@@ -773,82 +762,7 @@ const Home = () => {
         )}
       </div>
 
-<<<<<<< HEAD
-      <div className="station-list">
-        {filteredStations.map((station, index) => (
-          <div key={index} className="station-card" style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr auto 1fr',
-            padding: '15px',
-            margin: '0 0 16px 0',
-            borderRadius: '12px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-            background: 'white',
-            position: 'relative',
-            overflow: 'hidden',
-            gap: '10px'
-          }}>
-            {/* Right side - station info and details */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between'
-            }}>
-              {/* Station details */}
-              <div>
-                <h3 style={{
-                  fontSize: '22px',
-                  fontWeight: 'bold',
-                  marginTop: '0',
-                  marginBottom: '10px'
-                }}>{station['Station Name']}</h3>
 
-<<<<<<< HEAD
-            {/* Appointment button appears below the distance badge */}
-            <button 
-              className="appointment-button" 
-              onClick={(e) => {
-                e.stopPropagation();
-                navigateToAppointment(station);
-              }}
-            >
-              Book Appointment
-            </button>
-
-            <div className="station-details">
-              <h3>{station['Station Name']}</h3>
-              <p><strong>Address:</strong> {station.Address}</p>
-              <p><strong>City:</strong> {station.City}</p>
-              <p><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
-              <div className="waze-container">
-                <a
-                  href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="waze-button"
-                >
-                  <img src={wazeIcon} alt="Waze" />
-                </a>
-=======
-                <div style={{ marginBottom: '10px' }}>
-                  <p style={{
-                    margin: '5px 0',
-                    fontSize: '16px',
-                    fontWeight: '500'
-                  }}><strong>Address:</strong> {station.Address}</p>
-                  <p style={{
-                    margin: '5px 0',
-                    fontSize: '16px',
-                    fontWeight: '500'
-                  }}><strong>City:</strong> {station.City}</p>
-                  <p style={{
-                    margin: '5px 0',
-                    fontSize: '16px',
-                    fontWeight: '500'
-                  }}><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
-                </div>
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
-=======
       {loadingStations ? (
         <div className="station-list">
           {/* תבנית טעינה (סקלטון UI) */}
@@ -859,7 +773,6 @@ const Home = () => {
                 <div className="skeleton-line"></div>
                 <div className="skeleton-line"></div>
                 <div className="skeleton-line"></div>
->>>>>>> eb8bbd89 (Map update)
               </div>
               <div className="skeleton-section buttons">
                 <div className="skeleton-button"></div>
@@ -868,21 +781,6 @@ const Home = () => {
               </div>
               <div className="skeleton-map"></div>
             </div>
-<<<<<<< HEAD
-
-<<<<<<< HEAD
-<<<<<<< HEAD
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-=======
-            {/* Buttons in the station card */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'flex-start',
-              alignItems: 'center',
-              padding: '0 15px',
-              gap: '10px',
-=======
           ))}
         </div>
       ) : (
@@ -896,7 +794,532 @@ const Home = () => {
               borderRadius: '12px',
               boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
               background: 'white',
->>>>>>> eb8bbd89 (Map update)
+              position: 'relative',
+              overflow: 'hidden',
+              gap: '10px'
+            }}>
+              {/* Right side - station info and details */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between'
+              }}>
+                {/* Station details */}
+                <div>
+                  <h3 style={{
+                    fontSize: '22px',
+                    fontWeight: 'bold',
+                    marginTop: '0',
+                    marginBottom: '10px'
+                  }}>{station['Station Name']}</h3>
+
+                  <div style={{ marginBottom: '10px' }}>
+                    <p style={{
+                      margin: '5px 0',
+                      fontSize: '16px',
+                      fontWeight: '500'
+                    }}><strong>Address:</strong> {station.Address}</p>
+                    <p style={{
+                      margin: '5px 0',
+                      fontSize: '16px',
+                      fontWeight: '500'
+                    }}><strong>City:</strong> {station.City}</p>
+                    <p style={{
+                      margin: '5px 0',
+                      fontSize: '16px',
+                      fontWeight: '500'
+                    }}><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
+                  </div>
+                </div>
+
+
+                {/* Waze logo and button */}
+                <img
+                  src={wazeIcon}
+                  alt="Waze Navigation"
+                  className="waze-logo"
+                  style={{
+                    position: 'absolute',
+                    left: '10px',
+                    bottom: '10px',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    padding: '5px',
+                    backgroundColor: 'white',
+                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+                    zIndex: 999,
+                    cursor: 'pointer',
+                    border: 'none',
+                    display: 'block'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&navigate=yes`, '_blank')
+                  }}
+                />
+              </div>
+
+              {/* Buttons in the station card */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                padding: '0 15px',
+                gap: '10px',
+                position: 'relative',
+                marginRight: '35px',
+                marginLeft: '-40px',
+                marginTop: '-10px'
+              }}>
+                {/* Distance and favorites icon */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '5px',
+                  marginBottom: '5px',
+                  position: 'relative',
+                  width: '100%',
+                  marginRight: '15px',
+                  marginTop: '5px'
+                }}>
+                  {/* Favorites icon */}
+                  <div
+                    style={{
+                      cursor: 'pointer'
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleFavorite(station);
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill={station.likedBy && localStorage.getItem('loggedInUser') ?
+                        (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : 'none') : 'none'}
+                      stroke={station.likedBy && localStorage.getItem('loggedInUser') ?
+                        (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : '#777777') : '#777777'}
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </div>
+
+                  {/* Distance icon */}
+                  <div style={{
+                    backgroundColor: '#4f46e5',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '10px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}>
+                    {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  style={{
+                    border: '2px solid #3B82F6',
+                    background: 'white',
+                    color: '#333333',
+                    padding: '10px 15px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    width: '100%',
+                    textAlign: 'center',
+                    minWidth: '140px'
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setSelectedStation(station);
+                    setDate("");
+                    setTime("");
+                    setAvailableTimes([]);
+                    setShowModal(true);
+                  }}
+                >
+
+                  Book Appointment
+                </button>
+
+                <button
+                  type="button"
+                  style={{
+                    border: '2px solid #3B82F6',
+                    background: 'white',
+                    color: '#333333',
+                    padding: '10px 15px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    width: '100%',
+                    textAlign: 'center',
+                    minWidth: '140px'
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    startCharging(station);
+                  }}
+                >
+                  Start Charging
+                </button>
+
+                <button
+                  type="button"
+                  style={{
+                    border: '2px solid #3B82F6',
+                    background: 'white',
+                    color: '#333333',
+                    padding: '10px 15px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold',
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    width: '100%',
+                    textAlign: 'center',
+                    minWidth: '140px'
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    navigate(`/charging-queue/${encodeURIComponent(station['Station Name'])}/${today}`);
+                  }}
+                >
+                  View Queue
+                </button>
+              </div>
+
+              {/* Left side - the map (now optimized) */}
+              <div style={{
+                position: 'relative',
+                overflow: 'hidden',
+                borderRadius: '8px',
+                height: '220px',
+                minWidth: '220px'
+              }}>
+                {showFullMap[index] ? (
+                  // אם המשתמש לחץ, להציג iframe
+                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                    <iframe
+                      src={`https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${station.Latitude},${station.Longitude}&heading=210&pitch=10&fov=90`}
+                      width="100%"
+                      height="100%"
+                      style={{
+                        border: 'none',
+                        height: '220px',
+                        borderRadius: '8px'
+                      }}
+                      allowFullScreen=""
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                      onLoad={() => handleFullMapLoad(index)}
+                    ></iframe>
+
+                    {/* גלגל טעינה למפה המלאה */}
+                    {fullMapLoading[index] && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        borderRadius: '8px',
+                        zIndex: 20
+                      }}>
+                        <div style={{
+                          width: '50px',
+                          height: '50px',
+                          border: '5px solid rgba(0, 0, 0, 0.1)',
+                          borderLeft: '5px solid #3B82F6',
+                          borderRadius: '50%',
+                          animation: 'spin 1.2s linear infinite'
+                        }} />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // תמונה סטטית כברירת מחדל
+                  <div
+                    onClick={() => toggleFullMap(index)}
+                    style={{
+                      backgroundImage: `url(https://www.openstreetmap.org/export/embed.html?bbox=${station.Longitude - 0.005},${station.Latitude - 0.005},${station.Longitude + 0.005},${station.Latitude + 0.005}&layer=mapnik)`,
+                      backgroundColor: '#e9eef2',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      height: '100%',
+                      width: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      position: 'relative'
+                    }}
+                  >
+                    {/* כאן נשים iframe של מפה במקום רק תמונה */}
+                    <iframe
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${station.Longitude - 0.005},${station.Latitude - 0.005},${station.Longitude + 0.005},${station.Latitude + 0.005}&layer=mapnik&marker=${station.Latitude},${station.Longitude}`}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        border: 'none',
+                        borderRadius: '8px',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0
+                      }}
+                      onLoad={() => handleMapLoad(index)}
+                      onLoadStart={() => handleMapLoadStart(index)}
+                    />
+
+                    {/* גלגל טעינה - יוצג רק כשהמפה בטעינה */}
+                    {(mapLoading[index] === true) && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: '#e9eef2',
+                        borderRadius: '8px',
+                        zIndex: 15
+                      }}>
+                        <div style={{
+                          width: '40px',
+                          height: '40px',
+                          border: '4px solid rgba(0, 0, 0, 0.1)',
+                          borderLeft: '4px solid #3B82F6',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite'
+                        }} />
+                      </div>
+                    )}
+
+                    <div style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: 'rgba(200, 200, 200, 0.2)',
+                      borderRadius: '8px',
+                      zIndex: 10
+                    }}>
+                      <div className="map-overlay" style={{
+                        background: 'rgba(0, 0, 0, 0.7)',
+                        color: 'white',
+                        padding: '8px 15px',
+                        borderRadius: '20px',
+                        fontWeight: 'bold',
+                        position: 'absolute',
+                        top: '45%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 'max-content',
+                        maxWidth: '90%',
+                        textAlign: 'center',
+                        fontSize: 'clamp(14px, 3vw, 16px)'
+                      }}>
+                        Click to view map
+                      </div>
+                    </div>
+                    <div
+                      style={{
+                        position: 'absolute',
+                        bottom: '10px',
+                        right: '10px',
+                        background: 'white',
+                        borderRadius: '5px',
+                        padding: '3px 6px',
+                        fontSize: '11px',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+                        zIndex: 10
+                      }}
+                    >
+                      OpenStreetMap
+                    </div>
+                  </div>
+                )}
+
+              </div>
+              <div className="skeleton-section buttons">
+                <div className="skeleton-button"></div>
+                <div className="skeleton-button"></div>
+                <div className="skeleton-button"></div>
+              </div>
+              <div className="skeleton-map"></div>
+            </div>
+
+          ))}
+
+          {/* כפתור לטעינת תחנות נוספות */}
+          {paginatedStations.length < filteredStations.length && (
+            <button
+              className="load-more-button"
+              onClick={handleLoadMoreStations}
+            >
+              Load more stations
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Booking Modal */}
+      {showModal && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <h2>Book an appointment for {selectedStation['Station Name']}</h2>
+            <div style={{
+              backgroundColor: 'rgba(59, 130, 246, 0.3)',
+              padding: '10px',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              color: '#ffffff',
+              marginBottom: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              🔋 Current Battery Level: {batteryLevel}%
+            </div>
+            {/* Select Car Model */}
+            <label htmlFor="carModel">Select Car Model:</label>
+            <select
+              id="carModel"
+              value={selectedCarModel}
+              onChange={(e) => setSelectedCarModel(e.target.value)}
+            >
+              <option value="">Select Car Model</option>
+              {Object.keys(carModelsData).map((carModel, index) => (
+                <option key={index} value={carModel}>
+                  {carModel}
+                </option>
+              ))}
+            </select>
+
+            {/* Battery Level (editable) */}
+            <label htmlFor="batteryLevel">Battery Level (%):</label>
+            <input
+              id="batteryLevel"
+              type="number"
+              min="0"
+              max="100"
+              value={batteryLevel}
+              onChange={(e) => setBatteryLevel(e.target.value)}
+            />
+
+            {/* Target Battery Level */}
+            <label htmlFor="targetLevel">Target Battery Level (%):</label>
+            <input
+              id="targetLevel"
+              type="number"
+              min="0"
+              max="100"
+              value={targetLevel}
+              onChange={(e) => setTargetLevel(e.target.value)}
+            />
+
+            {/* Display Estimated Charge Time */}
+            <div>
+              ⏱ Estimated Charging Time: <strong>{estimatedChargeTime} minutes</strong>
+            </div>
+
+            <label htmlFor="date">Select Date:</label>
+            <input
+              id="date"
+              type="date"
+              value={date}
+              min={today}
+              onChange={(e) => {
+                const selectedDate = e.target.value;
+                if (selectedDate < today) {
+                  alert("You cannot select a past date!");
+                  setDate(today);
+                  fetchAvailableTimes(today);
+                } else {
+                  setDate(selectedDate);
+                  setTime("");
+                  fetchAvailableTimes(selectedDate);
+                }
+              }}
+            />
+
+            <label htmlFor="time">Select Time:</label>
+            <select
+              id="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              disabled={availableTimes.length === 0}
+            >
+              <option value="">-- Select Time --</option>
+              {availableTimes.map((availableTime, index) => (
+                <option key={index} value={availableTime}>
+                  {availableTime}
+                </option>
+              ))}
+            </select>
+
+            {date && availableTimes.length === 0 && (
+              <p style={{ color: "red" }}>
+                {date === today
+                  ? "⚠️ No more available slots for today. Please choose another date."
+                  : "No available times for this date."}
+              </p>
+            )}
+
+            {/* Modal to book an appointment */}
+
+            <button
+              onClick={bookAppointment}
+              disabled={!isAvailable || !time}
+              style={{
+                background: "white",
+                color: "#3B82F6",
+                border: "2px solid #3B82F6",
+                padding: "14px 28px",
+                borderRadius: "8px",
+                fontSize: "16px",
+                fontWeight: "600",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                marginTop: "15px",
+                width: "100%",
+                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)"
+              }}
+            >
+              Confirm Booking
+            </button>
+          </div>
+        </div>
+      )}
+
+
               position: 'relative',
               overflow: 'hidden',
               gap: '10px'
@@ -962,8 +1385,7 @@ const Home = () => {
                 />
               </div>
 
-<<<<<<< HEAD
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+
               <button
                 type="button"
                 style={{
@@ -976,7 +1398,7 @@ const Home = () => {
                   fontSize: '14px',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
-=======
+
               {/* Buttons in the station card */}
               <div style={{
                 display: 'flex',
@@ -998,7 +1420,7 @@ const Home = () => {
                   gap: '5px',
                   marginBottom: '5px',
                   position: 'relative',
->>>>>>> eb8bbd89 (Map update)
+
                   width: '100%',
                   marginRight: '15px',
                   marginTop: '5px'
@@ -1287,11 +1709,7 @@ const Home = () => {
             </div>
           ))}
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-            {/* Favorite Button */}
-=======
->>>>>>> 8d42dfa9 (Summoning queues)
+
             <div
               className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
               onClick={(e) => {
@@ -1300,7 +1718,7 @@ const Home = () => {
               }}
             >
               <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
-=======
+
             {/* Left side - the map */}
             <div style={{
               position: 'relative',
@@ -1322,12 +1740,12 @@ const Home = () => {
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
               ></iframe>
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+
             </div>
           </div>
         ))}
       </div>
-=======
+
           {/* כפתור לטעינת תחנות נוספות */}
           {paginatedStations.length < filteredStations.length && (
             <button
@@ -1339,7 +1757,7 @@ const Home = () => {
           )}
         </div>
       )}
->>>>>>> eb8bbd89 (Map update)
+
 
       {/* Booking Modal */}
       {showModal && (
@@ -1470,13 +1888,13 @@ const Home = () => {
         </div>
       )}
 
-<<<<<<< HEAD
+
 
       <div className="bottom-bar">
         <button className="bottom-bar-button logout" onClick={handleLogout}>
           <i className="fas fa-sign-out-alt"></i> Logout
         </button>
-<<<<<<< HEAD
+
         <Link to="/personal-area" className="bottom-bar-button">
           <i className="fas fa-user"></i> Personal Area
         </Link>
@@ -1487,7 +1905,7 @@ const Home = () => {
           <i className="fas fa-home"></i> Home
         </Link>
         <Link to="/map" className="bottom-bar-button">
-=======
+
         <Link to="/personal-area" className="bottom-bar-button personal">
           <i className="fas fa-user"></i> Personal Area
         </Link>
@@ -1498,10 +1916,7 @@ const Home = () => {
           <i className="fas fa-home"></i> Home
         </Link>
         <Link to="/map" className="bottom-bar-button map">
->>>>>>> 8d42dfa9 (Summoning queues)
-          <i className="fas fa-map-marked-alt"></i> Search on Map
-        </Link>
-=======
+
       {/* Bottom Navigation */}
       <div className="bottom-navigation">
         <div className="nav-item active">
@@ -1516,7 +1931,9 @@ const Home = () => {
           <HeartIcon />
           <span>Favorites</span>
         </div>
-        <div className="nav-item" onClick={() => navigate('/profile')}>
+
+        <div className="nav-item" onClick={() => navigate('/personal-area')}>
+
           <UserIcon />
           <span>Profile</span>
         </div>
@@ -1524,7 +1941,7 @@ const Home = () => {
           <LogoutIcon />
           <span>Logout</span>
         </div>
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+
       </div>
     </div>
   );

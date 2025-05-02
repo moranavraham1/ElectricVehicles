@@ -130,6 +130,9 @@ const Charging = () => {
         batteryGained: 0
     });
 
+    const [chargingStatus, setChargingStatus] = useState('');
+
+
     // Format date for display
     const formatDisplayDate = (dateStr) => {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -227,24 +230,52 @@ const Charging = () => {
     const stopCharging = async () => {
         try {
             setLoading(true);
+
+            
+            // Get token for user authentication
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('User authentication required. Please log in again.');
+                setLoading(false);
+                return;
+            }
+            
+            // Display a brief confirmation message
+            setError('');
+            setChargingStatus('Ending charging session...');
+            
+            // Stop the charging timer
             stopTimer();
-            setIsCharging(false);
-
-            const batteryGained = batteryLevel - incomingBatteryLevel;
-            setChargingSummary({
-                duration: elapsedTime,
-                initialBattery: incomingBatteryLevel,
-                finalBattery: batteryLevel,
-                batteryGained: batteryGained.toFixed(1)
-            });
-            setShowSummary(true);
-
-            setLoading(false);
-
+            
+            // Simulate API call with token authentication (replace with actual API call)
+            setTimeout(() => {
+                // Calculate battery gained
+                const batteryGained = batteryLevel - incomingBatteryLevel;
+                
+                // Update summary with charging details
+                setChargingSummary({
+                    duration: elapsedTime,
+                    initialBattery: incomingBatteryLevel,
+                    finalBattery: batteryLevel,
+                    batteryGained: batteryGained.toFixed(1)
+                });
+                
+                // Set charging as complete
+                setIsCharging(false);
+                setShowSummary(true);
+                setLoading(false);
+                
+                // Clear status message
+                setChargingStatus('');
+                
+                // Display success toast or message if needed
+                console.log('Charging completed successfully. Please proceed to payment.');
+            }, 2000); // Complete within 2 seconds for better UX
 
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.message || 'Error stopping charging.');
+            setError(err.response?.data?.message || 'Error stopping charging. Please try again.');
+
             setLoading(false);
         }
     };
@@ -300,7 +331,22 @@ const Charging = () => {
 
     const goToPayment = () => {
 
-        navigate('/home');
+        // Get the booking ID from the URL or session storage if available
+        const bookingId = location.state?.bookingId || '';
+        
+        navigate('/payment', {
+            state: {
+                bookingId,
+                station,
+                date,
+                time,
+                chargingTime: elapsedTime,
+                initialBattery: incomingBatteryLevel || 0,
+                finalBattery: batteryLevel,
+                batteryGained: chargingSummary.batteryGained
+            }
+        });
+
     };
 
     const handleStartButtonClick = () => {
@@ -391,6 +437,12 @@ const Charging = () => {
                                 </div>
                             )}
                         </>
+
+                    ) : chargingStatus ? (
+                        <div className="charging-status">
+                            {chargingStatus}
+                        </div>
+
                     ) : (
                         <div className="charging-status">
                             Ready to start charging
@@ -456,6 +508,13 @@ const Charging = () => {
                                 <span className="summary-label">Final Battery</span>
                                 <span className="summary-value">{Math.round(chargingSummary.finalBattery)}%</span>
                             </div>
+
+                            
+                            <div className="summary-message">
+                                Your charging session has been completed successfully.
+                                Please proceed to payment to complete your transaction.
+                            </div>
+
                         </div>
 
                         <div className="summary-actions">

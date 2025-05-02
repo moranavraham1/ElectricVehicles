@@ -68,4 +68,23 @@ router.delete('/:id/unlike', authMiddleware, async (req, res) => {
   }
 });
 
+// Add a new endpoint to get station details by name
+router.get('/details/:stationName', async (req, res) => {
+  try {
+    const { stationName } = req.params;
+    const decodedStationName = decodeURIComponent(stationName);
+    
+    const station = await Station.findOne({ "Station Name": decodedStationName });
+    
+    if (!station) {
+      return res.status(404).json({ message: 'Station not found' });
+    }
+    
+    res.json(station);
+  } catch (error) {
+    console.error('Error fetching station details:', error);
+    res.status(500).json({ message: 'Error fetching station details' });
+  }
+});
+
 module.exports = router;

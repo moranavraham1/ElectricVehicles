@@ -1,50 +1,51 @@
 const mongoose = require('./db');
 const cors = require('cors');
-<<<<<<< HEAD
+
 const authRoutes = require('./authRoutes');
 const osmRoutes = require('./osmRoutes');
 const stationsRoutes = require('./routes/stations');
 const bookingRoutes = require('./routes/bookings');
-=======
-const authRoutes = require('./routes/authRoutes');
-const osmRoutes = require('./routes/osmRoutes'); // Add this line
-const stationsRoutes = require('./routes/stations'); // Import stations routes
->>>>>>> 2d8a29e8 (Move to routes folder)
+
+const paymentRoutes = require('./routes/payments');
+const appointmentRoutes = require('./appointmentRoutes');
+const { startScheduler } = require('./appointmentScheduler');
+
 require('dotenv').config();
 const express = require('express');
 const authMiddleware = require('./authMiddleware');
 const app = express();
-<<<<<<< HEAD
-const dotenv = require('dotenv');
-=======
-const router = express.Router();
-const appointmentRoutes = require('./routes/appointmentRoutes');
 
->>>>>>> 419312ab (View appointments in your personal area and send an email about appointments, cancellations, and appointment updates.)
+const dotenv = require('dotenv');
+
+const router = express.Router();
+
+
 
 dotenv.config();
 app.use(express.json());
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
 
 app.use('/api/auth', authRoutes);
-<<<<<<< HEAD
+
 app.use('/api/osm', osmRoutes);
 app.use('/api/stations', stationsRoutes);
 app.use('/api/bookings', authMiddleware, bookingRoutes);
-=======
-app.use('/api/osm', osmRoutes); // Add OSM routes
-app.use('/api/stations', stationsRoutes); // Mount /api/stations route
-
+app.use('/api/payments', authMiddleware, paymentRoutes);
 app.use('/api/appointments', appointmentRoutes);
->>>>>>> 419312ab (View appointments in your personal area and send an email about appointments, cancellations, and appointment updates.)
+
 
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Server is up' });
 });
 
+// Start the appointment scheduler
+startScheduler();
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+

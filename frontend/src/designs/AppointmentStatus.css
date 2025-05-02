@@ -1,0 +1,171 @@
+.appointment-status {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 15px;
+}
+
+.status-header {
+  display: flex;
+  align-items: center;
+  padding: 15px;
+  gap: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.status-content {
+  padding: 15px;
+}
+
+.status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-label {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #222222;
+}
+
+.status-description {
+  margin: 0 0 15px 0;
+  font-size: 14px;
+  color: #333333;
+  line-height: 1.5;
+}
+
+.time-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  margin-bottom: 15px;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.time-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.time-detail svg {
+  color: #333333;
+}
+
+.time-detail span {
+  font-size: 14px;
+  font-weight: 500;
+  color: #222222;
+}
+
+.countdown {
+  background: rgba(0, 0, 0, 0.08);
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  color: #222222;
+}
+
+.countdown-label {
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #333333;
+}
+
+.countdown-value {
+  font-size: 16px;
+  font-weight: 500;
+  color: #1E40AF;
+}
+
+.view-alternatives-btn {
+  background: #3B82F6;
+  color: white;
+  border: none;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color 0.2s;
+}
+
+.view-alternatives-btn:hover {
+  background: #2563EB;
+}
+
+/* Status-specific styles */
+.pending-status .status-icon {
+  background-color: rgba(255, 152, 0, 0.2);
+  color: #FF9800;
+}
+
+.approved-status .status-icon {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #2E7D32;
+}
+
+.rejected-status .status-icon {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #C62828;
+}
+
+.late-status .status-icon {
+  background-color: rgba(156, 39, 176, 0.2);
+  color: #7B1FA2;
+}
+
+.pending-status .status-header {
+  background-color: rgba(255, 152, 0, 0.1);
+}
+
+.approved-status .status-header {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.rejected-status .status-header {
+  background-color: rgba(244, 67, 54, 0.1);
+}
+
+.late-status .status-header {
+  background-color: rgba(156, 39, 176, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .status-header {
+    padding: 12px;
+  }
+  
+  .status-content {
+    padding: 12px;
+  }
+  
+  .status-label {
+    font-size: 16px;
+  }
+  
+  .status-description {
+    font-size: 13px;
+  }
+  
+  .time-details {
+    flex-direction: column;
+    gap: 10px;
+  }
+} 

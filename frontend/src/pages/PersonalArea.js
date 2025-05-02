@@ -88,6 +88,17 @@ const PasswordIcon = () => (
   </svg>
 );
 
+
+const AdminIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+    <circle cx="8.5" cy="7" r="4"></circle>
+    <line x1="18" y1="8" x2="23" y2="13"></line>
+    <line x1="23" y1="8" x2="18" y2="13"></line>
+  </svg>
+);
+
+
 function PersonalArea() {
   const [userDetails, setUserDetails] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -96,9 +107,10 @@ function PersonalArea() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+
+  const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
-<<<<<<< HEAD
-=======
+
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -117,7 +129,7 @@ function PersonalArea() {
       showToast('Logout failed. Please try again.', 'error');
     }
   };
->>>>>>> 8d5d0857 (designs)
+
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -145,6 +157,12 @@ function PersonalArea() {
         const data = await response.json();
         setUserDetails(data);
         setUpdatedDetails(data);
+
+        
+        // Check if user is admin
+        const userRole = data.role || localStorage.getItem('userRole');
+        setIsAdmin(userRole === 'admin');
+
       } catch (err) {
         console.error("Error fetching user details:", err);
         setError("Error loading user details");
@@ -172,22 +190,22 @@ function PersonalArea() {
       const response = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/update-details`,
         {
-          method: 'PUT',
+
+          method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
+
           },
           body: JSON.stringify(updatedDetails),
         }
       );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to update details');
-      }
 
-      const data = await response.json();
-      setUserDetails(data);
+      if (!response.ok) throw new Error("Failed to update details");
+
+      setUserDetails(updatedDetails);
+
       setEditMode(false);
       showToast("Details updated successfully! A confirmation email has been sent.");
     } catch (err) {
@@ -199,14 +217,15 @@ function PersonalArea() {
 
   return (
     <div className="personal-area-page">
-<<<<<<< HEAD
+
+
       {/* 🔹 סרגל עליון עם לוגו */}
       <div className="top-bar">
         <img src={logo} alt="EVision Logo" className="logo" />
       </div>
 
       {/* 🔹 תוכן ראשי */}
-=======
+
       {/* Toast Notification */}
       <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>
         {toast.type === 'success' ? (
@@ -226,14 +245,9 @@ function PersonalArea() {
 
       <h1>Personal Area</h1>
 
->>>>>>> 8d5d0857 (designs)
-      <div className="content-container">
-<<<<<<< HEAD
-        <h1>Personal Area</h1>
 
-        {/* 🔹 כפתורי ניווט */}
-=======
->>>>>>> 43dc571d (Complete website redesign with modern UI, responsive layouts and intuitive user experience)
+      <div className="content-container">
+
         <nav className="tab-navigation">
           <button
             className={view === "profile" ? "active" : ""}
@@ -253,36 +267,60 @@ function PersonalArea() {
           >
             <PasswordIcon /> Password
           </button>
+
+          
+          {/* Admin section */}
+          {isAdmin && (
+            <button
+              className={view === "admin" ? "active" : ""}
+              onClick={() => setView("admin")}
+            >
+              <AdminIcon /> Admin Panel
+            </button>
+          )}
         </nav>
 
-<<<<<<< HEAD
-        {/* 🔹 תצוגת הפרופיל עם נתוני המשתמש */}
-=======
->>>>>>> 8d5d0857 (designs)
+
         <div className="tab-content">
           {view === "profile" && (
             <>
               {editMode ? (
                 <div className="editable-user-info">
+
+                  <label htmlFor="firstName">First Name:</label>
                   <input
+                    id="firstName"
+
                     type="text"
                     value={updatedDetails.firstName || ""}
                     onChange={(e) => setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })}
                     placeholder="First Name"
                   />
+
+                  <label htmlFor="lastName">Last Name:</label>
                   <input
+                    id="lastName"
+
                     type="text"
                     value={updatedDetails.lastName || ""}
                     onChange={(e) => setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })}
                     placeholder="Last Name"
                   />
+
+                  <label htmlFor="email">Email:</label>
                   <input
+                    id="email"
+
                     type="email"
                     value={updatedDetails.email || ""}
                     readOnly
                     placeholder="Email (Cannot be changed)"
                   />
+
+                  <label htmlFor="phone">Phone:</label>
                   <input
+                    id="phone"
+
                     type="text"
                     value={updatedDetails.phone || ""}
                     onChange={(e) => setUpdatedDetails({ ...updatedDetails, phone: e.target.value })}
@@ -313,13 +351,31 @@ function PersonalArea() {
 
           {view === "bookings" && <FutureBookings />}
           {view === "password" && <ChangePassword />}
+
+          
+          {/* Admin Panel View */}
+          {view === "admin" && isAdmin && (
+            <div className="admin-panel">
+              <h2>Admin Controls</h2>
+              <div className="admin-options">
+                <div className="admin-option" onClick={() => navigate('/admin/queue-management')}>
+                  <div className="option-icon">
+                    <BookingIcon />
+                  </div>
+                  <div className="option-details">
+                    <h3>Queue Management</h3>
+                    <p>Approve or reject appointment requests, and manage charging station queues.</p>
+                  </div>
+                </div>
+                
+                {/* Add more admin options here as needed */}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* 🔹 סרגל תחתון */}
-=======
->>>>>>> 8d5d0857 (designs)
+
       <div className="bottom-bar">
         <Link to="/home" className="bottom-bar-button">
           <HomeIcon />
