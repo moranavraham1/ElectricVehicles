@@ -18,10 +18,12 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import Charging from './Charging';
 import ChargingQueue from './ChargingQueue';
 import NavigateToToday from './NavigateToToday';
+
 import Payment from './Payment';
 import Appointment from './Appointment';
 import FutureBookings from './FutureBookings';
 import AdminQueueManagement from './AdminQueueManagement';
+
 
 function App() {
   return (
@@ -38,6 +40,7 @@ function App() {
           <Route path="/Change-Password/:token" element={<ChangePassword />} />
           <Route path="/reset-password/:token" element={<ChangePassword />} />
           <Route path="/charging" element={<Charging />} />
+
           <Route path="/payment" element={
             <ProtectedRoute>
               <Payment />
@@ -55,6 +58,7 @@ function App() {
               <FutureBookings />
             </ProtectedRoute>
           } />
+
 
           <Route
             path="/home"
@@ -96,6 +100,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
           <Route
             path="/admin/queue-management"
             element={
@@ -104,6 +109,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+
 
           <Route path="/logout" element={<Logout />} />
           <Route path="/charging-queue/:stationName/:selectedDate" element={<ChargingQueue />} />

@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const authMiddleware = require('./authMiddleware');
+
 const Appointment = require('./models/Appointment');
 const nodemailer = require('nodemailer');
 const { handleLateRegistration, manualCheckAllPendingAppointments } = require('./appointmentScheduler');
+
 
 // הגדרת transporter לשליחת מיילים
 const transporter = nodemailer.createTransport({
@@ -17,9 +19,11 @@ const transporter = nodemailer.createTransport({
 // יצירת תור חדש
 router.post('/', authMiddleware, async (req, res) => {
   try {
+
     const { email, stationName, appointmentDate, appointmentTime, address, city, chargingStations, distance } = req.body;
     
     // Create new appointment
+
     const newAppointment = new Appointment({
       email,
       stationName,
@@ -28,6 +32,7 @@ router.post('/', authMiddleware, async (req, res) => {
       address,
       city,
       chargingStations,
+
       distance,
       registrationTime: new Date(),
       status: 'pending'
@@ -71,12 +76,14 @@ router.post('/', authMiddleware, async (req, res) => {
         
 Your appointment has been booked successfully and is pending approval.
 
+
 Station: ${stationName}
 Address: ${address}, ${city}
 Date: ${appointmentDate}
 Time: ${appointmentTime}
 Charging Stations: ${chargingStations}
 Distance: ${distance} km
+
 
 You will receive an approval email one hour before the appointment time.
 If the station reaches capacity, you will be notified with alternative options.
@@ -85,6 +92,7 @@ Thank you for booking with us!
 
 Best regards,
 Your Service Team`
+
       };
 
       transporter.sendMail(mailOptions, (error, info) => {
@@ -100,6 +108,7 @@ Your Service Team`
       message: 'Appointment booked successfully and is pending approval',
       appointment: newAppointment
     });
+
   } catch (error) {
     console.error('Error booking appointment:', error);
     res.status(500).json({ message: 'Error booking appointment' });
@@ -170,6 +179,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ message: 'Appointment not found' });
     }
 
+
     // Check if this update creates a late registration scenario
     const appointmentDateTime = new Date(`${updatedAppointment.appointmentDate}T${updatedAppointment.appointmentTime}`);
     const now = new Date();
@@ -207,6 +217,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         
 Your appointment has been updated successfully and is pending approval.
 
+
 Updated details:
 Station: ${updatedAppointment.stationName}
 Address: ${updatedAppointment.address}, ${updatedAppointment.city}
@@ -222,6 +233,7 @@ Thank you for using our service!
 
 Best regards,
 Your Service Team`
+
       };
 
       transporter.sendMail(mailOptions, (error, info) => {
@@ -419,6 +431,7 @@ router.post('/process-pending', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error in manual processing:', error);
     res.status(500).json({ message: 'Error processing appointments', error: error.message });
+
   }
 });
 

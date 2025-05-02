@@ -124,6 +124,7 @@ const Favorites = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 const { latitude, longitude } = position.coords;
@@ -134,6 +135,7 @@ const Favorites = () => {
                 console.error('Error fetching location:', error);
             }
         );
+
 
         const fetchFavorites = async () => {
             const loggedInUser = localStorage.getItem('loggedInUser');

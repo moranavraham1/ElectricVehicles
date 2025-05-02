@@ -53,6 +53,7 @@ const ChargingQueue = () => {
     const [queue, setQueue] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
     const [currentUserEmail, setCurrentUserEmail] = useState('');
     const navigate = useNavigate();
     const location = useLocation();
@@ -66,9 +67,11 @@ const ChargingQueue = () => {
             setCurrentUserEmail(userEmail.toLowerCase());
         }
 
+
         if (location.state?.fromStation) {
             setReturnToStation(location.state.fromStation);
         }
+
 
         const fetchStationDetails = async () => {
             try {
@@ -85,6 +88,7 @@ const ChargingQueue = () => {
                 console.error("Failed to fetch station details:", err);
             }
         };
+
 
         const fetchQueue = async () => {
             try {
@@ -109,7 +113,9 @@ const ChargingQueue = () => {
         };
 
         fetchQueue();
+
         fetchStationDetails();
+
     }, [stationName, selectedDate, location.state]);
 
     const handleBack = () => {
@@ -152,6 +158,7 @@ const ChargingQueue = () => {
 
     const calculateWaitingTime = (index, queue) => {
         if (index === 0) return "You're next!";
+
         
         // Get the number of charging points at this station (default to 1 if not available)
         const numChargingPoints = stationDetails?.["Duplicate Count"] || 1;
@@ -210,6 +217,7 @@ const ChargingQueue = () => {
         if (totalWaitTime === 0) {
             return "No waiting time - station available";
         } else if (totalWaitTime < 60) {
+
             return `Estimated wait: ${totalWaitTime} minutes`;
         } else {
             const hours = Math.floor(totalWaitTime / 60);
@@ -230,9 +238,11 @@ const ChargingQueue = () => {
                 <p className="queue-subtitle">for {stationName} - {selectedDate}</p>
             </div>
 
+
             <div className="queue-notification">
                 <strong>Note:</strong> This queue shows only approved appointments. Pending appointments are processed 1 hour before their scheduled time.
             </div>
+
 
             <div className="queue-content">
                 {loading ? (
@@ -248,14 +258,17 @@ const ChargingQueue = () => {
                     </div>
                 ) : queue.length === 0 ? (
                     <div className="empty-queue">
+
                         <p>No approved bookings scheduled for this date yet.</p>
                         <p className="queue-note">Note: Appointments are approved 1 hour before their scheduled time based on priority.</p>
+
                     </div>
                 ) : (
                     <div className="queue-list">
                         {queue.map((booking, index) => {
                             const urgency = getUrgencyInfo(booking.urgencyLevel);
                             const waitingTime = calculateWaitingTime(index, queue);
+
                             const isCurrentUser = booking.user.toLowerCase() === currentUserEmail;
                             
                             return (
@@ -269,6 +282,7 @@ const ChargingQueue = () => {
                                                 Your booking
                                             </div>
                                         )}
+
                                         <div className="queue-item-row">
                                             <span className="time-icon">⏰</span> <strong>Time:</strong> {booking.time}
                                         </div>
@@ -306,7 +320,9 @@ const ChargingQueue = () => {
                     <HeartIcon />
                     <span>Favorites</span>
                 </Link>
+
                 <Link to="/personal-area" className="bottom-bar-button">
+
                     <UserIcon />
                     <span>Profile</span>
                 </Link>

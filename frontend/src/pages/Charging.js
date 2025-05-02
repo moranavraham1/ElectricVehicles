@@ -129,7 +129,9 @@ const Charging = () => {
         finalBattery: 0,
         batteryGained: 0
     });
+
     const [chargingStatus, setChargingStatus] = useState('');
+
 
     // Format date for display
     const formatDisplayDate = (dateStr) => {
@@ -228,6 +230,7 @@ const Charging = () => {
     const stopCharging = async () => {
         try {
             setLoading(true);
+
             
             // Get token for user authentication
             const token = localStorage.getItem('token');
@@ -272,6 +275,7 @@ const Charging = () => {
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.message || 'Error stopping charging. Please try again.');
+
             setLoading(false);
         }
     };
@@ -326,6 +330,7 @@ const Charging = () => {
     };
 
     const goToPayment = () => {
+
         // Get the booking ID from the URL or session storage if available
         const bookingId = location.state?.bookingId || '';
         
@@ -341,6 +346,7 @@ const Charging = () => {
                 batteryGained: chargingSummary.batteryGained
             }
         });
+
     };
 
     const handleStartButtonClick = () => {
@@ -431,10 +437,12 @@ const Charging = () => {
                                 </div>
                             )}
                         </>
+
                     ) : chargingStatus ? (
                         <div className="charging-status">
                             {chargingStatus}
                         </div>
+
                     ) : (
                         <div className="charging-status">
                             Ready to start charging
@@ -500,11 +508,13 @@ const Charging = () => {
                                 <span className="summary-label">Final Battery</span>
                                 <span className="summary-value">{Math.round(chargingSummary.finalBattery)}%</span>
                             </div>
+
                             
                             <div className="summary-message">
                                 Your charging session has been completed successfully.
                                 Please proceed to payment to complete your transaction.
                             </div>
+
                         </div>
 
                         <div className="summary-actions">

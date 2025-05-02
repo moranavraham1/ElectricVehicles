@@ -5,6 +5,7 @@ const bookingSchema = new mongoose.Schema({
   station: { type: String, required: true },
   date: { type: String, required: true },
   time: { type: String, required: true },
+
   urgencyLevel: { 
     type: Number, 
     required: true,
@@ -47,5 +48,6 @@ bookingSchema.index({ user: 1, station: 1, date: 1, time: 1 }, { unique: true })
 bookingSchema.index({ station: 1, date: 1, time: 1, status: 1 });
 
 const Booking = mongoose.model('Booking', bookingSchema);
+
 
 module.exports = Booking;

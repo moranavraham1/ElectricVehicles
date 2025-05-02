@@ -5,6 +5,7 @@ const appointmentSchema = new mongoose.Schema({
   stationName: { type: String, required: true },
   appointmentDate: { type: String, required: true },
   appointmentTime: { type: String, required: true },
+
   address: { type: String },
   city: { type: String },
   chargingStations: { type: Number },
@@ -24,6 +25,7 @@ const appointmentSchema = new mongoose.Schema({
     appointmentTime: String,
     appointmentDate: String
   }],
+
 });
 
 module.exports = mongoose.model('Appointment', appointmentSchema);

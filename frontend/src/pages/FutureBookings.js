@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+
 import { useNavigate, useLocation } from "react-router-dom";
 import "../designs/FutureBookings.css";
 import AppointmentStatus from "../components/AppointmentStatus";
 import AppointmentAlternatives from "../components/AppointmentAlternatives";
 import axios from "axios";
+
 
 // SVG Icons
 const CalendarIcon = () => (
@@ -85,11 +87,14 @@ function FutureBookings() {
   const [bookings, setBookings] = useState([]);
   const [payments, setPayments] = useState([]);
   const [appointments, setAppointments] = useState([]);
+
+
   const [activeCharging, setActiveCharging] = useState(null);
   const [currentTime, setCurrentTime] = useState({ date: "", hour: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
+
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
   const [appointmentAlternatives, setAppointmentAlternatives] = useState([]);
@@ -105,6 +110,7 @@ function FutureBookings() {
     }
   }, [location.state]);
 
+
   useEffect(() => {
     const now = new Date();
     const dateStr = now.toISOString().split("T")[0];
@@ -115,8 +121,10 @@ function FutureBookings() {
   useEffect(() => {
     fetchBookings();
     fetchActiveCharging();
+
     fetchPayments();
     fetchAppointments();
+
   }, []);
 
   const fetchBookings = async () => {
@@ -141,6 +149,7 @@ function FutureBookings() {
       setLoading(false);
     }
   };
+
   
   const fetchPayments = async () => {
     try {
@@ -160,6 +169,7 @@ function FutureBookings() {
     }
   };
 
+
   const fetchActiveCharging = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -177,6 +187,7 @@ function FutureBookings() {
       console.error("Error fetching active charging:", error);
     }
   };
+
 
   const fetchAppointments = async () => {
     try {
@@ -216,6 +227,7 @@ function FutureBookings() {
       setLoading(false);
     }
   };
+
 
   const handleCancelBooking = async (id) => {
     if (!window.confirm("Are you sure you want to cancel this booking?")) {
@@ -313,6 +325,7 @@ function FutureBookings() {
   };
 
   const showNotification = (message, type = "success") => {
+
     if (type === "error") {
       alert(`Error: ${message}`);
     } else {
@@ -326,6 +339,7 @@ function FutureBookings() {
   };
 
   const getBookingStatus = (booking) => {
+
     // Check if the booking has been paid
     if (booking.paymentStatus === 'paid' || booking.status === 'paid') {
       return "completed";
@@ -404,6 +418,7 @@ function FutureBookings() {
       p.bookingId === booking._id || 
       (p.station === booking.station && p.bookingDate === booking.date && p.bookingTime === booking.time)
     );
+
   };
 
   const handleTabChange = (tab) => {
@@ -411,6 +426,7 @@ function FutureBookings() {
   };
 
   const filteredBookings = getFilteredBookings();
+
 
   const handleViewAlternatives = (appointment) => {
     setSelectedAppointment(appointment);
@@ -500,6 +516,7 @@ function FutureBookings() {
       <div className="loading-container">
         <div className="loading-spinner"></div>
         <p>Loading your appointments...</p>
+
       </div>
     );
   }
@@ -519,26 +536,31 @@ function FutureBookings() {
         <h3>Your Charging Appointments</h3>
       </div>
 
+
       {loading && bookings.length === 0 && appointments.length === 0 ? (
         <div className="loading-container">
           <div className="loading-spinner"></div>
           <p>Loading your appointments...</p>
+
         </div>
       ) : error ? (
         <div className="error-message">
           <WarningIcon />
           <p>{error}</p>
         </div>
+
       ) : bookings.length === 0 && appointments.length === 0 ? (
         <div className="no-bookings">
           <CalendarIcon />
           <p>You have no upcoming appointments</p>
+
           <button className="book-now-btn" onClick={() => navigate('/home')}>
             Book a charging station
           </button>
         </div>
       ) : (
         <div className="bookings-wrapper">
+
           {/* Sort and Filter Controls */}
           <div className="controls-container">
             <div className="sort-controls">
@@ -843,6 +865,7 @@ function FutureBookings() {
           />
         </div>
       )}
+
     </div>
   );
 }

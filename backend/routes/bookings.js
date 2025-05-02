@@ -26,6 +26,7 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
 
     const normalizedStation = normalize(station);
 
+
     // כדי לוודא השוואת תאריכים נכונה, נשתמש בתאריך של היום בפורמט YYYY-MM-DD
     const now = new Date();
     const today = now.toISOString().split('T')[0];
@@ -72,6 +73,7 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
     console.log(`Filtering queue for ${station} on ${date}. Total approved: ${queue.length}, After time filtering: ${filteredQueue.length}`);
 
     const bookingsWithPriority = filteredQueue.map((b) => {
+
       const bookingTime = new Date(`${b.date}T${b.time}:00`);
       const estimatedChargeTime = b.estimatedChargeTime || 30;
       const createdAt = new Date(b.createdAt);
@@ -83,12 +85,15 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
       const waitFactor = Math.min(waitingMinutes / maxWaitTime, 1);
       const agingBoost = waitFactor * maxBoost;
 
+
       // For approved bookings, we use the same priority calculation but it's only for display
+
       const priorityScore =
         (b.urgencyLevel ?? 100) -
         (waitingMinutes * agingFactor) -
         ((b.currentBattery ?? 100) / 5) -
         agingBoost;
+
 
       return {
         _id: b._id,
@@ -100,10 +105,13 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
         estimatedChargeTime,
         createdAt,
         currentBattery: b.currentBattery,
+
         status: b.status, // Include status to confirm these are approved
+
         priorityScore
       };
     });
+
 
     // Sort by time first, then by priority within each time slot
     bookingsWithPriority.sort((a, b) => {
@@ -113,6 +121,7 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
       }
       
       // For same time, sort by priority
+
       if (a.priorityScore !== b.priorityScore) {
         return a.priorityScore - b.priorityScore;
       }
@@ -128,12 +137,14 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
       return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
+
     res.json(bookingsWithPriority);
   } catch (error) {
     console.error('Error fetching queue:', error);
     res.status(500).json({ message: 'Error fetching queue' });
   }
 });
+
 
 router.get('/', authMiddleware, async (req, res) => {
   try {
@@ -158,8 +169,10 @@ router.get('/', authMiddleware, async (req, res) => {
 router.post("/check-availability", async (req, res) => {
   try {
     const { station, date } = req.body;
+
     console.log("💡 check-availability called with:", { station, date });
     
+
     const trimmedStation =
       typeof station === 'string'
         ? station.trim()
@@ -167,12 +180,14 @@ router.post("/check-availability", async (req, res) => {
 
     const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
     const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
+
     console.log("💡 Station details:", { stationName: trimmedStation, maxSlots });
 
     const bookings = await Booking.find({ station: trimmedStation, date });
     const activeCharging = await ActiveCharging.find({ station: trimmedStation, date });
     console.log("💡 Found bookings:", bookings.length, "Active charging:", activeCharging.length);
     
+
     const bookingsPerTime = {};
     for (const b of bookings) {
       bookingsPerTime[b.time] = (bookingsPerTime[b.time] || 0) + 1;
@@ -180,7 +195,9 @@ router.post("/check-availability", async (req, res) => {
     for (const c of activeCharging) {
       bookingsPerTime[c.time] = (bookingsPerTime[c.time] || 0) + 1;
     }
+
     console.log("💡 Bookings per time:", bookingsPerTime);
+
 
     const availableTimes = [];
     for (let hour = 0; hour < 24; hour++) {
@@ -195,15 +212,18 @@ router.post("/check-availability", async (req, res) => {
         }
       }
     }
+
     
     console.log(`💡 Generated ${availableTimes.length} available time slots for date: ${date}`);
     
+
     res.json({ availableTimes, bookingsPerTime, maxCapacity: maxSlots });
   } catch (error) {
     console.error("Error checking availability:", error);
     res.status(500).json({ message: "Server error", error });
   }
 });
+
 
 const sendBookingPendingEmail = async (email, station, date, time) => {
   try {
@@ -924,10 +944,12 @@ const sendBookingCancellationEmail = async (email, station, date, time, alternat
 
     await transporter.sendMail(mailOptions);
     console.log('📩 Cancellation email sent successfully to:', email);
+
   } catch (error) {
     console.error('❌ Error sending cancellation email:', error);
   }
 };
+
 
 router.post('/book', authMiddleware, async (req, res) => {
   try {
@@ -937,11 +959,13 @@ router.post('/book', authMiddleware, async (req, res) => {
     const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ');
     const trimmedStation = normalize(station);
 
+
     const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time });
 
     if (existingBooking) {
       return res.status(400).json({ message: 'You already have a booking for this time slot.' });
     }
+
 
     const newBooking = new Booking({
       user: userEmail,
@@ -952,6 +976,7 @@ router.post('/book', authMiddleware, async (req, res) => {
       estimatedChargeTime,
       currentBattery,
       createdAt: new Date(),
+
       status: 'pending'
     });
 
@@ -964,6 +989,7 @@ router.post('/book', authMiddleware, async (req, res) => {
       message: 'Booking request received! Your request will be processed 1 hour before the appointment time and you will receive a confirmation email.',
       booking: newBooking
     });
+
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({ message: 'Error creating booking' });
@@ -992,10 +1018,14 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     await booking.deleteOne();
     console.log(`🗑️ Booking deleted: ${booking.station} on ${booking.date} at ${booking.time}`);
     if (booking.user) {
+
       await sendBookingCancellationEmail(booking.user, booking.station, booking.date, booking.time);
+
     } else {
       console.log(`No email address found for booking at ${booking.station}`);
     }
+
+
 
     res.json({ message: 'Booking cancelled and email sent.' });
   } catch (error) {
@@ -1003,6 +1033,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error canceling booking' });
   }
 });
+
 
 router.post('/start-charging', authMiddleware, async (req, res) => {
   try {
@@ -1078,6 +1109,7 @@ router.post('/stop-charging', authMiddleware, async (req, res) => {
   }
 });
 
+
 router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => {
   try {
     const { station, date, time } = req.params;
@@ -1103,6 +1135,7 @@ router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => 
         { $set: { status: 'approved' } }
       );
 
+
       console.log('Sending confirmation email with details:', {
         user: booking.user,
         station: booking.station,
@@ -1111,6 +1144,7 @@ router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => 
       });
 
       await sendBookingConfirmationEmail(booking.user, booking.station, booking.date, booking.time);
+
     }
 
     for (const booking of rejected) {
@@ -1119,11 +1153,13 @@ router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => 
         { _id: booking._id },
         { $set: { status: 'rejected', rejectionCount: newRejectionCount } }
       );
+
       
       // מציאת תחנות קרובות כהמלצה
       const alternativeStations = await findNearbyStations(trimmedStation);
       
       await sendBookingCancellationEmail(booking.user, trimmedStation, date, time, alternativeStations);
+
     }
 
     res.json({ approved, rejected });
@@ -1132,6 +1168,7 @@ router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => 
     res.status(500).json({ message: 'Error in dynamic assignment' });
   }
 });
+
 
 // עדכון פונקציית תזמון ההקצאה עם טיפול במקרים של אי-משלוח מיילים
 const scheduleAllocationProcess = (station, date, time) => {
@@ -1402,5 +1439,6 @@ const findNearbyStations = async (stationName) => {
     return [];
   }
 };
+
 
 module.exports = router;

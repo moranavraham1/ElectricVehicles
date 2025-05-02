@@ -211,16 +211,20 @@ h1::after {
 
 /* Tab Content - with glass morphism effect like Favorites */
 .tab-content {
+
   background: rgba(30, 41, 59, 0.6);
   padding: var(--spacing-lg);
   border-radius: var(--border-radius-md);
   border: 1px solid rgba(255, 255, 255, 0.2);
+
   width: 100%;
   height: calc(100% - 80px);
   overflow-y: auto;
   overflow-x: hidden;
   backdrop-filter: blur(10px);
+
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+
   max-height: calc(100% - 80px);
   /* Account for tab navigation */
   padding-right: 10px;
@@ -232,15 +236,18 @@ h1::after {
   flex-direction: column;
   gap: var(--spacing-md);
   padding: var(--spacing-md) 0;
+
   background: rgba(255, 255, 255, 0.8);
   border-radius: var(--border-radius-md);
   padding: 1.5rem;
   backdrop-filter: blur(10px);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+
 }
 
 .profile-info p {
   font-size: 16px;
+
   color: #222222;
   padding: 0.75rem 1rem;
   background: rgba(255, 255, 255, 0.85);
@@ -252,20 +259,25 @@ h1::after {
   backdrop-filter: blur(10px);
   transition: all 0.3s ease;
   margin-bottom: 8px;
+
 }
 
 .profile-info p:hover {
   transform: translateY(-5px);
+
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
   background: rgba(255, 255, 255, 0.9);
+
 }
 
 .profile-info p span {
   font-weight: 600;
+
   color: #1E293B;
   min-width: 120px;
   display: inline-block;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+
 }
 
 /* Buttons */
@@ -310,8 +322,10 @@ h1::after {
 
 .edit-btn {
   background: var(--button-gradient);
+
   margin-top: 12px;
   align-self: flex-start;
+
 }
 
 .edit-btn:hover {
@@ -343,6 +357,7 @@ h1::after {
 .editable-user-info {
   display: flex;
   flex-direction: column;
+
   gap: var(--spacing-sm);
   background: rgba(255, 255, 255, 0.8);
   padding: 1.5rem;
@@ -356,12 +371,14 @@ h1::after {
   color: #1E293B;
   margin-bottom: 4px;
   font-size: 0.95rem;
+
 }
 
 .editable-user-info input {
   width: 100%;
   padding: 1rem 1.5rem;
   background: #FFFFFF;
+
   border: 2px solid #CBD5E1;
   border-radius: 12px;
   font-size: 1rem;
@@ -371,13 +388,15 @@ h1::after {
   z-index: 1;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   margin-bottom: 12px;
+
 }
 
 .editable-user-info input:focus {
   outline: none;
   border-color: #3B82F6;
+
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
-}
+
 
 .editable-user-info input::placeholder {
   color: #94A3B8;
@@ -385,9 +404,11 @@ h1::after {
 
 .editable-user-info input[readonly] {
   background-color: #F1F5F9;
+
   color: #333333;
   cursor: not-allowed;
   border-color: #CBD5E1;
+
 }
 
 /* Button Container */
@@ -517,10 +538,12 @@ h1::after {
   padding: var(--spacing-xl);
   min-height: 200px;
   font-size: 18px;
+
   color: #333333;
   background: rgba(255, 255, 255, 0.8);
   border-radius: var(--border-radius-md);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
 }
 
 .loading-message::before {
@@ -536,8 +559,10 @@ h1::after {
 
 .error-message {
   color: var(--accent);
+
   font-weight: 500;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.8);
+
 }
 
 @keyframes spin {
@@ -579,12 +604,15 @@ h1::after {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-xs);
+
     padding: 0.75rem;
     background: rgba(255, 255, 255, 0.85);
+
   }
 
   .profile-info p span {
     min-width: unset;
+
     color: #1E293B;
     margin-bottom: 4px;
     font-weight: 700;
@@ -596,6 +624,7 @@ h1::after {
   
   .editable-user-info input {
     padding: 0.75rem 1rem;
+
   }
 }
 
@@ -637,6 +666,7 @@ h1::after {
 .content-container::-webkit-scrollbar-thumb:hover,
 .tab-content::-webkit-scrollbar-thumb:hover {
   background-color: rgba(59, 130, 246, 0.5);
+
 }
 
 /* Add styles for admin panel */
@@ -706,4 +736,5 @@ h1::after {
   font-size: 0.9rem;
   color: #333333;
   line-height: 1.4;
+
 }
