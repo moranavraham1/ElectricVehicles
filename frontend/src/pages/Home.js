@@ -34,7 +34,6 @@ const HeartIcon = () => (
   </svg>
 );
 
-
 const LogoutIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -79,15 +78,6 @@ const setCachedStations = (data) => {
     console.error('Error setting cache:', error);
   }
 };
-
-
-
-import wazeIcon from '../assets/WAZE.jpg'; // תמונת ה-Waze
-
-
-import logo from '../assets/logo.jpg'; // ייבוא הלוגו
-
-
 
 const Home = () => {
   const [userLocation, setUserLocation] = useState('');
@@ -185,7 +175,6 @@ const Home = () => {
     }
   };
 
-
   const carModelsData = {
     "Tesla Model 3": { fullChargeTime: 80 },
     "Tesla Model Y": { fullChargeTime: 90 },
@@ -253,7 +242,6 @@ const Home = () => {
     };
   }, [showModal]);
 
-
   useEffect(() => {
     if (!selectedCarModel || batteryLevel >= targetLevel) return;
 
@@ -265,8 +253,6 @@ const Home = () => {
     const time = (baseTime * diff) / 100;
     setEstimatedChargeTime(Math.round(time));
   }, [selectedCarModel, batteryLevel, targetLevel, manualTime]);
-
-
 
   const navigate = useNavigate();
 
@@ -279,37 +265,6 @@ const Home = () => {
       console.error('Logout error:', error);
     }
   };
-
-
-  useEffect(() => {
-    if (!selectedCarModel || batteryLevel >= targetLevel) return;
-
-    const baseTime = selectedCarModel === "Other / Manual Input"
-      ? manualTime
-      : carModelsData[selectedCarModel]?.fullChargeTime || 0;
-
-    const diff = targetLevel - batteryLevel;
-    const time = (baseTime * diff) / 100;
-    setEstimatedChargeTime(Math.round(time));
-  }, [selectedCarModel, batteryLevel, targetLevel, manualTime]);
-
-
-
-  useEffect(() => {
-    fetchUserLocation();
-  }, []);
-
-
-  useEffect(() => {
-
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
-  }, []);
 
   useEffect(() => {
     if (latitude && longitude) {
@@ -327,7 +282,6 @@ const Home = () => {
     const savedFavorites = JSON.parse(localStorage.getItem(favoriteKey)) || [];
     setFavorites(savedFavorites.map((station) => station['Station Name']));
   }, [navigate]);
-
 
   useEffect(() => {
     if (searchQuery) {
@@ -408,7 +362,6 @@ const Home = () => {
       // שמירה במטמון
       setCachedStations(response.data);
 
-
     } catch (error) {
       console.error('Error fetching stations:', error);
     } finally {
@@ -455,10 +408,8 @@ const Home = () => {
   const fetchAvailableTimes = async (selectedDate) => {
     if (!selectedStation) return;
 
-    
     console.log("💡 fetchAvailableTimes called with date:", selectedDate);
     console.log("💡 selectedStation:", selectedStation);
-
 
     try {
       const response = await axios.post(
@@ -504,7 +455,6 @@ const Home = () => {
     }
   };
 
-
   const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -524,8 +474,6 @@ const Home = () => {
     setSearchQuery(suggestion['Station Name']);
     setSuggestions([]);
   };
-
-
 
   const bookAppointment = async () => {
     if (!selectedStation || !date || !time) {
@@ -572,9 +520,6 @@ const Home = () => {
     }
   };
 
-
-
-
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
     if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity;
     const R = 6371;
@@ -601,12 +546,10 @@ const Home = () => {
       const isFavorite = station.likedBy && Array.isArray(station.likedBy) && station.likedBy.includes(userEmail);
 
       if (isFavorite) {
-
         await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           data: { user: userEmail },
         });
-
 
         setStations((prevStations) =>
           prevStations.map((s) =>
@@ -616,19 +559,10 @@ const Home = () => {
           )
         );
       } else {
-
         await axios.post(`http://localhost:3001/api/stations/${station._id}/like`,
           { user: userEmail },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
-
-          { user: loggedInUser.toLowerCase() },
-
-          { user: userEmail },
-
-          { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
-        );
-
 
         setStations((prevStations) =>
           prevStations.map((s) =>
@@ -643,13 +577,10 @@ const Home = () => {
     }
   };
 
-
-
   // Function to navigate to the appointment page with the station details
   const navigateToAppointment = (station) => {
     navigate('/appointment', { state: { station } });
   };
-
 
   useEffect(() => {
     const loggedInUser = localStorage.getItem('loggedInUser');
@@ -692,31 +623,20 @@ const Home = () => {
     };
   }, []);
 
-
-  // פונקציה לטיפול בתחילת טעינת המפה
-  const handleMapLoadStart = (index) => {
-    setMapLoading(prev => ({
-      ...prev,
-      [index]: true
-    }));
-  };
-
-  // הוספת סגנון האנימציה ל-head
+  // Use effects
   useEffect(() => {
-    const style = document.createElement('style');
-    style.innerHTML = `
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(style);
-
-    return () => {
-      document.head.removeChild(style);
-    };
+    fetchUserLocation();
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
 
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
@@ -761,7 +681,6 @@ const Home = () => {
           </ul>
         )}
       </div>
-
 
       {loadingStations ? (
         <div className="station-list">
@@ -832,7 +751,6 @@ const Home = () => {
                   </div>
                 </div>
 
-
                 {/* Waze logo and button */}
                 <img
                   src={wazeIcon}
@@ -881,546 +799,6 @@ const Home = () => {
                   gap: '5px',
                   marginBottom: '5px',
                   position: 'relative',
-                  width: '100%',
-                  marginRight: '15px',
-                  marginTop: '5px'
-                }}>
-                  {/* Favorites icon */}
-                  <div
-                    style={{
-                      cursor: 'pointer'
-                    }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(station);
-                    }}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill={station.likedBy && localStorage.getItem('loggedInUser') ?
-                        (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : 'none') : 'none'}
-                      stroke={station.likedBy && localStorage.getItem('loggedInUser') ?
-                        (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : '#777777') : '#777777'}
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                    </svg>
-                  </div>
-
-                  {/* Distance icon */}
-                  <div style={{
-                    backgroundColor: '#4f46e5',
-                    color: 'white',
-                    padding: '2px 8px',
-                    borderRadius: '10px',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}>
-                    {calculateDistance(latitude, longitude, station.Latitude, station.Longitude)} km
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  style={{
-                    border: '2px solid #3B82F6',
-                    background: 'white',
-                    color: '#333333',
-                    padding: '10px 15px',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    width: '100%',
-                    textAlign: 'center',
-                    minWidth: '140px'
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setSelectedStation(station);
-                    setDate("");
-                    setTime("");
-                    setAvailableTimes([]);
-                    setShowModal(true);
-                  }}
-                >
-
-                  Book Appointment
-                </button>
-
-                <button
-                  type="button"
-                  style={{
-                    border: '2px solid #3B82F6',
-                    background: 'white',
-                    color: '#333333',
-                    padding: '10px 15px',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    width: '100%',
-                    textAlign: 'center',
-                    minWidth: '140px'
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    startCharging(station);
-                  }}
-                >
-                  Start Charging
-                </button>
-
-                <button
-                  type="button"
-                  style={{
-                    border: '2px solid #3B82F6',
-                    background: 'white',
-                    color: '#333333',
-                    padding: '10px 15px',
-                    borderRadius: '6px',
-                    fontWeight: 'bold',
-                    fontSize: '14px',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    width: '100%',
-                    textAlign: 'center',
-                    minWidth: '140px'
-                  }}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    navigate(`/charging-queue/${encodeURIComponent(station['Station Name'])}/${today}`);
-                  }}
-                >
-                  View Queue
-                </button>
-              </div>
-
-              {/* Left side - the map (now optimized) */}
-              <div style={{
-                position: 'relative',
-                overflow: 'hidden',
-                borderRadius: '8px',
-                height: '220px',
-                minWidth: '220px'
-              }}>
-                {showFullMap[index] ? (
-                  // אם המשתמש לחץ, להציג iframe
-                  <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                    <iframe
-                      src={`https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${station.Latitude},${station.Longitude}&heading=210&pitch=10&fov=90`}
-                      width="100%"
-                      height="100%"
-                      style={{
-                        border: 'none',
-                        height: '220px',
-                        borderRadius: '8px'
-                      }}
-                      allowFullScreen=""
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      onLoad={() => handleFullMapLoad(index)}
-                    ></iframe>
-
-                    {/* גלגל טעינה למפה המלאה */}
-                    {fullMapLoading[index] && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        borderRadius: '8px',
-                        zIndex: 20
-                      }}>
-                        <div style={{
-                          width: '50px',
-                          height: '50px',
-                          border: '5px solid rgba(0, 0, 0, 0.1)',
-                          borderLeft: '5px solid #3B82F6',
-                          borderRadius: '50%',
-                          animation: 'spin 1.2s linear infinite'
-                        }} />
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  // תמונה סטטית כברירת מחדל
-                  <div
-                    onClick={() => toggleFullMap(index)}
-                    style={{
-                      backgroundImage: `url(https://www.openstreetmap.org/export/embed.html?bbox=${station.Longitude - 0.005},${station.Latitude - 0.005},${station.Longitude + 0.005},${station.Latitude + 0.005}&layer=mapnik)`,
-                      backgroundColor: '#e9eef2',
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      height: '100%',
-                      width: '100%',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      position: 'relative'
-                    }}
-                  >
-                    {/* כאן נשים iframe של מפה במקום רק תמונה */}
-                    <iframe
-                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${station.Longitude - 0.005},${station.Latitude - 0.005},${station.Longitude + 0.005},${station.Latitude + 0.005}&layer=mapnik&marker=${station.Latitude},${station.Longitude}`}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        border: 'none',
-                        borderRadius: '8px',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0
-                      }}
-                      onLoad={() => handleMapLoad(index)}
-                      onLoadStart={() => handleMapLoadStart(index)}
-                    />
-
-                    {/* גלגל טעינה - יוצג רק כשהמפה בטעינה */}
-                    {(mapLoading[index] === true) && (
-                      <div style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#e9eef2',
-                        borderRadius: '8px',
-                        zIndex: 15
-                      }}>
-                        <div style={{
-                          width: '40px',
-                          height: '40px',
-                          border: '4px solid rgba(0, 0, 0, 0.1)',
-                          borderLeft: '4px solid #3B82F6',
-                          borderRadius: '50%',
-                          animation: 'spin 1s linear infinite'
-                        }} />
-                      </div>
-                    )}
-
-                    <div style={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: 'rgba(200, 200, 200, 0.2)',
-                      borderRadius: '8px',
-                      zIndex: 10
-                    }}>
-                      <div className="map-overlay" style={{
-                        background: 'rgba(0, 0, 0, 0.7)',
-                        color: 'white',
-                        padding: '8px 15px',
-                        borderRadius: '20px',
-                        fontWeight: 'bold',
-                        position: 'absolute',
-                        top: '45%',
-                        left: '50%',
-                        transform: 'translate(-50%, -50%)',
-                        width: 'max-content',
-                        maxWidth: '90%',
-                        textAlign: 'center',
-                        fontSize: 'clamp(14px, 3vw, 16px)'
-                      }}>
-                        Click to view map
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        position: 'absolute',
-                        bottom: '10px',
-                        right: '10px',
-                        background: 'white',
-                        borderRadius: '5px',
-                        padding: '3px 6px',
-                        fontSize: '11px',
-                        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-                        zIndex: 10
-                      }}
-                    >
-                      OpenStreetMap
-                    </div>
-                  </div>
-                )}
-
-              </div>
-              <div className="skeleton-section buttons">
-                <div className="skeleton-button"></div>
-                <div className="skeleton-button"></div>
-                <div className="skeleton-button"></div>
-              </div>
-              <div className="skeleton-map"></div>
-            </div>
-
-          ))}
-
-          {/* כפתור לטעינת תחנות נוספות */}
-          {paginatedStations.length < filteredStations.length && (
-            <button
-              className="load-more-button"
-              onClick={handleLoadMoreStations}
-            >
-              Load more stations
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Booking Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={closeModal}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h2>Book an appointment for {selectedStation['Station Name']}</h2>
-            <div style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.3)',
-              padding: '10px',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              color: '#ffffff',
-              marginBottom: '15px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              🔋 Current Battery Level: {batteryLevel}%
-            </div>
-            {/* Select Car Model */}
-            <label htmlFor="carModel">Select Car Model:</label>
-            <select
-              id="carModel"
-              value={selectedCarModel}
-              onChange={(e) => setSelectedCarModel(e.target.value)}
-            >
-              <option value="">Select Car Model</option>
-              {Object.keys(carModelsData).map((carModel, index) => (
-                <option key={index} value={carModel}>
-                  {carModel}
-                </option>
-              ))}
-            </select>
-
-            {/* Battery Level (editable) */}
-            <label htmlFor="batteryLevel">Battery Level (%):</label>
-            <input
-              id="batteryLevel"
-              type="number"
-              min="0"
-              max="100"
-              value={batteryLevel}
-              onChange={(e) => setBatteryLevel(e.target.value)}
-            />
-
-            {/* Target Battery Level */}
-            <label htmlFor="targetLevel">Target Battery Level (%):</label>
-            <input
-              id="targetLevel"
-              type="number"
-              min="0"
-              max="100"
-              value={targetLevel}
-              onChange={(e) => setTargetLevel(e.target.value)}
-            />
-
-            {/* Display Estimated Charge Time */}
-            <div>
-              ⏱ Estimated Charging Time: <strong>{estimatedChargeTime} minutes</strong>
-            </div>
-
-            <label htmlFor="date">Select Date:</label>
-            <input
-              id="date"
-              type="date"
-              value={date}
-              min={today}
-              onChange={(e) => {
-                const selectedDate = e.target.value;
-                if (selectedDate < today) {
-                  alert("You cannot select a past date!");
-                  setDate(today);
-                  fetchAvailableTimes(today);
-                } else {
-                  setDate(selectedDate);
-                  setTime("");
-                  fetchAvailableTimes(selectedDate);
-                }
-              }}
-            />
-
-            <label htmlFor="time">Select Time:</label>
-            <select
-              id="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-              disabled={availableTimes.length === 0}
-            >
-              <option value="">-- Select Time --</option>
-              {availableTimes.map((availableTime, index) => (
-                <option key={index} value={availableTime}>
-                  {availableTime}
-                </option>
-              ))}
-            </select>
-
-            {date && availableTimes.length === 0 && (
-              <p style={{ color: "red" }}>
-                {date === today
-                  ? "⚠️ No more available slots for today. Please choose another date."
-                  : "No available times for this date."}
-              </p>
-            )}
-
-            {/* Modal to book an appointment */}
-
-            <button
-              onClick={bookAppointment}
-              disabled={!isAvailable || !time}
-              style={{
-                background: "white",
-                color: "#3B82F6",
-                border: "2px solid #3B82F6",
-                padding: "14px 28px",
-                borderRadius: "8px",
-                fontSize: "16px",
-                fontWeight: "600",
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                marginTop: "15px",
-                width: "100%",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.25)"
-              }}
-            >
-              Confirm Booking
-            </button>
-          </div>
-        </div>
-      )}
-
-
-              position: 'relative',
-              overflow: 'hidden',
-              gap: '10px'
-            }}>
-              {/* Right side - station info and details */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between'
-              }}>
-                {/* Station details */}
-                <div>
-                  <h3 style={{
-                    fontSize: '22px',
-                    fontWeight: 'bold',
-                    marginTop: '0',
-                    marginBottom: '10px'
-                  }}>{station['Station Name']}</h3>
-
-                  <div style={{ marginBottom: '10px' }}>
-                    <p style={{
-                      margin: '5px 0',
-                      fontSize: '16px',
-                      fontWeight: '500'
-                    }}><strong>Address:</strong> {station.Address}</p>
-                    <p style={{
-                      margin: '5px 0',
-                      fontSize: '16px',
-                      fontWeight: '500'
-                    }}><strong>City:</strong> {station.City}</p>
-                    <p style={{
-                      margin: '5px 0',
-                      fontSize: '16px',
-                      fontWeight: '500'
-                    }}><strong>Charging Stations:</strong> {station['Duplicate Count']}</p>
-                  </div>
-                </div>
-
-                {/* Waze logo and button */}
-                <img
-                  src={wazeIcon}
-                  alt="Waze Navigation"
-                  className="waze-logo"
-                  style={{
-                    position: 'absolute',
-                    left: '10px',
-                    bottom: '10px',
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    padding: '5px',
-                    backgroundColor: 'white',
-                    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-                    zIndex: 999,
-                    cursor: 'pointer',
-                    border: 'none',
-                    display: 'block'
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&navigate=yes`, '_blank')
-                  }}
-                />
-              </div>
-
-
-              <button
-                type="button"
-                style={{
-                  border: '2px solid #3B82F6',
-                  background: 'white',
-                  color: '#333333',
-                  padding: '10px 15px',
-                  borderRadius: '6px',
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-
-              {/* Buttons in the station card */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'flex-start',
-                alignItems: 'center',
-                padding: '0 15px',
-                gap: '10px',
-                position: 'relative',
-                marginRight: '35px',
-                marginLeft: '-40px',
-                marginTop: '-10px'
-              }}>
-                {/* Distance and favorites icon */}
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: '5px',
-                  marginBottom: '5px',
-                  position: 'relative',
-
                   width: '100%',
                   marginRight: '15px',
                   marginTop: '5px'
@@ -1709,43 +1087,6 @@ const Home = () => {
             </div>
           ))}
 
-
-            <div
-              className={`heart-icon ${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'active' : ''}`}
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleFavorite(station);
-              }}
-            >
-              <i className={`fa-${station.likedBy.includes(localStorage.getItem('loggedInUser').toLowerCase()) ? 'solid' : 'regular'} fa-heart`}></i>
-
-            {/* Left side - the map */}
-            <div style={{
-              position: 'relative',
-              overflow: 'hidden',
-              borderRadius: '8px',
-              height: '220px',
-              minWidth: '220px'
-            }}>
-              {/* Google Street View iframe */}
-              <iframe
-                src={`https://www.google.com/maps/embed/v1/streetview?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&location=${station.Latitude},${station.Longitude}&heading=210&pitch=10&fov=90`}
-                width="100%"
-                height="100%"
-                style={{
-                  border: 'none',
-                  height: '220px'
-                }}
-                allowFullScreen=""
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              ></iframe>
-
-            </div>
-          </div>
-        ))}
-      </div>
-
           {/* כפתור לטעינת תחנות נוספות */}
           {paginatedStations.length < filteredStations.length && (
             <button
@@ -1757,7 +1098,6 @@ const Home = () => {
           )}
         </div>
       )}
-
 
       {/* Booking Modal */}
       {showModal && (
@@ -1863,7 +1203,6 @@ const Home = () => {
             )}
 
             {/* Modal to book an appointment */}
-
             <button
               onClick={bookAppointment}
               disabled={!isAvailable || !time}
@@ -1887,35 +1226,6 @@ const Home = () => {
           </div>
         </div>
       )}
-
-
-
-      <div className="bottom-bar">
-        <button className="bottom-bar-button logout" onClick={handleLogout}>
-          <i className="fas fa-sign-out-alt"></i> Logout
-        </button>
-
-        <Link to="/personal-area" className="bottom-bar-button">
-          <i className="fas fa-user"></i> Personal Area
-        </Link>
-        <Link to="/favorites" className="bottom-bar-button">
-          <i className="fas fa-heart"></i> Favorites
-        </Link>
-        <Link to="/home" className="bottom-bar-button">
-          <i className="fas fa-home"></i> Home
-        </Link>
-        <Link to="/map" className="bottom-bar-button">
-
-        <Link to="/personal-area" className="bottom-bar-button personal">
-          <i className="fas fa-user"></i> Personal Area
-        </Link>
-        <Link to="/favorites" className="bottom-bar-button favorites">
-          <i className="fas fa-heart"></i> Favorites
-        </Link>
-        <Link to="/home" className="bottom-bar-button home">
-          <i className="fas fa-home"></i> Home
-        </Link>
-        <Link to="/map" className="bottom-bar-button map">
 
       {/* Bottom Navigation */}
       <div className="bottom-navigation">
@@ -1931,9 +1241,7 @@ const Home = () => {
           <HeartIcon />
           <span>Favorites</span>
         </div>
-
         <div className="nav-item" onClick={() => navigate('/personal-area')}>
-
           <UserIcon />
           <span>Profile</span>
         </div>
@@ -1941,7 +1249,6 @@ const Home = () => {
           <LogoutIcon />
           <span>Logout</span>
         </div>
-
       </div>
     </div>
   );
