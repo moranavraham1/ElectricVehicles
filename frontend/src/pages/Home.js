@@ -623,6 +623,7 @@ const Home = () => {
     };
   }, []);
 
+
   // Use effects
   useEffect(() => {
     fetchUserLocation();
@@ -637,6 +638,7 @@ const Home = () => {
       document.documentElement.style.overflow = '';
     };
   }, []);
+
 
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
@@ -1249,6 +1251,7 @@ const Home = () => {
           <LogoutIcon />
           <span>Logout</span>
         </div>
+
       </div>
     </div>
   );
