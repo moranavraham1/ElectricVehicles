@@ -48,7 +48,7 @@ This project is a **web application** for managing **electric vehicle charging s
    PORT=3001
    MONGO_URI=your_mongo_connection_string
    JWT_SECRET=your_jwt_secret
-   FRONTEND_URL=https://localhost:3000
+   FRONTEND_URL=http://localhost:3001
    EMAIL=your_email
    EMAIL_PASSWORD=your_email_password
    ```
