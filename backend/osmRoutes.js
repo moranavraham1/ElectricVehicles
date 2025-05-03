@@ -17,7 +17,7 @@ router.get('/nearby', async (req, res) => {
       out skel qt;
     `;
 
-    const response = await axios.post('https://overpass-api.de/api/interpreter', 
+    const response = await axios.post('http://overpass-api.de/api/interpreter', 
       `data=${encodeURIComponent(overpassQuery)}`, 
       {
         headers: {
@@ -40,7 +40,7 @@ router.get('/reverse-geocode', async (req, res) => {
   const { lat, lon } = req.query;  
 
   try {
-    const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
+    const response = await axios.get('http://nominatim.openstreetmap.org/reverse', {
       params: {
         format: 'json',
         lat,

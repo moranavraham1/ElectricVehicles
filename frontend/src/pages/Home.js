@@ -7,14 +7,14 @@ import wazeIcon from '../assets/WAZE.jpg';
 
 // SVG Icons
 const HomeIcon = () => (
-  <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
     <polyline points="9 22 9 12 15 12 15 22"></polyline>
   </svg>
 );
 
 const MapIcon = () => (
-  <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
     <line x1="8" y1="2" x2="8" y2="18"></line>
     <line x1="16" y1="6" x2="16" y2="22"></line>
@@ -22,27 +22,27 @@ const MapIcon = () => (
 );
 
 const UserIcon = () => (
-  <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
     <circle cx="12" cy="7" r="4"></circle>
   </svg>
 );
 
 const HeartIcon = () => (
-  <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
   </svg>
 );
 
 const LogoutIcon = () => (
-  <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
     <polyline points="16 17 21 12 16 7"></polyline>
     <line x1="21" y1="12" x2="9" y2="12"></line>
   </svg>
 );
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://localhost:3000';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'https://localhost:3001';
 
 // קוד לטיפול במטמון
 const STATIONS_CACHE_KEY = 'cached_stations';
@@ -546,7 +546,7 @@ const Home = () => {
       const isFavorite = station.likedBy && Array.isArray(station.likedBy) && station.likedBy.includes(userEmail);
 
       if (isFavorite) {
-        await axios.delete(`https://localhost:3000/api/stations/${station._id}/unlike`, {
+        await axios.delete(`https://localhost:3001/api/stations/${station._id}/unlike`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           data: { user: userEmail },
         });
@@ -559,7 +559,7 @@ const Home = () => {
           )
         );
       } else {
-        await axios.post(`https://localhost:3000/api/stations/${station._id}/like`,
+        await axios.post(`https://localhost:3001/api/stations/${station._id}/like`,
           { user: userEmail },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );
@@ -654,7 +654,7 @@ const Home = () => {
       <div className="location-bar">
         <p>{loadingLocation ? 'Loading...' : userLocation} </p>
         <button className="refresh-location-button" onClick={fetchUserLocation}>
-          <svg xmlns="https://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
           </svg>
           <span>Refresh</span>
@@ -816,7 +816,7 @@ const Home = () => {
                     }}
                   >
                     <svg
-                      xmlns="https://www.w3.org/2000/svg"
+                      xmlns="http://www.w3.org/2000/svg"
                       width="24"
                       height="24"
                       viewBox="0 0 24 24"
@@ -977,11 +977,10 @@ const Home = () => {
                     )}
                   </div>
                 ) : (
-                  // תמונה סטטית כברירת מחדל
+                  // תמונה סטטית כברירת מחדל - מפה רגילה
                   <div
                     onClick={() => toggleFullMap(index)}
                     style={{
-                      backgroundImage: `url(https://www.openstreetmap.org/export/embed.html?bbox=${station.Longitude - 0.005},${station.Latitude - 0.005},${station.Longitude + 0.005},${station.Latitude + 0.005}&layer=mapnik)`,
                       backgroundColor: '#e9eef2',
                       backgroundSize: 'cover',
                       backgroundPosition: 'center',
@@ -995,7 +994,7 @@ const Home = () => {
                       position: 'relative'
                     }}
                   >
-                    {/* כאן נשים iframe של מפה במקום רק תמונה */}
+                    {/* מפה סטטית של OpenStreetMap */}
                     <iframe
                       src={`https://www.openstreetmap.org/export/embed.html?bbox=${station.Longitude - 0.005},${station.Latitude - 0.005},${station.Longitude + 0.005},${station.Latitude + 0.005}&layer=mapnik&marker=${station.Latitude},${station.Longitude}`}
                       style={{
