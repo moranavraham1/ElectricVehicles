@@ -623,6 +623,23 @@ const Home = () => {
     };
   }, []);
 
+
+  // Use effects
+  useEffect(() => {
+    fetchUserLocation();
+  }, []);
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+    };
+  }, []);
+
+
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
       <div className="logo-container">
@@ -1212,22 +1229,29 @@ const Home = () => {
         </div>
       )}
 
-      <div className="bottom-bar">
-        <button className="bottom-bar-button logout" onClick={handleLogout}>
-          <i className="fas fa-sign-out-alt"></i> Logout
-        </button>
-        <Link to="/personal-area" className="bottom-bar-button">
-          <i className="fas fa-user"></i> Personal Area
-        </Link>
-        <Link to="/favorites" className="bottom-bar-button">
-          <i className="fas fa-heart"></i> Favorites
-        </Link>
-        <Link to="/home" className="bottom-bar-button">
-          <i className="fas fa-home"></i> Home
-        </Link>
-        <Link to="/map" className="bottom-bar-button">
-          <i className="fas fa-map"></i> Map
-        </Link>
+      {/* Bottom Navigation */}
+      <div className="bottom-navigation">
+        <div className="nav-item active">
+          <HomeIcon />
+          <span>Home</span>
+        </div>
+        <div className="nav-item" onClick={() => navigate('/map')}>
+          <MapIcon />
+          <span>Map</span>
+        </div>
+        <div className="nav-item" onClick={() => navigate('/favorites')}>
+          <HeartIcon />
+          <span>Favorites</span>
+        </div>
+        <div className="nav-item" onClick={() => navigate('/personal-area')}>
+          <UserIcon />
+          <span>Profile</span>
+        </div>
+        <div className="nav-item" onClick={handleLogout}>
+          <LogoutIcon />
+          <span>Logout</span>
+        </div>
+
       </div>
     </div>
   );
