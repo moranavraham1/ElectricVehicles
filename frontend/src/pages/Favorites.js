@@ -148,7 +148,7 @@ const Favorites = () => {
             }
 
             try {
-                const response = await fetch('https://localhost:3001/api/stations', {
+                const response = await fetch('http://localhost:3001/api/stations', {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -208,7 +208,7 @@ const Favorites = () => {
         }
 
         try {
-            const response = await fetch(`https://localhost:3001/api/stations/${station._id}/unlike`, {
+            const response = await fetch(`http://localhost:3001/api/stations/${station._id}/unlike`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
