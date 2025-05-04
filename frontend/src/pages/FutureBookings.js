@@ -193,7 +193,7 @@ function FutureBookings() {
     try {
       const token = localStorage.getItem("token");
       const email = localStorage.getItem("loggedInUser");
-      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL || 'https://localhost:3001'}/api/appointments`, {
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/appointments`, {
         headers: { Authorization: `Bearer ${token}` },
         params: { email }
       });
@@ -211,7 +211,7 @@ function FutureBookings() {
       setLoading(true);
       const token = localStorage.getItem("token");
       const response = await axios.get(
-        `${process.env.REACT_APP_BACKEND_URL || 'https://localhost:3001'}/api/appointments/alternatives/${appointmentId}`,
+        `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/appointments/alternatives/${appointmentId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -440,7 +440,7 @@ function FutureBookings() {
       
       // Book the alternative slot
       await axios.post(
-        `${process.env.REACT_APP_BACKEND_URL || 'https://localhost:3001'}/api/appointments`,
+        `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:3001'}/api/appointments`,
         {
           email,
           stationName: alternative.stationName,

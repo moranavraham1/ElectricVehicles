@@ -174,7 +174,7 @@ const MapPage = () => {
   const [showLayersControl, setShowLayersControl] = useState(false);
   const layersControlRef = useRef(null);
 
-  const backendUrl = process.env.REACT_APP_BACKEND_URL || "https://localhost:3001";
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
   const handleLogout = () => {
     try {
