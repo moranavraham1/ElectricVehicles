@@ -159,7 +159,7 @@ html {
 
 /* Step title */
 .register-container .step-title {
-    color: #1E293B;
+    color: #000000;
     font-size: 1.5rem;
     font-weight: 600;
     margin-bottom: 25px;
@@ -183,6 +183,7 @@ html {
     min-height: 85px;
     /* Slightly increased fixed height */
     width: 100%;
+    opacity: 1 !important;
 }
 
 @keyframes fadeIn {
@@ -202,29 +203,32 @@ html {
     width: 100%;
     padding: 1rem 1.5rem;
     background: #FFFFFF;
-    border: 2px solid #E2E8F0;
+    border: 2.5px solid #3B82F6;
     border-radius: 12px;
     font-size: 1rem;
-    color: #1E293B;
+    color: #000000;
     transition: all 0.3s ease;
     position: relative;
     z-index: 1;
+    opacity: 1 !important;
 }
 
 .register-container input:focus {
     outline: none;
-    border-color: #3B82F6;
+    border-color: #1E293B;
     box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+    color: #000000;
 }
 
 .register-container input::placeholder {
-    color: #94A3B8;
+    color: #000 !important;
+    opacity: 1 !important;
 }
 
 /* Password hint */
 .password-hint {
     font-size: 12px;
-    color: #64748B;
+    color: #000000;
     margin-top: 6px;
     text-align: left;
     min-height: 18px;
@@ -266,6 +270,7 @@ html {
     transition: color 0.3s ease;
     font-weight: 500;
     min-height: 16px;
+    color: #000000;
 }
 
 /* Error Messages - fixed positioning */
@@ -290,38 +295,30 @@ html {
 /* Button group - positioned at bottom */
 .button-group {
     display: flex !important;
+    flex-direction: row !important;
     justify-content: space-between !important;
-    align-items: stretch !important;
+    align-items: center !important;
     margin-top: auto !important;
-    /* Push to bottom */
     margin-bottom: 1rem !important;
-    gap: 20px !important;
+    gap: 16px !important;
     flex-wrap: nowrap !important;
     width: 100%;
 }
 
-/* Common button styles - completely redefining to be more specific */
-.back-button,
-.next-button,
-.submit-button {
-    box-sizing: border-box !important;
-    height: 48px !important;
-    min-height: 48px !important;
-    line-height: 48px !important;
-    padding: 0 1.2rem !important;
-    border-radius: 12px !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    cursor: pointer !important;
-    transition: all 0.3s ease !important;
-    text-align: center !important;
-    display: flex !important;
+.button-group button,
+.button-group .back-button,
+.button-group .next-button,
+.button-group .submit-button {
+    display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
-    flex: 1 !important;
-    max-width: 120px !important;
+    flex: 0 1 48% !important;
+    max-width: 48% !important;
+    min-width: 0 !important;
     margin: 0 !important;
-    overflow: hidden !important;
+    width: 48% !important;
+    height: 48px !important;
+    box-sizing: border-box !important;
 }
 
 /* Back Button */
@@ -388,7 +385,7 @@ html {
 /* Register Link */
 .register-container p {
     margin-top: 2rem;
-    color: #64748B;
+    color: #000000;
     font-size: 0.95rem;
     text-align: center;
 }
@@ -521,16 +518,17 @@ html {
     }
 
     .button-group {
-        flex-direction: column;
-        gap: 15px;
-        align-items: stretch;
+        flex-direction: column !important;
+        gap: 15px !important;
+        align-items: stretch !important;
     }
-
-    .back-button,
-    .next-button,
-    .submit-button {
-        max-width: none;
-        width: 100%;
+    .button-group button,
+    .button-group .back-button,
+    .button-group .next-button,
+    .button-group .submit-button {
+        max-width: none !important;
+        width: 100% !important;
+        min-width: 0 !important;
     }
 
     /* Reset back button styling for mobile */
