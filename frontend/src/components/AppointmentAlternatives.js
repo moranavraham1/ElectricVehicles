@@ -2,6 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import '../designs/AppointmentAlternatives.css';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../components/common/Icons';
+import NavigationBar from '../components/common/NavigationBar';
+import Button from '../components/common/Button';
 
 // Icons
 const LocationIcon = () => (

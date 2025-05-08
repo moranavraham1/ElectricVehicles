@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../components/common/Icons';
+import NavigationBar from '../components/common/NavigationBar';
+import Button from '../components/common/Button';
 import '../designs/QueueManagement.css';
 
 // Admin icon

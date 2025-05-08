@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "../designs/ChangePassword.css";
+import axios from 'axios';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../components/common/Icons';
+import NavigationBar from '../components/common/NavigationBar';
+import Button from '../components/common/Button';
 
 // SVG Icons
 const LockIcon = () => (
