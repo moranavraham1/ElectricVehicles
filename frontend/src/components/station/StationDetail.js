@@ -1,6 +1,7 @@
 import React from 'react';
-import Button from '../common/Button';
-import { HeartIcon, LocationIcon, ChargingIcon, CalendarIcon } from '../common/Icons';
+import { Link } from 'react-router-dom';
+import Button from '../components/common/Button';
+import { HeartIcon, LocationIcon, ChargingIcon, CalendarIcon } from '../components/common/Icons';
 import wazeIcon from '../../assets/WAZE.jpg';
 
 /**

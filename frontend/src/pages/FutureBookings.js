@@ -5,6 +5,9 @@ import "../designs/FutureBookings.css";
 import AppointmentStatus from "../components/AppointmentStatus";
 import AppointmentAlternatives from "../components/AppointmentAlternatives";
 import axios from "axios";
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../components/common/Icons';
+import NavigationBar from '../components/common/NavigationBar';
+import Button from '../components/common/Button';
 
 
 // SVG Icons

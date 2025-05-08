@@ -1,4 +1,6 @@
 import React from 'react';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from './Icons';
+import NavigationBar from './NavigationBar';
 
 /**
  * Reusable button component with customizable styles

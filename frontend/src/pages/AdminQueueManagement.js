@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import QueueManagement from '../components/QueueManagement';
+import axios from 'axios';
 import '../designs/AdminQueueManagement.css';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../components/common/Icons';
+import NavigationBar from '../components/common/NavigationBar';
+import Button from '../components/common/Button';
+import QueueManagement from '../components/QueueManagement';
 
 const BackIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

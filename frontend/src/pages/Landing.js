@@ -3,6 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import '../designs/Landing.css';
 import logo from '../assets/logo.jpg';
 import { FaArrowUp } from 'react-icons/fa';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../components/common/Icons';
+import NavigationBar from '../components/common/NavigationBar';
+import Button from '../components/common/Button';
 
 // SVG Icons
 const SearchIcon = () => (

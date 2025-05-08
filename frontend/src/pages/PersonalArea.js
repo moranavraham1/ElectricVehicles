@@ -4,44 +4,12 @@ import FutureBookings from "./FutureBookings";
 import ChangePassword from "./ChangePassword";
 import "../designs/PersonalArea.css";
 import logo from "../assets/logo.jpg";
+import axios from 'axios';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../components/common/Icons';
+import NavigationBar from '../components/common/NavigationBar';
+import Button from '../components/common/Button';
 
 // SVG Icons
-const HomeIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-    <polyline points="9 22 9 12 15 12 15 22"></polyline>
-  </svg>
-);
-
-const MapIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
-    <line x1="8" y1="2" x2="8" y2="18"></line>
-    <line x1="16" y1="6" x2="16" y2="22"></line>
-  </svg>
-);
-
-const UserIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-    <circle cx="12" cy="7" r="4"></circle>
-  </svg>
-);
-
-const HeartIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-  </svg>
-);
-
-const LogoutIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-    <polyline points="16 17 21 12 16 7"></polyline>
-    <line x1="21" y1="12" x2="9" y2="12"></line>
-  </svg>
-);
-
 const EditIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -88,7 +56,6 @@ const PasswordIcon = () => (
   </svg>
 );
 
-
 const AdminIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -97,7 +64,6 @@ const AdminIcon = () => (
     <line x1="23" y1="8" x2="18" y2="13"></line>
   </svg>
 );
-
 
 function PersonalArea() {
   const [userDetails, setUserDetails] = useState(null);
@@ -110,7 +76,6 @@ function PersonalArea() {
 
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
-
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -129,7 +94,6 @@ function PersonalArea() {
       showToast('Logout failed. Please try again.', 'error');
     }
   };
-
 
   useEffect(() => {
     const fetchUserDetails = async () => {
@@ -190,17 +154,14 @@ function PersonalArea() {
       const response = await fetch(
         `${process.env.REACT_APP_BACKEND_URL}/api/auth/update-details`,
         {
-
           method: "PUT",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
-
           },
           body: JSON.stringify(updatedDetails),
         }
       );
-
 
       if (!response.ok) throw new Error("Failed to update details");
 
@@ -217,17 +178,11 @@ function PersonalArea() {
 
   return (
     <div className="personal-area-page">
-
-
-      {/* 🔹 סרגל עליון עם לוגו */}
       <div className="top-bar">
         <img src={logo} alt="EVision Logo" className="logo" />
       </div>
 
-      {/* 🔹 תוכן ראשי */}
-
-      {/* Toast Notification */}
-      <div className={`toast ${toast.type} ${toast.show ? 'show' : ''}`}>
+      <div className="toast">
         {toast.type === 'success' ? (
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -245,9 +200,7 @@ function PersonalArea() {
 
       <h1>Personal Area</h1>
 
-
       <div className="content-container">
-
         <nav className="tab-navigation">
           <button
             className={view === "profile" ? "active" : ""}
@@ -268,8 +221,6 @@ function PersonalArea() {
             <PasswordIcon /> Password
           </button>
 
-          
-          {/* Admin section */}
           {isAdmin && (
             <button
               className={view === "admin" ? "active" : ""}
@@ -280,17 +231,14 @@ function PersonalArea() {
           )}
         </nav>
 
-
         <div className="tab-content">
           {view === "profile" && (
             <>
               {editMode ? (
                 <div className="editable-user-info">
-
                   <label htmlFor="firstName">First Name:</label>
                   <input
                     id="firstName"
-
                     type="text"
                     value={updatedDetails.firstName || ""}
                     onChange={(e) => setUpdatedDetails({ ...updatedDetails, firstName: e.target.value })}
@@ -300,7 +248,6 @@ function PersonalArea() {
                   <label htmlFor="lastName">Last Name:</label>
                   <input
                     id="lastName"
-
                     type="text"
                     value={updatedDetails.lastName || ""}
                     onChange={(e) => setUpdatedDetails({ ...updatedDetails, lastName: e.target.value })}
@@ -310,7 +257,6 @@ function PersonalArea() {
                   <label htmlFor="email">Email:</label>
                   <input
                     id="email"
-
                     type="email"
                     value={updatedDetails.email || ""}
                     readOnly
@@ -320,7 +266,6 @@ function PersonalArea() {
                   <label htmlFor="phone">Phone:</label>
                   <input
                     id="phone"
-
                     type="text"
                     value={updatedDetails.phone || ""}
                     onChange={(e) => setUpdatedDetails({ ...updatedDetails, phone: e.target.value })}
@@ -352,8 +297,6 @@ function PersonalArea() {
           {view === "bookings" && <FutureBookings />}
           {view === "password" && <ChangePassword />}
 
-          
-          {/* Admin Panel View */}
           {view === "admin" && isAdmin && (
             <div className="admin-panel">
               <h2>Admin Controls</h2>
@@ -367,14 +310,11 @@ function PersonalArea() {
                     <p>Approve or reject appointment requests, and manage charging station queues.</p>
                   </div>
                 </div>
-                
-                {/* Add more admin options here as needed */}
               </div>
             </div>
           )}
         </div>
       </div>
-
 
       <div className="bottom-bar">
         <Link to="/home" className="bottom-bar-button">

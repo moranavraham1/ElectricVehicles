@@ -1,4 +1,6 @@
 import React from 'react';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../common/Icons';
+import NavigationBar from '../common/NavigationBar';
 import Button from '../common/Button';
 
 /**

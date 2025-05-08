@@ -4,6 +4,10 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../designs/login.css';
 import logo from '../assets/logo.jpg';
+import axios from 'axios';
+import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon } from '../components/common/Icons';
+import NavigationBar from '../components/common/NavigationBar';
+import Button from '../components/common/Button';
 
 function Login() {
   const [email, setEmail] = useState('');

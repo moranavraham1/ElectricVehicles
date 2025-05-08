@@ -34,7 +34,7 @@ const NavigationBar = ({
   };
 
   return (
-    <nav className="bottom-nav">
+    <nav className="bottom-navigation">
       <Link to="/" className={`nav-item ${activePage === 'home' ? 'active' : ''}`}>
         <HomeIcon />
         <span>Home</span>
@@ -59,10 +59,6 @@ const NavigationBar = ({
         <LogoutIcon />
         <span>Logout</span>
       </button>
-      
-      <div className="logo-container">
-        <img src={logo} alt="Electric Vehicle Charging" className="app-logo" />
-      </div>
     </nav>
   );
 };
