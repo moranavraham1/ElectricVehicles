@@ -1,12 +1,12 @@
 const mongoose = require('./db');
 const cors = require('cors');
 const authRoutes = require('./authRoutes');
-const osmRoutes = require('./osmRoutes'); 
+const osmRoutes = require('./osmRoutes');
 const stationsRoutes = require('./routes/stations');
-const bookingRoutes = require('./routes/bookings'); // ✅ הוספת נתיב הזמנות
+const bookingRoutes = require('./routes/bookings');
 require('dotenv').config();
 const express = require('express');
-const authMiddleware = require('./authMiddleware'); 
+const authMiddleware = require('./authMiddleware');
 const app = express();
 const dotenv = require('dotenv');
 
@@ -18,11 +18,10 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// ✅ הוספת ניהול נתיבים
 app.use('/api/auth', authRoutes);
 app.use('/api/osm', osmRoutes);
 app.use('/api/stations', stationsRoutes);
-app.use('/api/bookings', authMiddleware, bookingRoutes); // ✅ הוספת ניהול הזמנות
+app.use('/api/bookings', authMiddleware, bookingRoutes);
 
 app.get('/', (req, res) => {
   res.status(200).json({ message: 'Server is up' });

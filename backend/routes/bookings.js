@@ -1,11 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const Booking = require('../models/Booking'); 
-const authMiddleware = require('../authMiddleware'); // אבטחת הנתיבים
+const Booking = require('../models/Booking');
+const Station = require('../Station');
+const authMiddleware = require('../authMiddleware');
 const nodemailer = require('nodemailer');
+const ActiveCharging = require('../models/ActiveCharging');
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL,
+    pass: process.env.EMAIL_PASSWORD,
+  },
+});
+router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
+  try {
+    const { station, date } = req.params;
+    const trimmedStation = station.trim();
 
+    const queue = await Booking.find({ station: trimmedStation, date });
+    const sortedQueue = queue.sort((a, b) => {
+      if (b.urgencyLevel !== a.urgencyLevel) {
+        return b.urgencyLevel - a.urgencyLevel;
+      }
+      return b.estimatedChargeTime - a.estimatedChargeTime;
+    });
 
-// 📌 שליפת כל ההזמנות של המשתמש המחובר
+    res.json(sortedQueue);
+  } catch (error) {
+    console.error('Error fetching queue:', error);
+    res.status(500).json({ message: 'Error fetching queue' });
+  }
+});
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const userEmail = req.user.email;
@@ -16,32 +42,47 @@ router.get('/', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error fetching bookings' });
   }
 });
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL,
-    pass: process.env.EMAIL_PASSWORD,
-  },
-});
 
-// 📌 בדיקת זמינות של תור
-router.post('/check-availability', async (req, res) => {
+router.post("/check-availability", async (req, res) => {
   try {
     const { station, date } = req.body;
-    
-    // רשימת שעות זמינות לדוגמה
-    const allTimes = ["08:00", "09:00", "10:00", "11:00", "12:00", "14:00", "15:00","16:00","17:00","18:00","19:00","20:00","21:00","22:00","23:00","00:00","01:00","02:00","03:00","04:00","05:00","06:00","07:00"];
-    const bookedTimes = await Booking.find({ station, date }).distinct("time");
+    const trimmedStation = station.trim();
 
-    const availableTimes = allTimes.filter(time => !bookedTimes.includes(time));
+    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
+    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
 
-    res.json({ availableTimes });
+    const bookings = await Booking.find({ station: trimmedStation, date });
+    const activeCharging = await ActiveCharging.find({ station: trimmedStation, date });
+    const bookingsPerTime = {};
+    for (const b of bookings) {
+      bookingsPerTime[b.time] = (bookingsPerTime[b.time] || 0) + 1;
+    }
+    for (const c of activeCharging) {
+      bookingsPerTime[c.time] = (bookingsPerTime[c.time] || 0) + 1;
+    }
+
+    const availableTimes = [];
+    for (let hour = 0; hour < 24; hour++) {
+      for (let minute = 0; minute < 60; minute += 20) {
+        const hh = hour.toString().padStart(2, '0');
+        const mm = minute.toString().padStart(2, '0');
+        const timeSlot = `${hh}:${mm}`;
+
+        const used = bookingsPerTime[timeSlot] || 0;
+        if (used < maxSlots) {
+          availableTimes.push(timeSlot);
+        }
+      }
+    }
+
+    res.json({ availableTimes, bookingsPerTime, maxCapacity: maxSlots });
   } catch (error) {
     console.error("Error checking availability:", error);
-    res.status(500).json({ message: "Error checking availability" });
+    res.status(500).json({ message: "Server error", error });
   }
 });
-// פונקציה לשליחת מייל אישור הזמנה
+
+
 const sendBookingConfirmationEmail = async (email, station, date, time) => {
   try {
     const mailOptions = {
@@ -58,29 +99,37 @@ const sendBookingConfirmationEmail = async (email, station, date, time) => {
   }
 };
 
-// 📌 יצירת הזמנה חדשה
+
 router.post('/book', authMiddleware, async (req, res) => {
   try {
-    const { station, date, time } = req.body;
+    const { station, date, time, urgencyLevel, estimatedChargeTime } = req.body;
     const userEmail = req.user.email;
+    const trimmedStation = station.trim();
 
-    const existingBooking = await Booking.findOne({ station, date, time });
+    const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time });
     if (existingBooking) {
-      return res.status(400).json({ message: 'This time slot is already booked.' });
+      return res.status(400).json({ message: 'You already have a booking for this time slot.' });
     }
 
-    const newBooking = new Booking({ user: userEmail, station, date, time });
+
+    const newBooking = new Booking({
+      user: userEmail,
+      station: trimmedStation,
+      date,
+      time,
+      urgencyLevel,
+      estimatedChargeTime,
+      createdAt: new Date(),
+    });
+
     await newBooking.save();
-    console.log("✅ Booking saved to database");
-    await sendBookingConfirmationEmail(userEmail, station, date, time);
-    res.status(201).json({ message: 'Booking successful!' });
+    await sendBookingConfirmationEmail(userEmail, trimmedStation, date, time);
+    res.status(201).json({ message: 'Booking received! Allocation will be done before the charging time.' });
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({ message: 'Error creating booking' });
   }
 });
-
-// 📌 מחיקת הזמנה
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);
@@ -91,24 +140,129 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     if (booking.user !== req.user.email) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
-    const { user, station, date, time } = booking;
 
+    const now = new Date();
+    const bookingTime = new Date(`${booking.date}T${booking.time}:00`);
+    if (bookingTime < now) {
+      await booking.deleteOne();
+      console.log(`🗑️ Past booking deleted (no email): ${booking.station} on ${booking.date} at ${booking.time}`);
+      return res.json({ message: 'Past booking deleted.' });
+    }
 
     await booking.deleteOne();
-    console.log(`🗑️ Booking deleted: ${station} on ${date} at ${time}`);
-    await transporter.sendMail({
-      from: process.env.EMAIL,
-      to: user,
-      subject: 'Appointment Cancelled',
-      text: `Your appointment at ${station} on ${date} at ${time} has been cancelled.`,
-    });
+    console.log(`🗑️ Booking deleted: ${booking.station} on ${booking.date} at ${booking.time}`);
+    if (booking.user) {
+      await transporter.sendMail({
+        from: process.env.EMAIL,
+        to: booking.user,
+        subject: 'Charging Appointment Approved',
+        text: `✅ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been approved.`,
+      });
+    } else {
+      console.log(`No email address found for booking at ${booking.station}`);
+    }
 
-    console.log(`📩 Cancellation email sent to ${user}`);
+    console.log(`📩 Cancellation email sent to ${booking.user}`);
 
     res.json({ message: 'Booking cancelled and email sent.' });
   } catch (error) {
     console.error('Error canceling booking:', error);
     res.status(500).json({ message: 'Error canceling booking' });
+  }
+});
+
+
+
+
+router.post('/start-charging', authMiddleware, async (req, res) => {
+  try {
+    const { station, date, time } = req.body;
+    const userEmail = req.user.email;
+    const trimmedStation = station.trim();
+
+    const now = new Date();
+    const slotDateTime = new Date(`${date}T${time}:00`);
+    if (slotDateTime < now) {
+      return res.status(400).json({ message: ' appointment has passed – charging cannot be started ⚠️' });
+    }
+
+    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
+    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
+    const bookingCount = await Booking.countDocuments({ station: trimmedStation });
+    const activeChargingCount = await ActiveCharging.countDocuments({ station: trimmedStation });
+
+    if (bookingCount + activeChargingCount >= maxSlots) {
+      return res.status(400).json({ message: 'No available slots for this station.' });
+    }
+
+    const newCharge = new ActiveCharging({ user: userEmail, station: trimmedStation, date, time });
+    await newCharge.save();
+    res.status(201).json({ message: 'Charging started!' });
+  } catch (error) {
+    console.error('Error starting charging:', error);
+    res.status(500).json({ message: 'Error starting charging' });
+  }
+});
+
+router.post('/stop-charging', authMiddleware, async (req, res) => {
+  try {
+    const userEmail = req.user.email;
+    const { station } = req.body;
+    const trimmedStation = station.trim();
+    await ActiveCharging.deleteOne({ user: userEmail, station: trimmedStation });
+
+    res.json({ message: 'Charging stopped!' });
+  } catch (error) {
+    console.error('Error stopping charging:', error);
+    res.status(500).json({ message: 'Error stopping charging' });
+  }
+});
+
+router.post('/assign/:station/:date/:time', authMiddleware, async (req, res) => {
+  try {
+    const { station, date, time } = req.params;
+    const trimmedStation = station.trim();
+
+    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
+    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
+
+    const candidates = await Booking.find({ station: trimmedStation, date, time });
+
+    const sorted = candidates.sort((a, b) => {
+      const scoreA = (a.urgencyLevel * 2) + (a.estimatedChargeTime / 10) + ((a.rejectionCount || 0) * 1.5);
+      const scoreB = (b.urgencyLevel * 2) + (b.estimatedChargeTime / 10) + ((b.rejectionCount || 0) * 1.5);
+      return scoreB - scoreA;
+    });
+
+    const approved = sorted.slice(0, maxSlots);
+    const rejected = sorted.slice(maxSlots);
+
+    for (const booking of approved) {
+      await Booking.updateOne(
+        { _id: booking._id },
+        { $set: { status: 'approved' } }
+      );
+
+      await transporter.sendMail({
+        from: process.env.EMAIL,
+        to: booking.user,
+        subject: 'Charging Appointment Approved',
+        text: `✅ Your charging appointment at ${booking.station} on ${booking.date} at ${booking.time} has been approved.`,
+      });
+    }
+
+    for (const booking of rejected) {
+      const newRejectionCount = (booking.rejectionCount || 0) + 1;
+      await Booking.updateOne(
+        { _id: booking._id },
+        { $set: { status: 'rejected', rejectionCount: newRejectionCount } }
+      );
+    }
+
+    res.json({ approved, rejected });
+  } catch (error) {
+    console.error('Error assigning LLLP queue:', error);
+    res.status(500).json({ message: 'Error in dynamic assignment' });
   }
 });
 
