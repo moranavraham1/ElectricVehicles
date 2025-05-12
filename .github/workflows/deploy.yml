@@ -1,0 +1,27 @@
+
+# .github/workflows/deploy.yml
+name: Deploy to Render
+
+on:
+  pull_request:
+    types:
+      - closed        # trigger when a PR is closed (merged or just closed) :contentReference[oaicite:0]{index=0}
+    branches:
+      - main          # only for PRs targeting the main branch :contentReference[oaicite:1]{index=1}
+
+jobs:
+  deploy:
+    if: ${{ github.event.pull_request.merged == true }}   # only run when the PR was merged :contentReference[oaicite:2]{index=2}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy backend to Render
+        run: |
+          curl --fail -X POST "${{ secrets.render_backend_deploy }}"   # uses your stored Render backend hook :contentReference[oaicite:3]{index=3}
+
+      - name: Deploy frontend to Render
+        run: |
+          curl --fail -X POST "${{ secrets.render_frontend_deploy }}"  # uses your stored Render frontend hook :contentReference[oaicite:4]{index=4}
