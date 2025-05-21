@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Tooltip, ZoomControl, LayersControl } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Tooltip, ZoomControl, LayersControl, Popup } from "react-leaflet";
 import { Link, useNavigate } from "react-router-dom";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
@@ -704,34 +704,34 @@ const MapPage = () => {
                   position={[station.Latitude, station.Longitude]}
                   icon={chargingIconGreen}
                   eventHandlers={{
-                    mouseover: () => setHoveredStationId(station._id),
-                    mouseout: () => setHoveredStationId(null),
+                    mouseover: (e) => {
+                      setHoveredStationId(station._id);
+                      e.target.openPopup();
+                    },
+                    mouseout: (e) => {
+                      // Keep popup open on mouseout, it will close when clicking away
+                    },
                   }}
                 >
-                  {hoveredStationId === station._id && (
-                    <Tooltip direction="top" offset={[0, -30]} permanent interactive>
-                      <div>
-                        <strong>{station["Station Name"]}</strong>
-                        {station.Address}, {station.City}
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2px" }}>
-                          <a
-                            href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="waze-navigation-link"
-                          >
-                            <img src={WazeLogo} alt="Navigate with Waze" />
-                          </a>
-                          <button
-                            onClick={() => handleBookAppointment(station)}
-                            className="tooltip-appointment-button"
-                          >
-                            Book Appointment
-                          </button>
-                        </div>
-                      </div>
-                    </Tooltip>
-                  )}
+                  <Popup>
+                    <div>
+                      <h3>{station['Station Name']}</h3>
+                      <p>{station.Address}</p>
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "10px" }}>
+                      <a
+                        href={`https://waze.com/ul?ll=${station.Latitude},${station.Longitude}&from=now&navigate=yes`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="waze-navigation-link"
+                      >
+                        <img src={WazeLogo} alt="Navigate with Waze" style={{ width: '30px', height: '30px' }}/>
+                      </a>
+                      <Button onClick={() => handleBookAppointment(station)}>
+                        Book Appointment
+                      </Button>
+                    </div>
+                  </Popup>
                 </Marker>
               ))}
               <ZoomControl position="bottomright" />
