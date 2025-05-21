@@ -104,7 +104,7 @@ function Landing() {
             </nav>
 
             <div className="hero-content">
-                <h1>Empowering Your Electric Journey</h1>
+                <h1>Empowering -----Your Electric Journey</h1>
                 <h2>Smart Charging Solutions for Electric Vehicles</h2>
                 <h3>Find, Book and Charge with Ease</h3>
                 <Link to="/login" className="start-button" style={{ background: '#1E293B' }}>Start Charging →</Link>
