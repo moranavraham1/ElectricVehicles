@@ -619,7 +619,7 @@ const Home = () => {
       <div className="location-bar">
         <p>{loadingLocation ? 'Loading...' : userLocation} </p>
         <button className="refresh-location-button" onClick={fetchUserLocation}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg xmlns="https://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
           </svg>
           <span>Refresh</span>
@@ -781,14 +781,11 @@ const Home = () => {
                     }}
                   >
                     <svg
-                      xmlns="http://www.w3.org/2000/svg"
                       width="24"
                       height="24"
                       viewBox="0 0 24 24"
-                      fill={station.likedBy && localStorage.getItem('loggedInUser') ?
-                        (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : 'none') : 'none'}
-                      stroke={station.likedBy && localStorage.getItem('loggedInUser') ?
-                        (station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase() || '') ? '#ef4444' : '#777777') : '#777777'}
+                      fill="none"
+                      stroke="currentColor"
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"

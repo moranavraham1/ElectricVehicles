@@ -725,7 +725,7 @@ const MapPage = () => {
                         rel="noopener noreferrer"
                         className="waze-navigation-link"
                       >
-                        <img src={WazeLogo} alt="Navigate with Waze" style={{ width: '30px', height: '30px' }}/>
+                        <img src={WazeLogo} alt="Navigate with Waze" style={{ width: '30px', height: '30px' }} />
                       </a>
                       <Button onClick={() => handleBookAppointment(station)}>
                         Book Appointment

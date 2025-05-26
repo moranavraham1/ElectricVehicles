@@ -1,5 +1,5 @@
 /* PersonalArea.css - Matching login style with blue colors */
-@import url('http://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
   /* Color palette (matching login page exactly) */
@@ -616,11 +616,11 @@ h1::after {
     margin-bottom: 4px;
     font-weight: 700;
   }
-  
+
   .editable-user-info {
     padding: 1rem;
   }
-  
+
   .editable-user-info input {
     padding: 0.75rem 1rem;
 
