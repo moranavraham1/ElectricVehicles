@@ -7,9 +7,9 @@ require('dotenv').config();
 let transporter;
 try {
   // Check if email credentials are available
-  if (!process.env.EMAIL || !process.env.EMAIL_PASSWORD) {
-    console.warn('⚠️ EMAIL or EMAIL_PASSWORD environment variables are missing! Email notifications will be logged to console only.');
-    
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    console.warn('⚠️ EMAIL_USER or EMAIL_PASS environment variables are missing! Email notifications will be logged to console only.');
+
     // Create a mock transporter that just logs to console
     transporter = {
       sendMail: async (mailOptions) => {
@@ -24,25 +24,27 @@ try {
   } else {
     // Create real transporter
     transporter = nodemailer.createTransport({
-      service: 'gmail',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // Use TLS
       auth: {
-        user: process.env.EMAIL,
-        pass: process.env.EMAIL_PASSWORD,
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
       },
     });
-    
-    // Verify email configuration
-    transporter.verify(function(error, success) {
+
+    // Verify the SMTP connection configuration
+    transporter.verify(function (error, success) {
       if (error) {
-        console.error('❌ Email configuration error:', error);
+        console.error('SMTP connection error:', error);
       } else {
-        console.log('✅ Email service is ready to send messages');
+        console.log('- SMTP server connection successful');
       }
     });
   }
 } catch (error) {
   console.error('❌ Failed to initialize email transporter:', error);
-  
+
   // Fallback to console logging
   transporter = {
     sendMail: async (mailOptions) => {
@@ -61,28 +63,28 @@ const isWithinOneHour = (appointmentDateTime) => {
   const now = new Date();
   const oneHourBefore = new Date(appointmentDateTime);
   oneHourBefore.setHours(oneHourBefore.getHours() - 1);
-  
+
   // Debug log to track all times
   console.log(`Checking appointment time: ${appointmentDateTime.toISOString()}`);
   console.log(`Current time: ${now.toISOString()}, One hour before appointment: ${oneHourBefore.toISOString()}`);
-  
+
   // Calculate minutes difference
   const diffMs = Math.abs(oneHourBefore - now);
   const diffMinutes = Math.floor(diffMs / 60000);
-  
+
   // Process appointments within a 5-minute window around the one-hour mark
   // This ensures we don't miss processing due to scheduler timing
   const isAroundOneHourMark = diffMinutes <= 5;
-  
+
   // For logging purposes
   const totalDiffMs = appointmentDateTime - now;
   const hoursUntilAppointment = Math.floor(totalDiffMs / (1000 * 60 * 60));
   const minutesUntilAppointment = Math.floor((totalDiffMs % (1000 * 60 * 60)) / (1000 * 60));
-  
+
   if (isAroundOneHourMark) {
     console.log(`🔔 PROCESSING: Appointment at ${appointmentDateTime.toISOString()} is within the one-hour window (${hoursUntilAppointment}h ${minutesUntilAppointment}m until appointment)`);
   }
-  
+
   return isAroundOneHourMark;
 };
 
@@ -137,38 +139,38 @@ const processAppointments = async () => {
   try {
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
-    
+
     console.log(`🕒 Running processAppointments at ${now.toISOString()}`);
-    
+
     // Find all pending bookings for today and future dates
-    const pendingBookings = await Booking.find({ 
+    const pendingBookings = await Booking.find({
       status: 'pending',
       date: { $gte: todayStr }
     });
-    
+
     console.log(`Found ${pendingBookings.length} pending bookings to check`);
-    
+
     // Group bookings by station, date, and time
     const bookingGroups = {};
     let missedBookings = 0;
-    
+
     for (const booking of pendingBookings) {
       const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
       const oneHourBefore = new Date(bookingDateTime);
       oneHourBefore.setHours(oneHourBefore.getHours() - 1);
-      
+
       // Also check for bookings that have passed the 1-hour mark but haven't been processed
       const isPastOneHourMark = now > oneHourBefore && now < bookingDateTime;
-      
+
       // Check if booking is exactly at the one-hour mark or has passed it
       if (isWithinOneHour(bookingDateTime) || isPastOneHourMark) {
         if (isPastOneHourMark && !isWithinOneHour(bookingDateTime)) {
           missedBookings++;
           console.log(`⚠️ Found missed booking for ${booking.user} at ${bookingDateTime.toISOString()}`);
         }
-        
+
         const groupKey = `${booking.station}|${booking.date}|${booking.time}`;
-        
+
         if (!bookingGroups[groupKey]) {
           bookingGroups[groupKey] = {
             station: booking.station,
@@ -178,46 +180,46 @@ const processAppointments = async () => {
             bookings: []
           };
         }
-        
+
         bookingGroups[groupKey].bookings.push(booking);
       }
     }
-    
+
     if (missedBookings > 0) {
       console.log(`⚠️ Found ${missedBookings} bookings that passed the 1-hour mark without processing`);
     }
-    
+
     // Process each group of bookings
     for (const groupKey in bookingGroups) {
       const group = bookingGroups[groupKey];
-      
+
       if (group.bookings.length === 0) continue;
-      
+
       console.log(`⚡ Processing group: ${group.station} on ${group.date} at ${group.time}`);
       console.log(`📊 Station capacity: ${group.maxCapacity}, Total bookings: ${group.bookings.length}`);
-      
+
       // Calculate LLEP and aging metrics for each booking
       const bookingsWithPriority = group.bookings.map(booking => {
         // Calculate waiting time (used for aging)
         const createdAt = new Date(booking.createdAt);
         const waitingHours = (now - createdAt) / (1000 * 60 * 60);
-        
+
         // Calculate laxity (deadline - processing time)
         const processingTime = booking.estimatedChargeTime || 30; // In minutes
         const deadlineTime = 60; // Default deadline is 60 minutes
         const laxity = Math.max(1, deadlineTime - processingTime);
-        
+
         // LLEP algorithm prioritizes tasks with lowest laxity
         // Aging increases priority based on waiting time
         // Battery level gives priority to lower battery vehicles
-        
+
         // The lower this score, the higher the priority
         const priorityScore = (
           laxity - // Base priority is laxity (lower is higher priority)
           (waitingHours * 2) - // Aging factor (longer wait reduces score)
           ((100 - (booking.currentBattery || 50)) / 10) // Battery factor (lower battery reduces score)
         );
-        
+
         return {
           ...booking.toObject(),
           laxity,
@@ -225,32 +227,32 @@ const processAppointments = async () => {
           priorityScore
         };
       });
-      
+
       // Sort bookings by priority score (lower is better)
       bookingsWithPriority.sort((a, b) => a.priorityScore - b.priorityScore);
-      
+
       // Log the sorted bookings
       console.log("📋 Prioritized bookings:");
       bookingsWithPriority.forEach((booking, idx) => {
-        console.log(`${idx+1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Laxity: ${booking.laxity}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h`);
+        console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Laxity: ${booking.laxity}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h`);
       });
-      
+
       // Use station capacity
       const stationCapacity = group.maxCapacity;
-      
+
       // Take top N bookings based on capacity
       const approvedBookings = bookingsWithPriority.slice(0, stationCapacity);
       const rejectedBookings = bookingsWithPriority.slice(stationCapacity);
-      
+
       // Process approved bookings
       for (const b of approvedBookings) {
         const booking = await Booking.findById(b._id);
         if (!booking) continue;
-        
+
         booking.status = 'approved';
         booking.approvalDate = new Date();
         await booking.save();
-        
+
         // Send approval email with HTML styling
         const approvalMailOptions = {
           from: process.env.EMAIL,
@@ -474,7 +476,7 @@ const processAppointments = async () => {
           </html>
           `
         };
-        
+
         console.log(`✅ Approving booking for ${booking.user}`);
         try {
           await transporter.sendMail(approvalMailOptions);
@@ -483,19 +485,19 @@ const processAppointments = async () => {
           console.error(`❌ Failed to send approval email to ${booking.user}:`, error);
         }
       }
-      
+
       // Process rejected bookings
       for (const b of rejectedBookings) {
         const booking = await Booking.findById(b._id);
         if (!booking) continue;
-        
+
         // Find alternative options
         const alternatives = await findNearbyAlternatives(booking);
-        
+
         booking.status = 'rejected';
         booking.rejectionReason = 'Station at full capacity';
         await booking.save();
-        
+
         // Prepare alternative HTML content
         let alternativesHTML = '';
         if (alternatives.length > 0) {
@@ -504,7 +506,7 @@ const processAppointments = async () => {
             <p><strong>Available Alternatives:</strong></p>
             <ul style="padding-left: 20px;">
           `;
-          
+
           alternatives.forEach((alt, index) => {
             alternativesHTML += `
               <li style="margin-bottom: 10px;">
@@ -514,7 +516,7 @@ const processAppointments = async () => {
               </li>
             `;
           });
-          
+
           alternativesHTML += `
             </ul>
           </div>
@@ -524,7 +526,7 @@ const processAppointments = async () => {
           <p style="margin-top: 15px; color: #888;">No alternative bookings found at this time.</p>
           `;
         }
-        
+
         // Send rejection email with HTML styling
         const rejectionMailOptions = {
           from: process.env.EMAIL,
@@ -741,7 +743,7 @@ const processAppointments = async () => {
           </html>
           `
         };
-        
+
         console.log(`❌ Rejecting booking for ${booking.user}`);
         try {
           await transporter.sendMail(rejectionMailOptions);
@@ -763,7 +765,7 @@ const handleLateRegistration = async (booking) => {
     const now = new Date();
     const oneHourBefore = new Date(bookingDateTime);
     oneHourBefore.setHours(oneHourBefore.getHours() - 1);
-    
+
     // Check if registration is after the 1-hour cutoff
     if (now > oneHourBefore) {
       // Get approved bookings count
@@ -773,13 +775,13 @@ const handleLateRegistration = async (booking) => {
         time: booking.time,
         status: 'approved'
       });
-      
+
       // Check if there's still capacity available (assume max 2)
       if (approvedCount < 2) {
         // Automatically approve if there's still room
         booking.status = 'approved';
         booking.approvalDate = new Date();
-        
+
         // Send approval email with HTML styling
         const approvalMailOptions = {
           from: process.env.EMAIL,
@@ -927,13 +929,13 @@ const handleLateRegistration = async (booking) => {
           </html>
           `
         };
-        
+
         transporter.sendMail(approvalMailOptions);
       } else {
         // Mark as late registration
         booking.status = 'rejected';
         booking.rejectionReason = 'Late registration - station full';
-        
+
         // Send late registration email with HTML styling
         const lateMailOptions = {
           from: process.env.EMAIL,
@@ -1081,10 +1083,10 @@ const handleLateRegistration = async (booking) => {
           </html>
           `
         };
-        
+
         transporter.sendMail(lateMailOptions);
       }
-      
+
       await booking.save();
     }
   } catch (error) {
@@ -1095,28 +1097,28 @@ const handleLateRegistration = async (booking) => {
 // Manual function to check all pending bookings
 const manualCheckAllPendingAppointments = async () => {
   console.log('🔍 Running manual check of all pending bookings');
-  
+
   try {
     const now = new Date();
     const pendingBookings = await Booking.find({ status: 'pending' });
-    
+
     console.log(`Found ${pendingBookings.length} total pending bookings`);
-    
+
     const bookingsToProcess = pendingBookings.filter(booking => {
       const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
       const oneHourBefore = new Date(bookingDateTime);
       oneHourBefore.setHours(oneHourBefore.getHours() - 1);
-      
+
       // Check if we're past the one-hour mark but before the actual booking
       return now >= oneHourBefore && now < bookingDateTime;
     });
-    
+
     console.log(`Found ${bookingsToProcess.length} bookings that should be processed immediately`);
-    
+
     if (bookingsToProcess.length > 0) {
       // Group by station, date, and time
       const groups = {};
-      
+
       for (const booking of bookingsToProcess) {
         const key = `${booking.station}|${booking.date}|${booking.time}`;
         if (!groups[key]) {
@@ -1124,32 +1126,32 @@ const manualCheckAllPendingAppointments = async () => {
         }
         groups[key].push(booking);
       }
-      
+
       console.log(`Grouped into ${Object.keys(groups).length} unique time slots`);
-      
+
       // Process each group
       for (const [key, bookings] of Object.entries(groups)) {
         console.log(`Processing group ${key} with ${bookings.length} bookings`);
-        
+
         // Assume default max capacity of 2
         const capacity = 2;
-        
+
         // Sort bookings by priority
         const sortedBookings = bookings.sort((a, b) => {
           // Simple priority: earlier registration time = higher priority
           return new Date(a.createdAt) - new Date(b.createdAt);
         });
-        
+
         // Process according to capacity
         const approved = sortedBookings.slice(0, capacity);
         const rejected = sortedBookings.slice(capacity);
-        
+
         // Update status and send emails
         for (const booking of approved) {
           booking.status = 'approved';
           booking.approvalDate = now;
           await booking.save();
-          
+
           try {
             await transporter.sendMail({
               from: process.env.EMAIL,
@@ -1173,12 +1175,12 @@ Your Service Team`
             console.error(`Failed to send approval email to ${booking.user}:`, error);
           }
         }
-        
+
         for (const booking of rejected) {
           booking.status = 'rejected';
           booking.rejectionReason = 'Station at full capacity (manual check)';
           await booking.save();
-          
+
           try {
             await transporter.sendMail({
               from: process.env.EMAIL,
@@ -1204,7 +1206,7 @@ Your Service Team`
         }
       }
     }
-    
+
     return {
       checked: pendingBookings.length,
       processed: bookingsToProcess.length
@@ -1227,16 +1229,16 @@ const startScheduler = () => {
     console.log(`Running booking approval process at ${now.toISOString()}`);
     processAppointments();
   });
-  
+
   // Also run manual check at startup to catch any missed bookings
   manualCheckAllPendingAppointments();
-  
+
   // Run manual check every hour as a backup
   cron.schedule('0 * * * *', () => {
     console.log('Running hourly manual check');
     manualCheckAllPendingAppointments();
   });
-  
+
   console.log('Booking scheduler started - running every 10 seconds to ensure accurate scheduling!');
 };
 

@@ -7,16 +7,22 @@ const nodemailer = require('nodemailer');
 
 // Configure nodemailer
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false, // Use TLS
   auth: {
-    user: process.env.EMAIL,
-    pass: process.env.EMAIL_PASSWORD,
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
   },
-  pool: true,               // שימוש ב-pool להגברת ביצועים
-  maxConnections: 5,       // מקסימום חיבורים במקביל
-  maxMessages: 100,        // מקסימום הודעות לחיבור
-  rateDelta: 1000,         // הפרש זמן בין ניסיונות
-  rateLimit: 5             // מספר ניסיונות בחלון הזמן
+});
+
+// Verify the SMTP connection configuration
+transporter.verify(function (error, success) {
+  if (error) {
+    console.error('SMTP connection error:', error);
+  } else {
+    console.log('- SMTP server connection successful');
+  }
 });
 
 // עדכון הגדרות השליחה להוספת שם החברה
