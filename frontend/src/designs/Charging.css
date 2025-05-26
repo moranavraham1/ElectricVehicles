@@ -1,5 +1,5 @@
 /* Charging.css - Enhanced with moving battery animation */
-@import url('http://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
     /* Color palette to match Home.css */
@@ -468,12 +468,10 @@ body {
     left: -100%;
     width: 40%;
     height: 100%;
-    background: linear-gradient(
-        to right,
-        rgba(255, 255, 255, 0),
-        rgba(255, 255, 255, 0.3),
-        rgba(255, 255, 255, 0)
-    );
+    background: linear-gradient(to right,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0.3),
+            rgba(255, 255, 255, 0));
     transform: skewX(-25deg);
 }
 
@@ -485,6 +483,7 @@ body {
     0% {
         left: -100%;
     }
+
     100% {
         left: 200%;
     }
@@ -494,9 +493,11 @@ body {
     0% {
         box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4);
     }
+
     70% {
         box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
     }
+
     100% {
         box-shadow: 0 0 0 0 rgba(244, 67, 54, 0);
     }

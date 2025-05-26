@@ -4,7 +4,7 @@ const router = express.Router();
 
 
 router.get('/nearby', async (req, res) => {
-  const { lat, lon, radius = 1000, amenity } = req.query;  
+  const { lat, lon, radius = 1000, amenity } = req.query;
   try {
     const overpassQuery = `
       [out:json][timeout:25];
@@ -17,8 +17,8 @@ router.get('/nearby', async (req, res) => {
       out skel qt;
     `;
 
-    const response = await axios.post('http://overpass-api.de/api/interpreter', 
-      `data=${encodeURIComponent(overpassQuery)}`, 
+    const response = await axios.post('https://overpass-api.de/api/interpreter',
+      `data=${encodeURIComponent(overpassQuery)}`,
       {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
@@ -26,36 +26,36 @@ router.get('/nearby', async (req, res) => {
       }
     );
 
-    res.json(response.data.elements);  
+    res.json(response.data.elements);
   } catch (error) {
-    console.error('OSM Fetch Error:', error);  
-    res.status(500).json({ 
-      error: 'Failed to fetch OpenStreetMap data', 
-      details: error.message 
+    console.error('OSM Fetch Error:', error);
+    res.status(500).json({
+      error: 'Failed to fetch OpenStreetMap data',
+      details: error.message
     });
   }
 });
 
 router.get('/reverse-geocode', async (req, res) => {
-  const { lat, lon } = req.query;  
+  const { lat, lon } = req.query;
 
   try {
-    const response = await axios.get('http://nominatim.openstreetmap.org/reverse', {
+    const response = await axios.get('https://nominatim.openstreetmap.org/reverse', {
       params: {
         format: 'json',
         lat,
         lon,
         zoom: 18,
-        addressdetails: 1  
+        addressdetails: 1
       }
     });
 
-    res.json(response.data);  
+    res.json(response.data);
   } catch (error) {
-    console.error('Reverse Geocoding Error:', error);  
-    res.status(500).json({ 
-      error: 'Failed to perform reverse geocoding', 
-      details: error.message 
+    console.error('Reverse Geocoding Error:', error);
+    res.status(500).json({
+      error: 'Failed to perform reverse geocoding',
+      details: error.message
     });
   }
 });

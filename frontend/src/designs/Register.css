@@ -1,5 +1,5 @@
 /* Modern Register CSS for 2025 */
-@import url('http://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* Reset & Base */
 * {
@@ -522,6 +522,7 @@ html {
         gap: 15px !important;
         align-items: stretch !important;
     }
+
     .button-group button,
     .button-group .back-button,
     .button-group .next-button,
