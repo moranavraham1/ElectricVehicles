@@ -314,7 +314,7 @@ const Home = () => {
       }
 
       // אם אין מטמון תקף, נטען מהשרת
-      const response = await axios.get('http://localhost:3001/api/stations');
+      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/stations`);
       const stationsWithDistance = response.data.map((station) => ({
         ...station,
         distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
@@ -511,7 +511,7 @@ const Home = () => {
       const isFavorite = station.likedBy && Array.isArray(station.likedBy) && station.likedBy.includes(userEmail);
 
       if (isFavorite) {
-        await axios.delete(`http://localhost:3001/api/stations/${station._id}/unlike`, {
+        await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/api/stations/${station._id}/unlike`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           data: { user: userEmail },
         });
@@ -524,7 +524,7 @@ const Home = () => {
           )
         );
       } else {
-        await axios.post(`http://localhost:3001/api/stations/${station._id}/like`,
+        await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/stations/${station._id}/like`,
           { user: userEmail },
           { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
         );

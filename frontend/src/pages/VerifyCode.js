@@ -38,7 +38,7 @@ function VerifyCode() {
     e.preventDefault();
 
     try {
-      await axios.post('http://localhost:3001/api/auth/verify-code', { email, code });
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/verify-code`, { email, code });
 
       toast.success('Email verification successful! Redirecting to login page...');
 
@@ -58,7 +58,7 @@ function VerifyCode() {
     startTimer();
 
     try {
-      const response = await axios.post('http://localhost:3001/api/auth/resend-verification-code', { email });
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/resend-verification-code`, { email });
       toast.success(response.data.message);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to resend verification code.');
