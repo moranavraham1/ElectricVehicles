@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -25,7 +25,10 @@ function Register() {
   const [errors, setErrors] = useState({});
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [fieldsTouched, setFieldsTouched] = useState({});
+  const [isEmailValidating, setIsEmailValidating] = useState(false);
   const navigate = useNavigate();
+
+  const emailCheckTimeoutRef = useRef(null);
 
   // Calculate password strength
   useEffect(() => {
@@ -46,6 +49,22 @@ function Register() {
 
     setPasswordStrength(strength);
   }, [formData.password]);
+
+  // Effect to clear password errors/touched state when entering step 2
+  useEffect(() => {
+    if (currentStep === 2) {
+      setErrors(prevErrors => ({
+        ...prevErrors,
+        password: '',
+        confirmPassword: ''
+      }));
+      setFieldsTouched(prevTouched => ({
+        ...prevTouched,
+        password: false,
+        confirmPassword: false
+      }));
+    }
+  }, [currentStep]);
 
   const validateField = (field, value) => {
     let error = '';
@@ -137,9 +156,49 @@ function Register() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    // Mark field as touched
     setFieldsTouched(prev => ({ ...prev, [name]: true }));
-    validateField(name, value);
+
+    if (name === 'email') {
+      if (emailCheckTimeoutRef.current) {
+        clearTimeout(emailCheckTimeoutRef.current);
+      }
+      // Basic email format validation immediately
+      const isFormatValid = validateField(name, value);
+
+      if (isFormatValid) {
+        setIsEmailValidating(true);
+        emailCheckTimeoutRef.current = setTimeout(async () => {
+          setIsEmailValidating(false); // Set to false when check is done
+          // Only check existence if format is valid and email is not empty
+          if (value.trim() && /\S+@\S+\.\S+/.test(value)) {
+            try {
+              const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/check-email`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: value }),
+              });
+              const data = await response.json();
+              if (data.exists) {
+                setErrors(prevErrors => ({ ...prevErrors, email: 'Email already registered' }));
+              } else {
+                setErrors(prevErrors => ({ ...prevErrors, email: '' }));
+              }
+            } catch (error) {
+              console.error('Error checking email existence:', error);
+              // Optionally handle network errors, but don't block user
+              setErrors(prevErrors => ({ ...prevErrors, email: '' })); // Clear error on network issue
+            }
+          }
+        }, 500); // Debounce for 500ms
+      } else {
+        setIsEmailValidating(false); // Clear loading if format is invalid
+        setErrors(prevErrors => ({ ...prevErrors, email: validateField(name, value) ? '' : errors.email })); // Update format error immediately
+      }
+    } else {
+      validateField(name, value);
+    }
   };
 
   const nextStep = () => {
@@ -152,12 +211,13 @@ function Register() {
       fieldsToValidate = ['email', 'phone'];
     }
 
-    // Mark all relevant fields as touched
+    // Reset all touched fields, then mark only current step's fields as touched
+    setFieldsTouched({}); // Clear all touched fields
     const newTouchedFields = {};
     fieldsToValidate.forEach(field => {
       newTouchedFields[field] = true;
     });
-    setFieldsTouched(prev => ({ ...prev, ...newTouchedFields }));
+    setFieldsTouched(newTouchedFields); // Only set touched for current step
 
     const isStepValid = fieldsToValidate.every(field =>
       validateField(field, formData[field])
@@ -165,8 +225,7 @@ function Register() {
 
     if (isStepValid) {
       setCurrentStep(currentStep + 1);
-      // Clear existing errors when moving to a new step
-      setErrors({});
+      setErrors({}); // Clear all errors for the new step
     }
     // No toast needed - field-specific errors are displayed
   };
@@ -304,7 +363,7 @@ function Register() {
                 onChange={handleChange}
                 autoFocus
               />
-              {fieldsTouched.email && errors.email && <span className="error-message">{errors.email}</span>}
+              {fieldsTouched.email && errors.email && !isEmailValidating && <span className="error-message">{errors.email}</span>}
             </div>
 
             <div className="form-group">
