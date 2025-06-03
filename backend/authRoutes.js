@@ -19,6 +19,7 @@ router.post('/forgot-password', authController.forgotPassword);
 router.post('/reset-password', authController.resetPassword);
 router.post('/verify-reset-token', authController.verifyResetToken);
 router.post("/change-password", authController.changePassword);
+router.post('/check-email', authController.checkEmail);
 
 router.get('/fetch-details', authController.fetchDetails);
 router.put('/update-details', authMiddleware, authController.updateDetails);

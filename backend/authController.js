@@ -691,4 +691,21 @@ exports.resetPassword = async (req, res) => {
   }
 };
 
+// Check Email Existence
+exports.checkEmail = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(200).json({ exists: true });
+    } else {
+      return res.status(200).json({ exists: false });
+    }
+  } catch (error) {
+    console.error('Error checking email existence:', error);
+    res.status(500).json({ message: 'Error checking email existence' });
+  }
+};
+
 

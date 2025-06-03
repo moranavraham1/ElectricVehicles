@@ -202,26 +202,27 @@ html {
 .register-container input {
     width: 100%;
     padding: 1rem 1.5rem;
-    background: #FFFFFF;
-    border: 2.5px solid #3B82F6;
+    background: #FFFFFF !important;
+    border: 3px solid #3B82F6 !important;
     border-radius: 12px;
     font-size: 1rem;
-    color: #000000;
+    color: #000000 !important;
     transition: all 0.3s ease;
     position: relative;
     z-index: 1;
     opacity: 1 !important;
+    box-sizing: border-box !important;
 }
 
 .register-container input:focus {
     outline: none;
-    border-color: #1E293B;
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
-    color: #000000;
+    border-color: #3B82F6 !important;
+    box-shadow: none !important;
+    color: #000000 !important;
 }
 
 .register-container input::placeholder {
-    color: #000 !important;
+    color: #000000 !important;
     opacity: 1 !important;
 }
 
@@ -247,6 +248,27 @@ html {
     overflow: hidden;
     transition: all 0.3s ease;
     opacity: 0;
+}
+
+/* Loading message for email validation */
+.loading-message {
+    display: none;
+    /* Hide the loading message completely */
+    color: #3B82F6;
+    text-align: left;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    /* Smaller font size */
+    height: 18px;
+    min-height: 18px;
+    position: absolute;
+    width: 100%;
+    left: 0;
+    padding: 0 1.5rem;
+    font-weight: 500;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
 }
 
 .form-group .password-strength {
@@ -300,10 +322,12 @@ html {
     align-items: center !important;
     margin-top: auto !important;
     margin-bottom: 1rem !important;
-    gap: 16px !important;
+    gap: 24px !important;
+    /* Increased gap for spacing */
     flex-wrap: nowrap !important;
     width: 100%;
     height: 48px !important;
+    box-sizing: border-box !important;
 }
 
 .button-group button,
@@ -316,25 +340,49 @@ html {
     flex: 1 !important;
     min-width: 0 !important;
     margin: 0 !important;
-    height: 48px !important;
-    box-sizing: border-box !important;
-    text-align: center !important;
+    /* Ensure no margin changes */
     padding: 0 !important;
+    /* Ensure no padding changes */
+    border-width: 2px !important;
+    /* Ensure consistent border thickness */
+    border-style: solid !important;
+    /* Ensure consistent border style */
+    height: 48px !important;
+    max-height: 48px !important;
+    box-sizing: border-box !important;
+    font-size: 1rem !important;
+    /* Ensure consistent font size */
+    font-weight: 600 !important;
+    /* Ensure consistent font weight */
     line-height: 1 !important;
+    /* Ensure consistent line height */
     position: relative !important;
+    transition: none !important;
+    /* Disable all transitions */
+    vertical-align: middle !important;
+    /* Ensure vertical alignment */
+    flex-shrink: 0 !important;
+    /* Prevent shrinking */
+    outline: none !important;
+    /* Remove outline */
 }
 
 /* Back Button */
 .back-button {
     background-color: #FFFFFF !important;
     color: #3B82F6 !important;
-    border: 2px solid #3B82F6 !important;
-    font-weight: 600 !important;
-    width: 100% !important;
-    position: relative !important;
-    height: 48px !important;
-    min-height: 48px !important;
-    max-height: 48px !important;
+    border-color: #3B82F6 !important;
+    /* Explicitly set border color */
+}
+
+.back-button:hover {
+    background-color: #F1F5F9 !important;
+    transform: none !important;
+    /* Prevent jumping */
+    box-shadow: none !important;
+    /* Prevent jumping */
+    border-color: #3B82F6 !important;
+    /* Keep border color consistent on hover */
 }
 
 /* Next/Submit Buttons */
@@ -342,11 +390,19 @@ html {
 .submit-button {
     background: linear-gradient(90deg, #1E293B, #334155) !important;
     color: #FFFFFF !important;
-    border: none !important;
-    position: relative !important;
-    height: 48px !important;
-    min-height: 48px !important;
-    max-height: 48px !important;
+    border-color: transparent !important;
+    /* Ensure no border on these buttons */
+}
+
+.next-button:hover,
+.submit-button:hover {
+    background: linear-gradient(90deg, #334155, #475569) !important;
+    transform: none !important;
+    /* Prevent jumping */
+    box-shadow: none !important;
+    /* Prevent jumping */
+    border-color: transparent !important;
+    /* Keep border color consistent on hover */
 }
 
 /* Special case for step-0 - maintain right alignment */
@@ -363,7 +419,7 @@ html {
 .register-container form.step-2 .back-button {
     background-color: #FFFFFF !important;
     color: #3B82F6 !important;
-    border: 2px solid #3B82F6 !important;
+    border-color: #3B82F6 !important;
     height: 48px !important;
     min-height: 48px !important;
     max-height: 48px !important;
@@ -373,13 +429,16 @@ html {
     justify-content: center !important;
     width: 100% !important;
     position: relative !important;
+    transition: none !important;
+    /* Disable all transitions for no jumping */
 }
 
 .register-container form.step-1 .next-button,
 .register-container form.step-2 .submit-button {
     background: linear-gradient(90deg, #1E293B, #334155) !important;
     color: #FFFFFF !important;
-    border: none !important;
+    border-color: transparent !important;
+    /* Ensure no border */
     height: 48px !important;
     min-height: 48px !important;
     max-height: 48px !important;
@@ -388,6 +447,8 @@ html {
     align-items: center !important;
     justify-content: center !important;
     position: relative !important;
+    transition: none !important;
+    /* Disable all transitions for no jumping */
 }
 
 /* Register Link */
@@ -581,11 +642,52 @@ html {
     .form-group {
         min-height: 75px;
     }
+
+    .back-button,
+    .next-button,
+    .submit-button {
+        transition: none !important;
+        /* Disable all transitions for no jumping */
+        margin: 0 !important;
+        padding: 0 !important;
+        border-width: 2px !important;
+        /* Consistent border thickness */
+        border-style: solid !important;
+        /* Consistent border style */
+        font-size: 1rem !important;
+        /* Consistent font size */
+        font-weight: 600 !important;
+        /* Consistent font weight */
+        outline: none !important;
+        /* Remove outline */
+    }
+
+    .back-button:hover,
+    .next-button:hover,
+    .submit-button:hover {
+        transform: none !important;
+        box-shadow: none !important;
+    }
 }
 
 /* Dark mode optimization */
 @media (prefers-color-scheme: dark) {
     .register-container {
         background: linear-gradient(135deg, #0f172a, #1e293b);
+    }
+
+    .register-container input {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 3px solid #3B82F6 !important;
+    }
+
+    .register-container input:focus {
+        border-color: #3B82F6 !important;
+        color: #000000 !important;
+    }
+
+    .register-container input::placeholder {
+        color: #000000 !important;
     }
 }
