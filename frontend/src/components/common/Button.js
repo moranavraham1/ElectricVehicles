@@ -11,14 +11,14 @@ import NavigationBar from './NavigationBar';
  * @param {string} props.className - Additional CSS classes
  * @param {Object} props.style - Additional inline styles
  */
-const Button = ({ 
-  variant = 'primary', 
-  onClick, 
-  children, 
-  className = '', 
+const Button = ({
+  variant = 'primary',
+  onClick,
+  children,
+  className = '',
   style = {},
   disabled = false,
-  ...props 
+  ...props
 }) => {
   // Base button styles
   const baseStyle = {
@@ -31,8 +31,15 @@ const Button = ({
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     transition: 'background-color 0.3s, transform 0.1s',
     opacity: disabled ? 0.7 : 1,
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+    height: '48px',
+    minHeight: '48px'
   };
-  
+
   // Variant-specific styles
   const variantStyles = {
     primary: {
@@ -62,14 +69,14 @@ const Button = ({
       padding: '5px',
     }
   };
-  
+
   // Combine all styles
   const buttonStyle = {
     ...baseStyle,
     ...variantStyles[variant],
     ...style
   };
-  
+
   return (
     <button
       className={`custom-button ${variant} ${className}`}
@@ -78,7 +85,16 @@ const Button = ({
       disabled={disabled}
       {...props}
     >
-      {children}
+      <span style={{
+        position: 'absolute',
+        left: '50%',
+        top: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: '100%',
+        textAlign: 'center'
+      }}>
+        {children}
+      </span>
     </button>
   );
 };
