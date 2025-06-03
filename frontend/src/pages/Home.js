@@ -250,10 +250,12 @@ const Home = () => {
 
   useEffect(() => {
     if (searchQuery) {
+      const normalizedQuery = searchQuery.toLowerCase().trim();
       const filtered = stations.filter(
         (station) =>
-          station['Station Name'].toLowerCase().includes(searchQuery.toLowerCase()) ||
-          station.City.toLowerCase().includes(searchQuery.toLowerCase())
+          station['Station Name'].toLowerCase().includes(normalizedQuery) ||
+          station.City.toLowerCase().includes(normalizedQuery) ||
+          station.Address.toLowerCase().includes(normalizedQuery)
       );
       setFilteredStations(filtered);
     } else {
@@ -272,7 +274,13 @@ const Home = () => {
       },
       (error) => {
         console.error('Error fetching location:', error);
+        // Set default location to Tel Aviv
+        setLatitude(32.0853);
+        setLongitude(34.7818);
+        setUserLocation('Tel Aviv, Israel');
         setLoadingLocation(false);
+        // Refresh stations with default location
+        fetchStations();
       }
     );
   };
@@ -298,33 +306,57 @@ const Home = () => {
     try {
       setLoadingStations(true);
 
-      // ניסיון לקבל נתונים מהמטמון תחילה
+      // Try to get cached data first
       const cachedData = getCachedStations();
       if (cachedData) {
-        const stationsWithDistance = cachedData.map((station) => ({
-          ...station,
-          distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
-        }));
-
-        const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
-        setStations(sortedStations);
-        setFilteredStations(sortedStations);
+        let stationsWithDistance;
+        if (latitude && longitude) {
+          // If location is available, calculate distances
+          stationsWithDistance = cachedData.map((station) => ({
+            ...station,
+            distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
+          }));
+          // Sort by distance
+          const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
+          setStations(sortedStations);
+          setFilteredStations(sortedStations);
+        } else {
+          // If no location, sort alphabetically by station name
+          const sortedStations = cachedData.sort((a, b) => 
+            a['Station Name'].localeCompare(b['Station Name'])
+          );
+          setStations(sortedStations);
+          setFilteredStations(sortedStations);
+        }
         setLoadingStations(false);
         return;
       }
 
-      // אם אין מטמון תקף, נטען מהשרת
+      // If no cache, fetch from server
       const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/stations`);
-      const stationsWithDistance = response.data.map((station) => ({
-        ...station,
-        distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
-      }));
+      console.log('API Response for stations:', response.data);
+      let stationsWithDistance;
+      
+      if (latitude && longitude) {
+        // If location is available, calculate distances
+        stationsWithDistance = response.data.map((station) => ({
+          ...station,
+          distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
+        }));
+        // Sort by distance
+        const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
+        setStations(sortedStations);
+        setFilteredStations(sortedStations);
+      } else {
+        // If no location, sort alphabetically by station name
+        const sortedStations = response.data.sort((a, b) => 
+          a['Station Name'].localeCompare(b['Station Name'])
+        );
+        setStations(sortedStations);
+        setFilteredStations(sortedStations);
+      }
 
-      const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
-      setStations(sortedStations);
-      setFilteredStations(sortedStations);
-
-      // שמירה במטמון
+      // Save to cache
       setCachedStations(response.data);
 
     } catch (error) {
