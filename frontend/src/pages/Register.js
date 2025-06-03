@@ -470,6 +470,13 @@ function Register() {
                 type="button"
                 className="back-button"
                 onClick={prevStep}
+                style={{
+                  height: '48px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
                 Back
               </button>
@@ -480,6 +487,13 @@ function Register() {
                 type="button"
                 className="next-button"
                 onClick={nextStep}
+                style={{
+                  height: '48px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
                 Next
               </button>
@@ -487,6 +501,13 @@ function Register() {
               <button
                 type="submit"
                 className="submit-button"
+                style={{
+                  height: '48px',
+                  minHeight: '48px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
               >
                 Register
               </button>
