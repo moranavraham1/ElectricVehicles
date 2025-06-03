@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import wazeIcon from '../../assets/WAZE.jpg';
 import MapDisplay from '../map/MapDisplay';
 import Button from '../components/common/Button';
-import { HeartIcon } from '../common/Icons';
+import { HeartIcon } from '../components/common/Icons';
 import NavigationBar from '../components/common/NavigationBar';
 
 /**
