@@ -2,7 +2,7 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
 const { manualCheckAllPendingAppointments } = require('./appointmentScheduler');
-require('./models/Appointment');
+require('./models/Booking');
 
 async function main() {
   console.log('🚀 Starting manual appointment processing script');
