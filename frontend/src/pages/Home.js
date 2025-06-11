@@ -234,6 +234,9 @@ const Home = () => {
   useEffect(() => {
     if (latitude && longitude) {
       fetchStations();
+    } else {
+      // Ensure stations are fetched even if location isn't available yet
+      fetchStations();
     }
   }, [latitude, longitude]);
 
@@ -305,36 +308,15 @@ const Home = () => {
   const fetchStations = async () => {
     try {
       setLoadingStations(true);
-
-      // Try to get cached data first
-      const cachedData = getCachedStations();
-      if (cachedData) {
-        let stationsWithDistance;
-        if (latitude && longitude) {
-          // If location is available, calculate distances
-          stationsWithDistance = cachedData.map((station) => ({
-            ...station,
-            distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
-          }));
-          // Sort by distance
-          const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
-          setStations(sortedStations);
-          setFilteredStations(sortedStations);
-        } else {
-          // If no location, sort alphabetically by station name
-          const sortedStations = cachedData.sort((a, b) => 
-            a['Station Name'].localeCompare(b['Station Name'])
-          );
-          setStations(sortedStations);
-          setFilteredStations(sortedStations);
-        }
-        setLoadingStations(false);
-        return;
-      }
-
-      // If no cache, fetch from server
-      const response = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/stations`);
+      
+      // Always fetch from server to get the latest favorites data
+      const response = await axios.get(
+        `${process.env.REACT_APP_BACKEND_URL}/api/stations`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      if(process.env.NODE_ENV === 'development'){
       console.log('API Response for stations:', response.data);
+      }
       let stationsWithDistance;
       
       if (latitude && longitude) {
@@ -361,6 +343,30 @@ const Home = () => {
 
     } catch (error) {
       console.error('Error fetching stations:', error);
+      
+      // Try to get cached data as fallback
+      const cachedData = getCachedStations();
+      if (cachedData) {
+        let stationsWithDistance;
+        if (latitude && longitude) {
+          // If location is available, calculate distances
+          stationsWithDistance = cachedData.map((station) => ({
+            ...station,
+            distance: calculateDistance(latitude, longitude, station.Latitude, station.Longitude),
+          }));
+          // Sort by distance
+          const sortedStations = stationsWithDistance.sort((a, b) => a.distance - b.distance);
+          setStations(sortedStations);
+          setFilteredStations(sortedStations);
+        } else {
+          // If no location, sort alphabetically by station name
+          const sortedStations = cachedData.sort((a, b) => 
+            a['Station Name'].localeCompare(b['Station Name'])
+          );
+          setStations(sortedStations);
+          setFilteredStations(sortedStations);
+        }
+      }
     } finally {
       setLoadingStations(false);
     }
@@ -816,8 +822,12 @@ const Home = () => {
                       width="24"
                       height="24"
                       viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
+                      fill={station.likedBy && Array.isArray(station.likedBy) && 
+                            station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase()) ? 
+                            "#FF6B6B" : "none"}
+                      stroke={station.likedBy && Array.isArray(station.likedBy) && 
+                             station.likedBy.includes(localStorage.getItem('loggedInUser')?.toLowerCase()) ? 
+                             "#FF6B6B" : "currentColor"}
                       strokeWidth="2"
                       strokeLinecap="round"
                       strokeLinejoin="round"
