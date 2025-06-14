@@ -79,7 +79,9 @@ function PersonalArea() {
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: '' });
+    }, 3000);
   };
 
   const handleLogout = () => {
@@ -139,15 +141,25 @@ function PersonalArea() {
   }, [navigate]);
 
   const handleUpdate = async () => {
-    if (!updatedDetails.firstName.trim() || !updatedDetails.lastName.trim() || !updatedDetails.phone.trim()) {
-      showToast("All fields must be filled before saving.", "error");
+    // Validate required fields
+    if (!updatedDetails.firstName?.trim() || !updatedDetails.lastName?.trim() || !updatedDetails.phone?.trim()) {
+      showToast('Please fill in all required fields', 'error');
       return;
     }
+
+    // Validate phone number format
     if (!/^\d{10}$/.test(updatedDetails.phone)) {
-      showToast("Phone number must be exactly 10 digits.", "error");
+      showToast('Phone number must be exactly 10 digits', 'error');
       return;
     }
-    const token = localStorage.getItem("token");
+
+    // Check if user is authenticated
+    const token = localStorage.getItem('token');
+    if (!token) {
+      showToast('Your session has expired. Please log in again', 'error');
+      navigate('/login');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -163,14 +175,19 @@ function PersonalArea() {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to update details");
+      const data = await response.json();
 
-      setUserDetails(updatedDetails);
-
-      setEditMode(false);
-      showToast("Details updated successfully! A confirmation email has been sent.");
-    } catch (err) {
-      showToast(`Error updating details: ${err.message}`, "error");
+      if (response.ok) {
+        showToast('Details updated successfully', 'success');
+      } else if (response.status === 401) {
+        showToast('Your session has expired. Please log in again', 'error');
+        localStorage.removeItem('token');
+        navigate('/login');
+      } else {
+        showToast(data.message || 'Failed to update details', 'error');
+      }
+    } catch (error) {
+      showToast('An error occurred while updating details', 'error');
     } finally {
       setLoading(false);
     }
@@ -182,21 +199,61 @@ function PersonalArea() {
         <img src={logo} alt="EVision Logo" className="logo" />
       </div>
 
-      <div className="toast">
-        {toast.type === 'success' ? (
-          <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-            <polyline points="22 4 12 14.01 9 11.01"></polyline>
-          </svg>
-        ) : (
-          <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="12" y1="8" x2="12" y2="12"></line>
-            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-          </svg>
-        )}
-        <span className="toast-message">{toast.message}</span>
-      </div>
+      {toast.show && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            padding: '15px 25px',
+            background: 'white',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            zIndex: 9999,
+            borderLeft: `4px solid ${toast.type === 'success' ? '#2563EB' : '#f44336'}`,
+            animation: 'slideIn 0.3s ease-out',
+            direction: 'rtl'
+          }}
+        >
+          {toast.type === 'success' ? (
+            <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#2563EB' }}>
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+              <polyline points="22 4 12 14.01 9 11.01"></polyline>
+            </svg>
+          ) : (
+            <svg xmlns="https://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#f44336' }}>
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="12"></line>
+              <line x1="12" y1="16" x2="12.01" y2="16"></line>
+            </svg>
+          )}
+          <span style={{
+            fontSize: '14px',
+            fontWeight: '500',
+            color: '#1E293B'
+          }}>
+            {toast.message}
+          </span>
+        </div>
+      )}
+
+      <style>
+        {`
+          @keyframes slideIn {
+            from {
+              transform: translateX(100%);
+              opacity: 0;
+            }
+            to {
+              transform: translateX(0);
+              opacity: 1;
+            }
+          }
+        `}
+      </style>
 
       <h1>Personal Area</h1>
 
