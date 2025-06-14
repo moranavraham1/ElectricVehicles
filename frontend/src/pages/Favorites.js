@@ -329,10 +329,6 @@ const Favorites = () => {
                         <div className="no-favorites">
                             <EmptyHeartIcon />
                             <p>You haven't added any stations to your favorites yet.</p>
-                            <Link to="/home" className="back-button">
-                                <BackIcon />
-                                <span>Go to Home</span>
-                            </Link>
                         </div>
                     )}
 

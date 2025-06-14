@@ -237,29 +237,36 @@ const MapPage = () => {
   }, [backendUrl]);
 
   useEffect(() => {
-    if (searchQuery.trim() !== "") {
-      const normalizedQuery = normalizeText(searchQuery);
-      const filteredSuggestions = stations.filter((station) => {
-        const normalizedCity = normalizeText(station.City);
-        const normalizedAddress = normalizeText(station.Address);
-        const normalizedName = normalizeText(station["Station Name"]);
-        return (
-          normalizedCity.includes(normalizedQuery) ||
-          normalizedAddress.includes(normalizedQuery) ||
-          normalizedName.includes(normalizedQuery)
-        );
-      });
-
-      setSuggestions(filteredSuggestions.slice(0, 5));
-
-      if (filteredSuggestions.length > 0 && mapRef.current) {
-        const firstStation = filteredSuggestions[0];
-        mapRef.current.setView([firstStation.Latitude, firstStation.Longitude], 15);
+    if (!searchQuery || searchQuery.trim() === "") {
+      // אם אין חיפוש, חזור לזום לפי המיקום הנוכחי
+      if (mapRef.current && location) {
+        mapRef.current.setView(location, zoom);
       }
-    } else {
       setSuggestions([]);
+      return;
     }
-  }, [searchQuery, stations]);
+
+    const normalizedQuery = normalizeText(searchQuery);
+    const filteredSuggestions = stations.filter((station) => {
+      const normalizedCity = normalizeText(station.City);
+      const normalizedAddress = normalizeText(station.Address);
+      const normalizedName = normalizeText(station["Station Name"]);
+      return (
+        normalizedCity.includes(normalizedQuery) ||
+        normalizedAddress.includes(normalizedQuery) ||
+        normalizedName.includes(normalizedQuery)
+      );
+    });
+
+    setSuggestions(filteredSuggestions.slice(0, 5));
+
+    if (filteredSuggestions.length > 0 && mapRef.current) {
+      const firstStation = filteredSuggestions[0];
+      mapRef.current.setView([firstStation.Latitude, firstStation.Longitude], 15);
+      // סגור את כל הפופאפים הפתוחים
+      mapRef.current.closePopup();
+    }
+  }, [searchQuery, stations, location, zoom]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
