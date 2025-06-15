@@ -49,7 +49,8 @@ const sendEmailAsync = async (options) => {
 
 // Registration Endpoint
 exports.register = async (req, res) => {
-  const { firstName, lastName, email, phone, password } = req.body;
+  let { firstName, lastName, email, phone, password } = req.body;
+  email = email.toLowerCase();
 
   try {
     if (!/^\d{10}$/.test(phone)) {
@@ -144,7 +145,8 @@ exports.registerStatus = (req, res) => {
 
 // Login Endpoint
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
+  email = email.toLowerCase();
 
   try {
     // Check if the user exists
@@ -156,7 +158,7 @@ exports.login = async (req, res) => {
     // Check if the password matches
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password.' });
+      return res.status(400).json({ message: 'Invalid password.' });
     }
 
     // Check if the user's email is verified
@@ -185,7 +187,8 @@ exports.logout = (req, res) => {
 
 // Resend Verification Code Endpoint
 exports.resendVerificationCode = async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
+  email = email.toLowerCase();
 
   try {
     const user = await User.findOne({ email });
@@ -237,7 +240,8 @@ exports.resendVerificationCode = async (req, res) => {
 const crypto = require('crypto'); // נשתמש ליצירת טוקן ייחודי
 
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
+  email = email.toLowerCase();
 
   try {
     const user = await User.findOne({ email });
@@ -693,7 +697,8 @@ exports.resetPassword = async (req, res) => {
 
 // Check Email Existence
 exports.checkEmail = async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
+  email = email.toLowerCase();
 
   try {
     const existingUser = await User.findOne({ email });

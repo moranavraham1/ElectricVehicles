@@ -5480,8 +5480,8 @@ const stationData =
         },
         {
             "Station Name": "Jordan Valley Regional Council",
-            "Address": "3FXV+FJG  שלומציון",
-            "City": "שלומציון",
+            "Address": "3FXV+FJG  Shlomzion",
+            "City": "Shlomzion",
             "Latitude": 32.099009,
             "Longitude": 35.493865,
             "Operator": "EdgeControl",
@@ -5614,8 +5614,8 @@ const stationData =
             "Duplicate Count": 2.0
         },
         {
-            "Station Name": "מתחם טעינה_בית ברל",
-            "Address": "6W3G+6H בית ברל  ישראל",
+            "Station Name": "Charging complex in Beit Berl",
+            "Address": "6W3G+6H Beit Berl Israel",
             "City": "Beit Berl",
             "Latitude": 32.20307,
             "Longitude": 34.926481,
@@ -5624,7 +5624,7 @@ const stationData =
         },
         {
             "Station Name": "Kibbutz Nachshon_Secretariat",
-            "Address": "RXJ4+64 נחשון  ישראל",
+            "Address": "RXJ4+64 Nachshon Israel",
             "City": "Nakhshon",
             "Latitude": 31.830525,
             "Longitude": 34.9553,
@@ -5642,7 +5642,7 @@ const stationData =
         },
         {
             "Station Name": "Kibbutz Nachshon_Pool",
-            "Address": "RXJ5+F6 נחשון  ישראל",
+            "Address": "RXJ5+F6 Nachshon Israel",
             "City": "Nakhshon",
             "Latitude": 31.831228,
             "Longitude": 34.958018,
@@ -5651,7 +5651,7 @@ const stationData =
         },
         {
             "Station Name": "Kibbutz Nachshon_Zinorot Br.",
-            "Address": "RXM4+5X נחשון  ישראל",
+            "Address": "RXM4+5X Nachshon Israel",
             "City": "Nakhshon",
             "Latitude": 31.832969,
             "Longitude": 34.957394,
@@ -5695,7 +5695,7 @@ const stationData =
             "Duplicate Count": 4.0
         },
         {
-            "Station Name": "הרי גלעד 4",
+            "Station Name": "Mountains of Gilead 4",
             "Address": "Harei HaGilad 4 Ramat Gan Israel",
             "City": "Ramat Gan",
             "Latitude": 32.084189,

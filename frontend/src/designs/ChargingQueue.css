@@ -333,3 +333,39 @@
     font-size: 0.6rem;
   }
 }
+
+.queue-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.queue-actions button {
+  padding: 8px 15px;
+  border-radius: 5px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.refresh-button {
+  background-color: #4caf50;
+  color: white;
+}
+
+.process-button {
+  background-color: #2196f3;
+  color: white;
+}
+
+.queue-actions button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.queue-actions button:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+}

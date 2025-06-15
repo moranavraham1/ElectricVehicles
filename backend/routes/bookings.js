@@ -28,6 +28,9 @@ transporter.verify(function (error, success) {
 // הוספת משתנה ל-timeout ID כדי שנוכל לבטל אותו במידת הצורך
 const allocationTimeouts = {};
 
+// Import the appointment scheduler functions
+const { manualCheckAllPendingAppointments } = require('../appointmentScheduler');
+
 router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
   try {
     const { station, date } = req.params;
@@ -37,6 +40,8 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
 
     const normalizedStation = normalize(station);
 
+    // Log the request parameters for debugging
+    console.log(`Queue request for station: "${station}" (normalized: "${normalizedStation}"), date: ${date}`);
 
     // כדי לוודא השוואת תאריכים נכונה, נשתמש בתאריך של היום בפורמט YYYY-MM-DD
     const now = new Date();
@@ -55,13 +60,18 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
     }
 
     // מציאת רק תורים מאושרים לתחנה ותאריך
+    // Use case-insensitive regex for more robust matching
     const queue = await Booking.find({
       station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') },
       date,
       status: 'approved' // Only include approved bookings in the queue
     });
 
-    console.log(`Found ${queue.length} approved bookings for station ${station} on ${date}`);
+    // Log all found bookings for debugging
+    console.log(`Found ${queue.length} approved bookings for station ${station} on ${date}:`);
+    queue.forEach((booking, index) => {
+      console.log(`${index + 1}. User: ${booking.user}, Time: ${booking.time}, Status: ${booking.status}`);
+    });
 
     // סינון תורים שכבר עבר זמנם (רק אם התאריך הוא היום)
     const filteredQueue = queue.filter(booking => {
@@ -1259,27 +1269,15 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
     const pendingWithPriority = pendingBookings.map(booking => {
       const createdAt = new Date(booking.createdAt);
       const waitingMinutes = (now - createdAt) / (60 * 1000);
-
-      // Calculate laxity (deadline - processing time)
       const processingTime = booking.estimatedChargeTime || 30;
       const deadlineMinutes = 60; // Default deadline is 60 minutes
       const laxity = Math.max(0, deadlineMinutes - processingTime);
-
-      // Apply aging factor based on waiting time
       const waitFactor = Math.min(waitingMinutes / maxWaitTime, 1);
       const agingBoost = waitFactor * maxBoost;
-
-      // Priority calculation (lower score = higher priority):
-      // - Low laxity (urgency) gets higher priority
-      // - Low battery gets higher priority
-      // - Longer wait time gets higher priority due to aging
       const priorityScore =
-        laxity * 2 - // Laxity factor (main component of LLEP)
-        agingBoost - // Aging factor (reduces score as waiting time increases)
-        (100 - (booking.currentBattery ?? 50)) / 5; // Battery factor (lower battery = higher priority)
-
-      console.log(`User ${booking.user} - Laxity: ${laxity}, Battery: ${booking.currentBattery}, Waiting: ${waitingMinutes.toFixed(1)}min, Score: ${priorityScore.toFixed(2)}`);
-
+        laxity * 2 -
+        agingBoost -
+        (100 - (booking.currentBattery ?? 50)) / 5;
       return {
         _id: booking._id,
         user: booking.user,
@@ -1295,17 +1293,12 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
 
     // חישוב ציוני עדיפות להזמנות שכבר אושרו
     const approvedWithPriority = approvedBookings.map(booking => {
-      // For approved bookings, calculate similar metrics but with lower priority
       const processingTime = booking.estimatedChargeTime || 30;
       const deadlineMinutes = 60;
       const laxity = Math.max(0, deadlineMinutes - processingTime);
-
-      // Approved bookings get a penalty to their score, making them less likely to be bumped
-      // unless there's a significant difference in urgency
       const priorityScore =
-        laxity * 2 + 15 - // Approved bookings get penalty of +15
-        (100 - (booking.currentBattery ?? 50)) / 10; // Lower impact of battery level for approved bookings
-
+        laxity * 2 + 15 -
+        (100 - (booking.currentBattery ?? 50)) / 10;
       return {
         _id: booking._id,
         user: booking.user,
@@ -1324,28 +1317,16 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
 
     // מיון כל ההזמנות לפי העדיפות (lower score = higher priority)
     allBookingsWithPriority.sort((a, b) => {
-      // First compare by priority score (lower is better)
       if (a.priorityScore !== b.priorityScore) {
         return a.priorityScore - b.priorityScore;
       }
-
-      // If priority scores are equal, consider laxity (lower is better)
       if (a.laxity !== b.laxity) {
         return a.laxity - b.laxity;
       }
-
-      // If laxity tied, consider battery (lower is better)
       if (a.currentBattery !== b.currentBattery) {
         return a.currentBattery - b.currentBattery;
       }
-
-      // Finally, consider waiting time (longer waiting is better)
       return new Date(a.createdAt) - new Date(b.createdAt);
-    });
-
-    console.log("Sorted bookings by priority (top 5 shown):");
-    allBookingsWithPriority.slice(0, 5).forEach((booking, i) => {
-      console.log(`${i + 1}. User: ${booking.user}, Score: ${booking.priorityScore.toFixed(2)}, Status: ${booking.status}, Battery: ${booking.currentBattery}, Laxity: ${booking.laxity}`);
     });
 
     // בחירת ההזמנות בעלות העדיפות הגבוהה ביותר
@@ -1354,17 +1335,9 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
     // מציאת הזמנות ממתינות שנבחרו לאישור
     const pendingToApprove = selectedBookings.filter(b => b.status === 'pending');
 
-    // מציאת הזמנות מאושרות שנשארות מאושרות
-    const approvedToKeep = selectedBookings.filter(b => b.status === 'approved');
-
-    // מציאת הזמנות ממתינות שנדחות
+    // מציאת הזמנות ממתינות שנדחות (מעבר למספר העמדות)
     const pendingToReject = pendingWithPriority.filter(b =>
-      !pendingToApprove.some(approved => approved._id.toString() === b._id.toString())
-    );
-
-    // מציאת הזמנות מאושרות שנדרשות לביטול כדי לפנות מקום להזמנות דחופות יותר
-    const approvedToCancel = approvedWithPriority.filter(b =>
-      !approvedToKeep.some(keep => keep._id.toString() === b._id.toString())
+      !selectedBookings.some(approved => approved._id.toString() === b._id.toString())
     );
 
     // טיפול בהזמנות ממתינות שמאושרות
@@ -1373,10 +1346,7 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
         { _id: booking._id },
         { $set: { status: 'approved' } }
       );
-
-      // טעינת מידע מלא של ההזמנה לפני שליחת המייל
       const fullBookingData = await Booking.findById(booking._id);
-
       if (fullBookingData) {
         await sendBookingConfirmationEmail(
           fullBookingData.user,
@@ -1394,38 +1364,38 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
       }
     }
 
-    // טיפול בהזמנות ממתינות שנדחות
+    // טיפול בהזמנות ממתינות שנדחות (מעבר למספר העמדות)
     for (const booking of pendingToReject) {
       const newRejectionCount = (booking.rejectionCount || 0) + 1;
       await Booking.updateOne(
         { _id: booking._id },
         { $set: { status: 'rejected', rejectionCount: newRejectionCount } }
       );
-
       // מציאת תחנות קרובות כהמלצה
       const alternativeStations = await findNearbyStations(trimmedStation);
-
       await sendBookingCancellationEmail(booking.user, trimmedStation, date, time, alternativeStations);
-      console.log(`❌ Booking rejected for user ${booking.user}`);
+      console.log(`❌ Booking rejected for user ${booking.user} (no available slot)`);
     }
 
     // טיפול בהזמנות מאושרות שנדרשות לביטול
+    const approvedToCancel = approvedWithPriority.filter(b =>
+      !selectedBookings.some(keep => keep._id.toString() === b._id.toString())
+    );
+
     for (const booking of approvedToCancel) {
       const newRejectionCount = (booking.rejectionCount || 0) + 1;
       await Booking.updateOne(
         { _id: booking._id },
         { $set: { status: 'cancelled', rejectionCount: newRejectionCount } }
       );
-
       // מציאת תחנות קרובות כהמלצה
       const alternativeStations = await findNearbyStations(trimmedStation);
-
       await sendBookingCancellationEmail(booking.user, trimmedStation, date, time, alternativeStations, true);
       console.log(`⚠️ Previously approved booking cancelled for user ${booking.user} due to higher priority bookings`);
     }
 
     console.log(`✅ Allocation completed for ${station} on ${date} at ${time}.`);
-    console.log(`Approved: ${pendingToApprove.length}, Rejected: ${pendingToReject.length}, Cancelled previously approved: ${approvedToCancel.length}`);
+    console.log(`Approved: ${pendingToApprove.length}, Rejected: ${pendingToReject.length}`);
   } catch (error) {
     console.error('Error in allocation process:', error);
   }
@@ -1435,7 +1405,7 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
 const findNearbyStations = async (stationName) => {
   try {
     // בשלב זה נחזיר רשימה קבועה של 2 תחנות אקראיות חלופיות
-    // בעתיד אפשר להחליף את זה עם לוגיקה אמיתית המבוססת על מיקום
+   
     const allStations = await Station.find({ "Station Name": { $ne: stationName } }).limit(10);
 
     if (allStations.length <= 2) {
@@ -1451,5 +1421,22 @@ const findNearbyStations = async (stationName) => {
   }
 };
 
+// Add a new endpoint to manually trigger appointment processing
+router.post('/process-pending', authMiddleware, async (req, res) => {
+  try {
+    console.log('Manual processing of pending bookings triggered by user');
+    
+    // Run the manual check function
+    const result = await manualCheckAllPendingAppointments();
+    
+    res.status(200).json({ 
+      message: 'Manual processing completed',
+      result
+    });
+  } catch (error) {
+    console.error('Error in manual processing:', error);
+    res.status(500).json({ message: 'Error processing appointments', error: error.message });
+  }
+});
 
 module.exports = router;

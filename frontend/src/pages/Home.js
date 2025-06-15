@@ -425,7 +425,8 @@ const Home = () => {
       console.log("✅ response from check-availability:", response.data);
       let availableTimeSlots = response.data.availableTimes || [];
       const bookingsPerTime = response.data.bookingsPerTime || {};
-      const maxCapacity = selectedStation["Duplicate Count"] || 1;
+      const maxCapacity = response.data.maxCapacity || selectedStation["Duplicate Count"] || 1;
+      console.log(`🔌 Station capacity: ${maxCapacity} charging points`);
       let updatedChargingSlots = {};
 
       availableTimeSlots = availableTimeSlots.filter(time => {
@@ -519,7 +520,11 @@ const Home = () => {
       closeModal();
     } catch (error) {
       console.error("Error booking appointment:", error);
-      alert("Failed to book appointment. Please try again later.");
+      if (error.response && error.response.data && error.response.data.message) {
+        alert(`Booking failed: ${error.response.data.message}`);
+      } else {
+        alert("Failed to book appointment. Please try again later.");
+      }
     }
   };
 

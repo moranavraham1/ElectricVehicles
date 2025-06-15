@@ -1,6 +1,7 @@
 const cron = require('node-cron');
 const nodemailer = require('nodemailer');
 const Booking = require('./models/Booking');
+const Station = require('./Station');
 require('dotenv').config();
 
 // Configure email transporter with better error handling
@@ -176,12 +177,28 @@ const processAppointments = async () => {
             station: booking.station,
             date: booking.date,
             time: booking.time,
-            maxCapacity: 2, // Default, should be updated based on station details
+            maxCapacity: 0, // Initialize to 0, will be updated with actual station capacity
             bookings: []
           };
         }
 
         bookingGroups[groupKey].bookings.push(booking);
+      }
+    }
+
+    // After grouping, get the actual station capacities
+    for (const groupKey in bookingGroups) {
+      const group = bookingGroups[groupKey];
+      if (group.bookings.length === 0) continue;
+      
+      try {
+        // Get station details to determine actual capacity
+        const stationDetails = await Station.findOne({ "Station Name": group.station });
+        group.maxCapacity = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
+        console.log(`📊 Station ${group.station} has capacity: ${group.maxCapacity}`);
+      } catch (error) {
+        console.error(`Error getting capacity for station ${group.station}:`, error);
+        group.maxCapacity = 2; // Fallback to default if error
       }
     }
 
