@@ -454,10 +454,6 @@ const sendBookingPendingEmail = async (email, station, date, time) => {
               <p>If you have any questions, please use our system or reply to this email.</p>
             </div>
             
-            <div style="text-align: center;">
-              <a href="#" class="button">View Your Booking</a>
-            </div>
-            
             <p class="expires">If you didn't request this booking, please ignore this email.</p>
           </div>
           <div class="footer">
