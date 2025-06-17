@@ -950,7 +950,7 @@ const handleLateRegistration = async (booking) => {
         transporter.sendMail(approvalMailOptions);
       } else {
         // Mark as late registration
-        booking.status = 'rejected';
+        booking.status = 'late_registration';
         booking.rejectionReason = 'Late registration - station full';
 
         // Send late registration email with HTML styling

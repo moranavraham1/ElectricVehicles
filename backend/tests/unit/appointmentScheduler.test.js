@@ -123,7 +123,7 @@ describe('Appointment Scheduler Tests', () => {
       await handleLateRegistration(mockBooking);
       
       // Check if booking was rejected and saved
-      expect(mockBooking.status).toBe('rejected');
+      expect(mockBooking.status).toBe('late_registration');
       expect(mockBooking.rejectionReason).toBe('Late registration - station full');
       expect(mockBooking.save).toHaveBeenCalled();
     });

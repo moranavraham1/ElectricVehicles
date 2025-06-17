@@ -126,44 +126,105 @@ const ChargingQueue = () => {
 
     // חישוב זמן המתנה מדויק לפי סדר עדיפות, עמדות וזמני טעינה
     const calculateWaitingTime = (index, sortedQueue) => {
+        // Get current time in minutes since midnight
+        const now = new Date();
+        const currentHourInMinutes = now.getHours() * 60 + now.getMinutes();
+        const currentDateStr = now.toISOString().split('T')[0];
+        
         // קבל את כמות עמדות הטעינה בתחנה
         const numChargingPoints = stationDetails?.["Duplicate Count"] || 1;
+        
+        // Get the booking we're calculating wait time for
+        const targetBooking = sortedQueue[index];
+        const [targetHours, targetMinutes] = targetBooking.time.split(":").map(Number);
+        const targetTimeInMinutes = targetHours * 60 + targetMinutes;
+        const targetDuration = targetBooking.estimatedChargeTime || 30;
+        
+        // Skip calculation if booking is in the past
+        if (targetBooking.date < currentDateStr || 
+            (targetBooking.date === currentDateStr && targetTimeInMinutes < currentHourInMinutes)) {
+            return "Booking time has passed";
+        }
+        
+        // אם הזמן של ההזמנה טרם הגיע (השעה הנוכחית מוקדמת יותר)
+        if (targetBooking.date === currentDateStr && targetTimeInMinutes > currentHourInMinutes) {
+            // בדוק אם יש זמן קצר עד התור (פחות מ-10 דקות)
+            const minutesToAppointment = targetTimeInMinutes - currentHourInMinutes;
+            if (minutesToAppointment <= 10) {
+                return `Your booking in ${minutesToAppointment} minutes`;
+            }
+        }
+        
         // מערך שמייצג מתי כל עמדה פנויה (בדקות מאז חצות)
-        const chargingPoints = Array(numChargingPoints).fill(0);
-
-        // עבור כל משתמש בתור (לפי סדר העדיפות)
-        for (let i = 0; i < sortedQueue.length; i++) {
-            const booking = sortedQueue[i];
+        // Initialize with current time for today's bookings, or 0 for future dates
+        const isToday = targetBooking.date === currentDateStr;
+        const chargingPoints = Array(numChargingPoints).fill(isToday ? currentHourInMinutes : 0);
+        
+        // Filter to only include bookings that could affect our target booking
+        const relevantBookings = sortedQueue.filter((booking, i) => {
+            // Don't include our target booking
+            if (i === index) return false;
+            
+            // Convert booking time to minutes
+            const [bookingHours, bookingMinutes] = booking.time.split(":").map(Number);
+            const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
+            const bookingDuration = booking.estimatedChargeTime || 30;
+            
+            // אם ההזמנה היא למועד מוקדם יותר מהתור שלנו, 
+            // בדוק אם היא תסתיים לפני שהתור שלנו מתחיל
+            if (bookingTimeInMinutes < targetTimeInMinutes) {
+                // חשב את זמן הסיום של ההזמנה האחרת
+                const bookingEndTime = bookingTimeInMinutes + bookingDuration;
+                
+                // אם ההזמנה האחרת מסתיימת לאחר תחילת התור שלנו, היא רלוונטית
+                return bookingEndTime > targetTimeInMinutes;
+            }
+            
+            // אם ההזמנה היא לאותו זמן בדיוק כמו שלנו, היא רלוונטית רק אם היא לפנינו בתור
+            // (בהתאם למיקום בתור המסודר)
+            if (bookingTimeInMinutes === targetTimeInMinutes) {
+                return i < index;
+            }
+            
+            // אם ההזמנה היא למועד מאוחר יותר, היא לא רלוונטית
+            return false;
+        });
+        
+        // Process all relevant bookings to update charging point availability
+        for (const booking of relevantBookings) {
             const [hours, minutes] = booking.time.split(":").map(Number);
             const startTimeInMinutes = hours * 60 + minutes;
             const duration = booking.estimatedChargeTime || 30;
-
-            // מצא את העמדה שתהיה פנויה הכי מוקדם
+            
+            // Find the charging point that will be available first
             let earliestAvailable = Math.min(...chargingPoints);
             let earliestPointIndex = chargingPoints.indexOf(earliestAvailable);
-
-            // מתי המשתמש באמת יוכל להתחיל טעינה
+            
+            // When this booking will actually start charging
             const actualStart = Math.max(startTimeInMinutes, chargingPoints[earliestPointIndex]);
-            const waitTime = actualStart - startTimeInMinutes;
-
-            // עדכן את זמן הסיום של העמדה
+            
+            // Update when this charging point will be free
             chargingPoints[earliestPointIndex] = actualStart + duration;
-
-            // אם זה המשתמש שאנחנו רוצים לחשב עבורו
-            if (i === index) {
-                if (waitTime <= 0) {
-                    return "No waiting time - station available";
-                } else if (waitTime < 60) {
-                    return `Estimated wait: ${waitTime} minutes`;
-                } else {
-                    const hours = Math.floor(waitTime / 60);
-                    const mins = waitTime % 60;
-                    return `Estimated wait: ${hours} hour${hours > 1 ? 's' : ''}${mins > 0 ? ` ${mins} minutes` : ''}`;
-                }
-            }
         }
-        // fallback
-        return "Error calculating wait time";
+        
+        // Now calculate when our target booking can start
+        let earliestAvailable = Math.min(...chargingPoints);
+        let earliestPointIndex = chargingPoints.indexOf(earliestAvailable);
+        
+        // Our actual start time is the later of our booking time or when a point becomes available
+        const actualStart = Math.max(targetTimeInMinutes, chargingPoints[earliestPointIndex]);
+        const waitTime = actualStart - targetTimeInMinutes;
+        
+        // Format the wait time message
+        if (waitTime <= 0) {
+            return "No waiting time - station available";
+        } else if (waitTime < 60) {
+            return `Estimated wait: ${waitTime} minutes`;
+        } else {
+            const hours = Math.floor(waitTime / 60);
+            const mins = waitTime % 60;
+            return `Estimated wait: ${hours} hour${hours > 1 ? 's' : ''}${mins > 0 ? ` ${mins} minutes` : ''}`;
+        }
     };
 
     // Add function to manually trigger appointment processing
@@ -213,10 +274,6 @@ const ChargingQueue = () => {
                 
             </div>
 
-            <div className="queue-notification">
-                <strong>Note:</strong> This queue shows only approved appointments. Pending appointments are processed 1 hour before their scheduled time.
-            </div>
-
             <div className="queue-content">
                 {loading ? (
                     <div className="loading-container">
@@ -237,11 +294,19 @@ const ChargingQueue = () => {
                 ) : (
                     <div className="queue-list">
                         {(() => {
+                            // קודם כל למיין את התור לפי זמן, מהמוקדם למאוחר
                             const sortedQueue = [...queue].sort((a, b) => {
+                                // המיון הראשי הוא לפי זמן
+                                if (a.time !== b.time) {
+                                    return a.time.localeCompare(b.time);
+                                }
+                                
+                                // רק אם שני תורים באותה שעה, השתמש באלגוריתם העדיפויות
                                 if (a.priorityScore !== b.priorityScore) {
                                     return a.priorityScore - b.priorityScore;
                                 }
-                                // אם ציון העדיפות זהה, תן עדיפות לסוללה נמוכה יותר
+                                
+                                // אם גם העדיפויות שוות, העדף רמת סוללה נמוכה יותר
                                 return (a.currentBattery ?? 100) - (b.currentBattery ?? 100);
                             });
                             return sortedQueue.map((booking, index) => {

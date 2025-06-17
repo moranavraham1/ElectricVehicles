@@ -393,12 +393,22 @@ function FutureBookings() {
     let filtered = bookings;
 
     // First apply the tab filters
-    if (activeTab === "upcoming") filtered = filtered.filter((b) => getBookingStatus(b) === "upcoming");
+    if (activeTab === "upcoming") {
+      // Include both upcoming bookings and any bookings with 'approved' status
+      filtered = filtered.filter((b) => 
+        getBookingStatus(b) === "upcoming" || b.status === 'approved'
+      );
+    }
     else if (activeTab === "past") filtered = filtered.filter((b) => ["past", "completed"].includes(getBookingStatus(b)));
     else if (activeTab === "completed") filtered = filtered.filter((b) => getBookingStatus(b) === "completed");
+    // By default (activeTab === "all"), show all bookings including approved ones
 
-    // Then apply status filters if they're set
-    if (filterStatus === "paid") {
+    // Then apply additional status filters if they're set
+    if (filterStatus === "approved") {
+      filtered = filtered.filter(b => b.status === 'approved');
+    } else if (filterStatus === "rejected") {
+      filtered = filtered.filter(b => b.status === 'rejected' || b.status === 'late_registration');
+    } else if (filterStatus === "paid") {
       filtered = filtered.filter(b => {
         const payment = findPaymentForBooking(b);
         return payment !== undefined;
