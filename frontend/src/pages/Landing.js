@@ -152,7 +152,7 @@ function Landing() {
                     <div className="benefits-container">
                         <div className="benefit-item">
                             <h4>Nationwide Coverage</h4>
-                            <p>Over 2,000 charging stations across the country</p>
+                            <p>Over 1300+ charging stations across the country</p>
                         </div>
                         <div className="benefit-item">
                             <h4>Real-time Notifications</h4>

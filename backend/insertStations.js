@@ -3302,7 +3302,7 @@ const stationData =
         },
         {
             "Station Name": "Alonei HaBashan - Tourism",
-            "Address": "רמת הגולן",
+            "Address": "Golan Heights",
             "City": "Alonei HaBashan",
             "Latitude": 33.0424,
             "Longitude": 35.8374,
@@ -4912,7 +4912,7 @@ const stationData =
             "Duplicate Count": 4.0
         },
         {
-            "Station Name": "מלון רמת רחל",
+            "Station Name": "Ramat Rachel Hotel",
             "Address": "Kibbutz Ramat Rachel  Jerusalem  Israel",
             "City": "Jerusalem",
             "Latitude": 31.737621,
