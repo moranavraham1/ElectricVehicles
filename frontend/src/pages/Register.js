@@ -473,9 +473,15 @@ function Register() {
                 style={{
                   height: '48px',
                   minHeight: '48px',
-                  display: 'flex',
+                  display: 'inline-block',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  transition: 'none',
+                  transform: 'none',
+                  boxShadow: 'none',
+                  position: 'relative',
+                  width: '48%',
+                  float: 'left'
                 }}
               >
                 Back
@@ -490,9 +496,12 @@ function Register() {
                 style={{
                   height: '48px',
                   minHeight: '48px',
-                  display: 'flex',
+                  display: 'inline-block',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  position: 'relative',
+                  width: '48%',
+                  float: 'right'
                 }}
               >
                 Next
@@ -504,9 +513,12 @@ function Register() {
                 style={{
                   height: '48px',
                   minHeight: '48px',
-                  display: 'flex',
+                  display: 'inline-block',
                   alignItems: 'center',
-                  justifyContent: 'center'
+                  justifyContent: 'center',
+                  position: 'relative',
+                  width: '48%',
+                  float: 'right'
                 }}
               >
                 Register

@@ -325,7 +325,16 @@ html {
     gap: 24px !important;
     flex-wrap: nowrap !important;
     width: 100%;
-    height: 48px !important;
+    height: auto !important; /* Change from fixed height to auto */
+    min-height: 48px !important;
+    position: relative !important;
+}
+
+/* Clear any floating elements */
+.button-group:after {
+    content: "";
+    display: table;
+    clear: both;
 }
 
 .button-group button,
@@ -344,6 +353,7 @@ html {
     padding: 0 !important;
     line-height: 1 !important;
     position: relative !important;
+    float: left !important;
 }
 
 /* Back Button */
@@ -352,11 +362,23 @@ html {
     color: #3B82F6 !important;
     border: 2px solid #3B82F6 !important;
     font-weight: 600 !important;
-    width: 100% !important;
-    position: relative !important;
+    width: 48% !important; /* Fixed width percentage */
     height: 48px !important;
     min-height: 48px !important;
     max-height: 48px !important;
+    flex: 1 !important;
+    position: relative !important; 
+    float: left !important;
+    display: inline-block !important;
+}
+
+/* Disable hover animations for back button */
+.back-button:hover {
+    transform: none !important;
+    transition: none !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 /* Next/Submit Buttons */
@@ -369,6 +391,10 @@ html {
     height: 48px !important;
     min-height: 48px !important;
     max-height: 48px !important;
+    flex: 1 !important;
+    width: 48% !important; /* Fixed width percentage */
+    float: right !important;
+    display: inline-block !important;
 }
 
 /* Special case for step-0 - maintain right alignment */
@@ -378,6 +404,8 @@ html {
 
 .register-container form.step-0 .next-button {
     width: 100% !important;
+    float: none !important;
+    display: block !important;
 }
 
 /* Individual step targeting to override any other CSS */
