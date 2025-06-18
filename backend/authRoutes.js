@@ -20,6 +20,7 @@ router.post('/reset-password', authController.resetPassword);
 router.post('/verify-reset-token', authController.verifyResetToken);
 router.post("/change-password", authController.changePassword);
 router.post('/check-email', authController.checkEmail);
+router.post('/delete-account', authMiddleware, authController.deleteAccount);
 
 router.get('/fetch-details', authController.fetchDetails);
 router.put('/update-details', authMiddleware, authController.updateDetails);
