@@ -1013,6 +1013,38 @@ router.post('/book', authMiddleware, async (req, res) => {
   }
 });
 
+// Delete expired bookings (must be before /:id route)
+router.delete('/delete-expired', authMiddleware, async (req, res) => {
+  try {
+    const now = new Date();
+    const bookings = await Booking.find({ status: { $in: ['pending', 'approved'] } });
+
+    const expiredBookings = [];
+    for (const booking of bookings) {
+      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+      const timeDiffInMinutes = (now - bookingDateTime) / (1000 * 60);
+      
+      if (timeDiffInMinutes > 10) {
+        const activeCharging = await ActiveCharging.findOne({
+          user: booking.user,
+          station: booking.station,
+          date: booking.date,
+          time: booking.time
+        });
+
+        if (!activeCharging) {
+          expiredBookings.push(booking._id);
+        }
+      }
+    }
+
+    const result = await Booking.deleteMany({ _id: { $in: expiredBookings } });
+    res.json({ deletedCount: result.deletedCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id);

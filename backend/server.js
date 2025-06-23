@@ -22,6 +22,8 @@ const paymentRoutes = require('./routes/payments');
 const appointmentRoutes = require('./appointmentRoutes');
 const activeChargingRoutes = require('./routes/activeCharging');
 const { startScheduler } = require('./appointmentScheduler');
+const Booking = require('./models/Booking');
+const ActiveCharging = require('./models/ActiveCharging');
 
 const express = require('express');
 const authMiddleware = require('./authMiddleware');
@@ -44,7 +46,7 @@ app.use('/api/stations', stationsRoutes);
 app.use('/api/bookings', authMiddleware, bookingRoutes);
 app.use('/api/payments', authMiddleware, paymentRoutes);
 app.use('/api/appointments', appointmentRoutes);
-app.use('/api/active-charging', activeChargingRoutes);
+app.use('/api/activeCharging', authMiddleware, activeChargingRoutes);
 
 
 app.get('/', (req, res) => {
@@ -53,6 +55,42 @@ app.get('/', (req, res) => {
 
 // Start the appointment scheduler
 startScheduler();
+
+const cleanupExpiredBookings = async () => {
+  try {
+    const now = new Date();
+    const bookings = await Booking.find({ status: { $in: ['pending', 'approved'] } });
+
+    const expiredBookings = [];
+    for (const booking of bookings) {
+      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+      const timeDiffInMinutes = (now - bookingDateTime) / (1000 * 60);
+      
+      if (timeDiffInMinutes > 10) {
+        const activeCharging = await ActiveCharging.findOne({
+          user: booking.user,
+          station: booking.station,
+          date: booking.date,
+          time: booking.time
+        });
+
+        if (!activeCharging) {
+          expiredBookings.push(booking._id);
+        }
+      }
+    }
+
+    if (expiredBookings.length > 0) {
+      await Booking.deleteMany({ _id: { $in: expiredBookings } });
+      console.log(`🗑️ Cleaned up ${expiredBookings.length} expired bookings`);
+    }
+  } catch (error) {
+    console.error('Error cleaning up expired bookings:', error);
+  }
+};
+
+// Run cleanup every 5 minutes
+setInterval(cleanupExpiredBookings, 5 * 60 * 1000);
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

@@ -149,6 +149,11 @@
 
 }
 
+.status-badge.expired {
+  background-color: #f44336;
+  animation: pulse-warning 2s infinite;
+}
+
 .pulse-indicator {
   width: 10px;
   height: 10px;
@@ -184,6 +189,12 @@
     transform: scale(1);
     opacity: 0;
   }
+}
+
+@keyframes pulse-warning {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
 }
 
 .booking-details {
@@ -329,12 +340,24 @@
   border-left: 3px solid #2196f3;
 }
 
+.status-message.ready {
+  background-color: #fff3cd;
+  border-left: 4px solid #ff9800;
+  color: #856404;
+}
+
 .status-message.past {
 
   background-color: rgba(158, 158, 158, 0.15);
   color: #424242;
 
   border-left: 3px solid #9e9e9e;
+}
+
+.status-message.expired {
+  background-color: #f8d7da;
+  border-left: 4px solid #f44336;
+  color: #721c24;
 }
 
 .no-bookings {
