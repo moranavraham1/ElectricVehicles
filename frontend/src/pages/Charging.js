@@ -14,10 +14,8 @@ const Charging = () => {
     const {
         station,
         date: incomingDate,
-        time: incomingTime,
-        estimatedChargeTime: incomingChargeTime,
-        currentBattery: incomingBatteryLevel,
-        targetBattery: incomingTargetLevel
+        time: incomingTime,        estimatedChargeTime: incomingChargeTime,
+        currentBattery: incomingBatteryLevel
     } = location.state || {};
 
     const [isCharging, setIsCharging] = useState(false);
@@ -28,9 +26,7 @@ const Charging = () => {
     const [elapsedTime, setElapsedTime] = useState(0);
     const [estimatedChargeTime, setEstimatedChargeTime] = useState(null);
     const [endTime, setEndTime] = useState('');
-    const timerRef = useRef(null);
-    const [batteryLevel, setBatteryLevel] = useState(incomingBatteryLevel || 20); // Use user-provided level or default
-    const [targetLevel, setTargetLevel] = useState(incomingTargetLevel || 80); // Use user-provided target or default
+    const timerRef = useRef(null);    const [batteryLevel, setBatteryLevel] = useState(incomingBatteryLevel || 20); // Use user-provided level or default
     const [showSummary, setShowSummary] = useState(false);
     const [chargingSummary, setChargingSummary] = useState({
         duration: 0,
@@ -113,12 +109,27 @@ const Charging = () => {
             });
             setEndTime(formattedEnd);
         }
-    }, [station, incomingDate, incomingTime, incomingChargeTime]);
-
-    const startCharging = async () => {
+    }, [station, incomingDate, incomingTime, incomingChargeTime]);    const startCharging = async () => {
         try {
             setLoading(true);
             console.log("Starting charging process...");
+
+            // Get token for user authentication
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('User authentication required. Please log in again.');
+                setLoading(false);
+                return;
+            }            // Create active charging record in database
+            const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/active-charging`, {
+                station: station['Station Name'] || station.name,
+                date: date,
+                time: time
+            }, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            console.log("Active charging record created:", response.data);
 
             setTimeout(() => {
                 setIsCharging(true);
@@ -131,15 +142,12 @@ const Charging = () => {
 
         } catch (err) {
             console.error("Error in startCharging:", err);
-            setError('Error starting charging. Please try again.');
+            setError(err.response?.data?.message || 'Error starting charging. Please try again.');
             setLoading(false);
         }
-    };
-
-    const stopCharging = async () => {
+    };    const stopCharging = async () => {
         try {
             setLoading(true);
-
             
             // Get token for user authentication
             const token = localStorage.getItem('token');
@@ -155,8 +163,23 @@ const Charging = () => {
             
             // Stop the charging timer
             stopTimer();
+              // Delete active charging record from database
+            try {
+                await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/api/active-charging`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                    data: {
+                        station: station['Station Name'] || station.name,
+                        date: date,
+                        time: time
+                    }
+                });
+                console.log("Active charging record deleted");
+            } catch (deleteErr) {
+                console.error("Error deleting active charging record:", deleteErr);
+                // Continue with charging completion even if delete fails
+            }
             
-            // Simulate API call with token authentication (replace with actual API call)
+            // Complete charging process
             setTimeout(() => {
                 // Calculate battery gained
                 const batteryGained = batteryLevel - incomingBatteryLevel;
@@ -179,28 +202,33 @@ const Charging = () => {
                 
                 // Display success toast or message if needed
                 console.log('Charging completed successfully. Please proceed to payment.');
-            }, 2000); // Complete within 2 seconds for better UX
+            }, 2000);
 
         } catch (err) {
             console.error(err);
             setError(err.response?.data?.message || 'Error stopping charging. Please try again.');
-
             setLoading(false);
         }
-    };
-
-    const startTimer = () => {
+    };    const startTimer = () => {
         timerRef.current = setInterval(() => {
             setElapsedTime((prev) => prev + 1);
             // Simulate battery increasing during charging
-            if (batteryLevel < targetLevel) {
-                setBatteryLevel(prevLevel => {
-                    // Calculate rate based on target and estimated time
-                    const rate = estimatedChargeTime ? (targetLevel - incomingBatteryLevel) / (estimatedChargeTime * 60) : 0.01;
-                    const newLevel = Math.min(targetLevel, prevLevel + rate);
-                    return newLevel;
-                });
-            }
+            setBatteryLevel(prevLevel => {
+                // Calculate rate based on estimated time or use default rate
+                const rate = estimatedChargeTime ? (100 - incomingBatteryLevel) / (estimatedChargeTime * 60) : 0.02;
+                const newLevel = Math.min(100, prevLevel + rate);
+                
+                // Auto-stop charging when battery reaches 100%
+                if (newLevel >= 100 && prevLevel < 100) {
+                    setTimeout(() => {
+                        console.log("Battery reached 100%, stopping charging automatically");
+                        setChargingStatus('Battery full! Stopping charging automatically...');
+                        stopCharging();
+                    }, 1000);
+                }
+                
+                return newLevel;
+            });
         }, 1000);
     };
 
@@ -322,24 +350,21 @@ const Charging = () => {
                                 style={{ width: `${batteryLevel}%` }}>
                                 <span className="battery-percentage">{Math.round(batteryLevel)}%</span>
                             </div>
-                        </div>
-                        <div style={{ textAlign: 'center', marginTop: 'var(--spacing-sm)' }}>
+                        </div>                        <div style={{ textAlign: 'center', marginTop: 'var(--spacing-sm)' }}>
                             <span className="battery-status">{getBatteryStatus(batteryLevel)}</span>
-                            {targetLevel && (
-                                <div style={{ marginTop: 'var(--spacing-sm)', color: 'var(--text-secondary)' }}>
-                                    Target: <strong>{targetLevel}%</strong>
-                                </div>
-                            )}
                         </div>
                     </div>
-                </div>
-
-                {/* Charging Status / Timer */}
+                </div>                {/* Charging Status / Timer */}
                 <div className="timer-section">
                     {isCharging ? (
                         <>
                             <div className="timer-display">{formatElapsedTime(elapsedTime)}</div>
                             <div className="charging-status">⚡ Charging in progress</div>
+                            {batteryLevel >= 99.5 && (
+                                <div className="battery-full-warning">
+                                    🔋 Almost full! Charging will stop automatically at 100%
+                                </div>
+                            )}
                             {estimatedChargeTime && endTime && (
                                 <div className="estimated-end">
                                     Estimated completion at <strong>{endTime}</strong>

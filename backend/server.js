@@ -20,6 +20,7 @@ const stationsRoutes = require('./routes/stations');
 const bookingRoutes = require('./routes/bookings');
 const paymentRoutes = require('./routes/payments');
 const appointmentRoutes = require('./appointmentRoutes');
+const activeChargingRoutes = require('./routes/activeCharging');
 const { startScheduler } = require('./appointmentScheduler');
 
 const express = require('express');
@@ -43,6 +44,7 @@ app.use('/api/stations', stationsRoutes);
 app.use('/api/bookings', authMiddleware, bookingRoutes);
 app.use('/api/payments', authMiddleware, paymentRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/active-charging', activeChargingRoutes);
 
 
 app.get('/', (req, res) => {
