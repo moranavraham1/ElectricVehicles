@@ -47,6 +47,7 @@ app.use('/api/bookings', authMiddleware, bookingRoutes);
 app.use('/api/payments', authMiddleware, paymentRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/activeCharging', authMiddleware, activeChargingRoutes);
+app.use('/api/active-charging', authMiddleware, activeChargingRoutes);
 
 
 app.get('/', (req, res) => {

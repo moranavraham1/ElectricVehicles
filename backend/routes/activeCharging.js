@@ -24,12 +24,24 @@ const authenticateToken = (req, res, next) => {
 // Create new active charging session
 router.post('/', authenticateToken, async (req, res) => {
     try {
+        console.log('Active charging request body:', req.body);
+        console.log('User from token:', req.user);
+        
         const { station, date, time } = req.body;
         const userId = req.user.userId || req.user.id;
+
+        // Validate required fields
+        if (!station || !date || !time) {
+            console.log('Missing required fields:', { station, date, time });
+            return res.status(400).json({
+                message: 'Missing required fields: station, date, time'
+            });
+        }
 
         // Check if user already has an active charging session
         const existingCharging = await ActiveCharging.findOne({ user: userId });
         if (existingCharging) {
+            console.log('User already has active charging session:', existingCharging);
             return res.status(400).json({ 
                 message: 'You already have an active charging session' 
             });
@@ -44,6 +56,7 @@ router.post('/', authenticateToken, async (req, res) => {
             startTime: new Date()
         });
 
+        console.log('Creating active charging record:', activeCharging);
         await activeCharging.save();
 
         res.status(201).json({
@@ -102,7 +115,8 @@ router.get('/', authenticateToken, async (req, res) => {
         const activeCharging = await ActiveCharging.findOne({ user: userId });
 
         if (!activeCharging) {
-            return res.status(404).json({ 
+            return res.status(200).json({ 
+                activeCharging: null,
                 message: 'No active charging session found' 
             });
         }

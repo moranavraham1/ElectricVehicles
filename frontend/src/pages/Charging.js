@@ -14,9 +14,16 @@ const Charging = () => {
     const {
         station,
         date: incomingDate,
-        time: incomingTime,        estimatedChargeTime: incomingChargeTime,
+        time: incomingTime,
+        estimatedChargeTime: incomingChargeTime,
         currentBattery: incomingBatteryLevel
     } = location.state || {};
+
+    // Debug logging
+    useEffect(() => {
+        console.log('Location state:', location.state);
+        console.log('Incoming battery level:', incomingBatteryLevel);
+    }, [location.state, incomingBatteryLevel]);
 
     const [isCharging, setIsCharging] = useState(false);
     const [error, setError] = useState('');
@@ -26,7 +33,14 @@ const Charging = () => {
     const [elapsedTime, setElapsedTime] = useState(0);
     const [estimatedChargeTime, setEstimatedChargeTime] = useState(null);
     const [endTime, setEndTime] = useState('');
-    const timerRef = useRef(null);    const [batteryLevel, setBatteryLevel] = useState(incomingBatteryLevel || 20); // Use user-provided level or default
+    const timerRef = useRef(null);
+    
+    // Initialize battery level with proper fallback
+    const initialBatteryLevel = typeof incomingBatteryLevel === 'number' && !isNaN(incomingBatteryLevel) 
+        ? incomingBatteryLevel 
+        : 25; // Default to 25% if no valid value provided
+    
+    const [batteryLevel, setBatteryLevel] = useState(initialBatteryLevel);
     const [showSummary, setShowSummary] = useState(false);
     const [chargingSummary, setChargingSummary] = useState({
         duration: 0,
@@ -45,11 +59,9 @@ const Charging = () => {
     };
 
     useEffect(() => {
-        let batteryRef;
-
-        const monitorBattery = async () => {
-            // If we have a battery level from the booking, don't use the device's battery
-            if (incomingBatteryLevel !== undefined) {
+        let batteryRef;        const monitorBattery = async () => {
+            // If we have a valid battery level from the booking, don't use the device's battery
+            if (typeof incomingBatteryLevel === 'number' && !isNaN(incomingBatteryLevel)) {
                 console.log('Using battery level from booking:', incomingBatteryLevel);
                 return;
             }
@@ -60,7 +72,9 @@ const Charging = () => {
                     batteryRef = battery;
 
                     const updateLevel = () => {
-                        setBatteryLevel(Math.round(battery.level * 100));
+                        const deviceBatteryLevel = Math.round(battery.level * 100);
+                        console.log('Using device battery level:', deviceBatteryLevel);
+                        setBatteryLevel(deviceBatteryLevel);
                     };
 
                     updateLevel();
@@ -113,6 +127,9 @@ const Charging = () => {
         try {
             setLoading(true);
             console.log("Starting charging process...");
+            console.log("Station object:", station);
+            console.log("Date:", date);
+            console.log("Time:", time);
 
             // Get token for user authentication
             const token = localStorage.getItem('token');
@@ -120,9 +137,15 @@ const Charging = () => {
                 setError('User authentication required. Please log in again.');
                 setLoading(false);
                 return;
-            }            // Create active charging record in database
+            }
+
+            // Extract station name properly
+            const stationName = station['Station Name'] || station.name || station;
+            console.log("Station name extracted:", stationName);
+
+            // Create active charging record in database
             const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/active-charging`, {
-                station: station['Station Name'] || station.name,
+                station: stationName,
                 date: date,
                 time: time
             }, {
@@ -162,13 +185,15 @@ const Charging = () => {
             setChargingStatus('Ending charging session...');
             
             // Stop the charging timer
-            stopTimer();
-              // Delete active charging record from database
+            stopTimer();              // Delete active charging record from database
             try {
+                const stationName = station['Station Name'] || station.name || station;
+                console.log("Stopping charging for station:", stationName);
+                
                 await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/api/active-charging`, {
                     headers: { Authorization: `Bearer ${token}` },
                     data: {
-                        station: station['Station Name'] || station.name,
+                        station: stationName,
                         date: date,
                         time: time
                     }
@@ -178,16 +203,15 @@ const Charging = () => {
                 console.error("Error deleting active charging record:", deleteErr);
                 // Continue with charging completion even if delete fails
             }
-            
-            // Complete charging process
+              // Complete charging process
             setTimeout(() => {
-                // Calculate battery gained
-                const batteryGained = batteryLevel - incomingBatteryLevel;
+                // Calculate battery gained using the initial battery level we calculated
+                const batteryGained = batteryLevel - initialBatteryLevel;
                 
                 // Update summary with charging details
                 setChargingSummary({
                     duration: elapsedTime,
-                    initialBattery: incomingBatteryLevel,
+                    initialBattery: initialBatteryLevel,
                     finalBattery: batteryLevel,
                     batteryGained: batteryGained.toFixed(1)
                 });
@@ -211,11 +235,12 @@ const Charging = () => {
         }
     };    const startTimer = () => {
         timerRef.current = setInterval(() => {
-            setElapsedTime((prev) => prev + 1);
-            // Simulate battery increasing during charging
+            setElapsedTime((prev) => prev + 1);            // Simulate battery increasing during charging
             setBatteryLevel(prevLevel => {
+                // Use the initial battery level we calculated
+                const startLevel = initialBatteryLevel;
                 // Calculate rate based on estimated time or use default rate
-                const rate = estimatedChargeTime ? (100 - incomingBatteryLevel) / (estimatedChargeTime * 60) : 0.02;
+                const rate = estimatedChargeTime ? (100 - startLevel) / (estimatedChargeTime * 60) : 0.02;
                 const newLevel = Math.min(100, prevLevel + rate);
                 
                 // Auto-stop charging when battery reaches 100%
@@ -271,14 +296,13 @@ const Charging = () => {
         // Get the booking ID from the URL or session storage if available
         const bookingId = location.state?.bookingId || '';
         
-        navigate('/payment', {
-            state: {
+        navigate('/payment', {            state: {
                 bookingId,
                 station,
                 date,
                 time,
                 chargingTime: elapsedTime,
-                initialBattery: incomingBatteryLevel || 0,
+                initialBattery: initialBatteryLevel,
                 finalBattery: batteryLevel,
                 batteryGained: chargingSummary.batteryGained
             }
