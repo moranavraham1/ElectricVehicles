@@ -71,6 +71,12 @@ const Home = () => {
   const STATIONS_PER_PAGE = 5;
   const [mapLoading, setMapLoading] = useState({});
   const [fullMapLoading, setFullMapLoading] = useState({});
+    // State for booking management
+  const [userBookings, setUserBookings] = useState([]);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedStationForAppointment, setSelectedStationForAppointment] = useState(null);
+  const [appointmentStatus, setAppointmentStatus] = useState('');
+  const [nearestBooking, setNearestBooking] = useState(null);
 
   // Check if we're navigating from Map or Favorites with a station to book
   useEffect(() => {
@@ -118,9 +124,9 @@ const Home = () => {
     setTime('');
     setAvailableTimes([]);
   };
-
+  // Legacy function - now redirects to new appointment-based logic
   const startCharging = (station) => {
-    navigate('/charging', { state: { station } });
+    handleStartCharging(station);
   };
   const goToAppointmentPage = async (station) => {
     try {
@@ -502,9 +508,10 @@ const Home = () => {
             Authorization: `Bearer ${localStorage.getItem("token")}`
           }
         }
-      );
+      );      alert("Booking successful!");
 
-      alert("Booking successful!");
+      // Refresh bookings list to update status
+      fetchUserBookings();
 
       setChargingSlots(prevSlots => {
         const updatedSlots = { ...prevSlots };
@@ -631,22 +638,197 @@ const Home = () => {
     };
   }, []);
 
-
   // Use effects
   useEffect(() => {
     fetchUserLocation();
+    fetchStations();
+    fetchUserBookings();
   }, []);
+  // Function to fetch user bookings
+  const fetchUserBookings = async () => {
+    try {
+      console.log("📡 Fetching user bookings...");
+      const token = localStorage.getItem("token");
+      const userEmail = localStorage.getItem("loggedInUser");
+      console.log("📧 User email from localStorage:", userEmail);
+      console.log("🔑 Token exists:", !!token);
+      
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
+      console.log("📊 Response status:", response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("📋 Fetched bookings data:", data);
+        setUserBookings(data);
+      } else {
+        console.error("❌ Failed to fetch bookings, status:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching bookings:", error);
+    }
+  };
+
+  // Refresh bookings when component mounts and when coming back from other pages
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    fetchUserBookings();
+  }, [location.pathname]);
 
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
+  // Refresh bookings every minute to keep status up to date
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUserBookings();
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
   }, []);
 
+  // Function to check booking status for a specific station
+  const checkBookingStatus = (stationName) => {
+    console.log("🔍 Checking booking status for station:", stationName);
+    const userEmail = localStorage.getItem('loggedInUser');
+    console.log("👤 User email for filtering:", userEmail);
+    console.log("📋 All user bookings:", userBookings);
+    console.log("📋 userBookings length:", userBookings.length);
+      const stationBookings = userBookings.filter(
+      booking => {
+        console.log("🔍 Comparing booking:", booking);
+        console.log("   booking.user:", booking.user);
+        console.log("   userEmail:", userEmail);
+        console.log("   booking.station:", booking.station);
+        console.log("   stationName:", stationName);
+        
+        const userMatch = booking.user === userEmail;
+        // Case-insensitive comparison for station names
+        const stationMatch = booking.station.toLowerCase().trim() === stationName.toLowerCase().trim();
+        console.log("   userMatch:", userMatch, "stationMatch:", stationMatch);
+        console.log("   booking.station.toLowerCase():", booking.station.toLowerCase().trim());
+        console.log("   stationName.toLowerCase():", stationName.toLowerCase().trim());
+        
+        return userMatch && stationMatch;
+      }
+    );
+
+    console.log("🎯 Filtered station bookings:", stationBookings);
+
+    if (stationBookings.length === 0) {
+      console.log("❌ No bookings found for this station");
+      return {
+        hasBooking: false,
+        status: 'no_booking',
+        message: 'No booking found for this station'
+      };
+    }    // Find bookings within the acceptable time window (10 minutes before to 10 minutes after)
+    const now = new Date();
+    console.log("⏰ Current time:", now);
+    
+    const relevantBookings = stationBookings
+      .map(booking => ({
+        ...booking,
+        bookingDateTime: new Date(`${booking.date}T${booking.time}`)
+      }))
+      .filter(booking => {
+        const timeDiffInMinutes = (now - booking.bookingDateTime) / (1000 * 60);
+        console.log("📅 Booking datetime:", booking.bookingDateTime);
+        console.log("⏱️ Time difference in minutes (positive = past, negative = future):", timeDiffInMinutes);
+        
+        // Accept bookings from 10 minutes before to 10 minutes after
+        const isWithinWindow = timeDiffInMinutes >= -10 && timeDiffInMinutes <= 10;
+        console.log("✅ Is within 10-minute window:", isWithinWindow);
+        return isWithinWindow;
+      })
+      .sort((a, b) => Math.abs((now - a.bookingDateTime)) - Math.abs((now - b.bookingDateTime))); // Sort by closest to now
+
+    console.log("🎯 Relevant bookings within time window:", relevantBookings);
+
+    if (relevantBookings.length === 0) {
+      // If no bookings in the current window, find the next upcoming booking
+      const upcomingBookings = stationBookings
+        .map(booking => ({
+          ...booking,
+          bookingDateTime: new Date(`${booking.date}T${booking.time}`)
+        }))
+        .filter(booking => booking.bookingDateTime > now)
+        .sort((a, b) => a.bookingDateTime - b.bookingDateTime);
+
+      console.log("🔮 Next upcoming bookings:", upcomingBookings);
+
+      if (upcomingBookings.length === 0) {
+        console.log("⏰ No upcoming bookings");
+        return {
+          hasBooking: false,
+          status: 'no_upcoming_booking',
+          message: 'No upcoming bookings for this station'
+        };
+      }
+
+      const nextBooking = upcomingBookings[0];
+      console.log("📅 Next booking scheduled for later");
+      return {
+        hasBooking: true,
+        status: 'booking_scheduled',
+        booking: nextBooking,
+        message: `Next booking: ${nextBooking.bookingDateTime.toLocaleString()}`
+      };
+    }
+
+    // If we have bookings within the window, use the closest one
+    const closestBooking = relevantBookings[0];
+    console.log("✅ Ready to charge with booking:", closestBooking);
+    return {
+      hasBooking: true,
+      status: 'ready_to_charge',
+      booking: closestBooking,
+      message: 'You can start charging now!'
+    };
+  };
+  // Enhanced start charging function
+  const handleStartCharging = (station) => {
+    console.log("🚗 handleStartCharging called with station:", station);
+    console.log("🏢 Station name:", station['Station Name']);
+    
+    const bookingCheck = checkBookingStatus(station['Station Name']);
+    console.log("📋 Booking check result:", bookingCheck);
+    
+    if (bookingCheck.status === 'ready_to_charge') {
+      console.log("✅ User can start charging - navigating to charging page");
+      // User can start charging
+      navigate('/charging', { 
+        state: { 
+          station,
+          booking: bookingCheck.booking
+        } 
+      });
+    } else {
+      console.log("❌ User cannot start charging - showing appointment modal");
+      console.log("📋 Setting appointment status to:", bookingCheck.status);
+      // Show appointment modal
+      setSelectedStationForAppointment(station);
+      setAppointmentStatus(bookingCheck.status);
+      setNearestBooking(bookingCheck.booking);
+      setShowAppointmentModal(true);
+    }
+  };
+  // Close appointment modal
+  const closeAppointmentModal = () => {
+    setShowAppointmentModal(false);
+    setSelectedStationForAppointment(null);
+    setAppointmentStatus('');
+    setNearestBooking(null);
+  };
+
+  // Navigate to booking modal instead of appointment page
+  const goToBookingFromModal = () => {
+    closeAppointmentModal();
+    // Open the booking modal
+    setSelectedStation(selectedStationForAppointment);
+    setDate("");
+    setTime("");
+    setAvailableTimes([]);
+    setShowModal(true);
+  };
 
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
@@ -881,9 +1063,7 @@ const Home = () => {
                   }}
                 >
                   Book Appointment
-                </button>
-
-                <button
+                </button>                <button
                   type="button"
                   style={{
                     border: '2px solid #3B82F6',
@@ -902,7 +1082,7 @@ const Home = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    startCharging(station);
+                    handleStartCharging(station);
                   }}
                 >
                   Start Charging
@@ -1233,6 +1413,108 @@ const Home = () => {
             >
               Confirm Booking
             </button>
+          </div>
+        </div>
+      )}      {/* Appointment Status Modal */}
+      {showAppointmentModal && (
+        <div className="modal-overlay" onClick={closeAppointmentModal}>
+          <div className="modal-content appointment-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Start Charging</h2>
+            <div className="station-info">
+              <h3>{selectedStationForAppointment?.['Station Name']}</h3>
+              <p>{selectedStationForAppointment?.Address}, {selectedStationForAppointment?.City}</p>
+            </div>            <div className="appointment-status-info">              {appointmentStatus === 'no_booking' && (
+                <div className="status-message no-appointment">
+                  <div className="status-icon">❌</div>
+                  <div className="status-text">
+                    <h4>No Booking Found</h4>
+                    <p>You don't have any active reservations for this station. Please book a time slot to charge here.</p>
+                  </div>
+                </div>
+              )}
+
+              {appointmentStatus === 'no_upcoming_booking' && (
+                <div className="status-message no-upcoming">
+                  <div className="status-icon">⏰</div>
+                  <div className="status-text">
+                    <h4>No Upcoming Bookings</h4>
+                    <p>You don't have any upcoming reservations for this station. Please book a new time slot to charge here.</p>
+                  </div>
+                </div>
+              )}
+
+              {appointmentStatus === 'ready_to_charge' && (
+                <div className="status-message ready">
+                  <div className="status-icon">✅</div>
+                  <div className="status-text">
+                    <h4>Ready to Charge!</h4>
+                    <p>Your booking is within the 10-minute window. You can start charging now.</p>
+                    {nearestBooking && (
+                      <div className="appointment-details">
+                        <p><strong>Booking:</strong> {new Date(nearestBooking.date).toLocaleDateString()} at {nearestBooking.time}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {appointmentStatus === 'booking_scheduled' && (
+                <div className="status-message scheduled">
+                  <div className="status-icon">📅</div>
+                  <div className="status-text">
+                    <h4>Booking Scheduled</h4>
+                    <p>You have an upcoming booking for this station.</p>
+                    {nearestBooking && (
+                      <div className="appointment-details">
+                        <p><strong>Next Booking:</strong></p>
+                        <p>{new Date(nearestBooking.date).toLocaleDateString()} at {nearestBooking.time}</p>
+                        <p className="time-notice">You can start charging 10 minutes before your booking time.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>            {/* Action buttons */}
+            <div className="appointment-modal-actions">
+              {appointmentStatus === 'ready_to_charge' ? (
+                <div className="button-group">
+                  <button
+                    onClick={() => {
+                      closeAppointmentModal();
+                      navigate('/charging', { 
+                        state: { 
+                          station: selectedStationForAppointment,
+                          booking: nearestBooking
+                        } 
+                      });
+                    }}
+                    className="primary-button"
+                  >
+                    Start Charging
+                  </button>
+                  <button
+                    onClick={closeAppointmentModal}
+                    className="secondary-button"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="button-group">                  <button
+                    onClick={goToBookingFromModal}
+                    className="primary-button"
+                  >
+                    Book Time Slot
+                  </button>
+                  <button
+                    onClick={closeAppointmentModal}
+                    className="secondary-button"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

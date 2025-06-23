@@ -1616,3 +1616,182 @@ body.no-scroll {
 .load-more-button:active {
   transform: translateY(0);
 }
+
+/* Appointment Status Modal Styles */
+.appointment-modal {
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.station-info {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.station-info h3 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 18px;
+}
+
+.station-info p {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.appointment-status-info {
+  margin-bottom: 25px;
+}
+
+.status-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
+.status-message.no-appointment {
+  background: #ffebee;
+  border-left: 4px solid #f44336;
+}
+
+.status-message.no-upcoming {
+  background: #fff3e0;
+  border-left: 4px solid #ff9800;
+}
+
+.status-message.ready {
+  background: #e8f5e8;
+  border-left: 4px solid #4caf50;
+}
+
+.status-message.scheduled {
+  background: #e3f2fd;
+  border-left: 4px solid #2196f3;
+}
+
+/* Specific styling for each status message type */
+.status-message.no-appointment .status-text h4 {
+  color: #c62828;
+  font-weight: 700;
+}
+
+.status-message.no-upcoming .status-text h4 {
+  color: #f57c00;
+  font-weight: 700;
+}
+
+.status-message.ready .status-text h4 {
+  color: #2e7d32;
+  font-weight: 700;
+}
+
+.status-message.ready .status-text p {
+  color: #424242;
+  font-weight: 500;
+}
+
+.status-message.no-appointment .status-text p,
+.status-message.no-upcoming .status-text p {
+  color: #424242;
+  font-weight: 500;
+}
+
+.status-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.status-text h4 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.status-text p {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: #555;
+  font-weight: 400;
+}
+
+.appointment-details {
+  background: rgba(255, 255, 255, 0.8);
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.appointment-details p {
+  margin: 6px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.appointment-details p strong {
+  color: #1976d2;
+}
+
+.time-notice {
+  font-style: italic;
+  color: #666;
+  font-size: 12px !important;
+}
+
+.appointment-modal-actions {
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.primary-button {
+  background: #4caf50;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.primary-button:hover {
+  background: #45a049;
+  transform: translateY(-1px);
+}
+
+.secondary-button {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ddd;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.secondary-button:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
