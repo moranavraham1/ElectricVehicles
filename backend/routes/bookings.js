@@ -187,27 +187,41 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/check-availability", async (req, res) => {
+router.post("/check-availability", authMiddleware, async (req, res) => {
   try {
     const { station, date } = req.body;
 
     console.log("💡 check-availability called with:", { station, date });
-
 
     const trimmedStation =
       typeof station === 'string'
         ? station.trim()
         : station['Station Name']?.trim?.() || '';
 
-    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
-    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
+    // Get station details with more flexible matching
+    const stationDetails = await Station.findOne({ 
+      $or: [
+        { "Station Name": { $regex: new RegExp(`^${trimmedStation}$`, 'i') } },
+        { name: { $regex: new RegExp(`^${trimmedStation}$`, 'i') } }
+      ]
+    });
+    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 1 : 1;
 
     console.log("💡 Station details:", { stationName: trimmedStation, maxSlots });
 
-    const bookings = await Booking.find({ station: trimmedStation, date });
-    const activeCharging = await ActiveCharging.find({ station: trimmedStation, date });
+    // Check both pending and approved bookings to get accurate availability
+    const bookings = await Booking.find({ 
+      station: { $regex: new RegExp(`^${trimmedStation}$`, 'i') },
+      date,
+      status: { $in: ['pending', 'approved'] } // Include both pending and approved
+    });
+    
+    const activeCharging = await ActiveCharging.find({ 
+      station: { $regex: new RegExp(`^${trimmedStation}$`, 'i') },
+      date 
+    });
+    
     console.log("💡 Found bookings:", bookings.length, "Active charging:", activeCharging.length);
-
 
     const bookingsPerTime = {};
     for (const b of bookings) {
@@ -218,7 +232,6 @@ router.post("/check-availability", async (req, res) => {
     }
 
     console.log("💡 Bookings per time:", bookingsPerTime);
-
 
     const availableTimes = [];
     for (let hour = 0; hour < 24; hour++) {
@@ -234,11 +247,14 @@ router.post("/check-availability", async (req, res) => {
       }
     }
 
-
     console.log(`💡 Generated ${availableTimes.length} available time slots for date: ${date}`);
 
-
-    res.json({ availableTimes, bookingsPerTime, maxCapacity: maxSlots });
+    res.json({ 
+      availableTimes, 
+      bookingsPerTime, 
+      maxCapacity: maxSlots,
+      stationName: trimmedStation
+    });
   } catch (error) {
     console.error("Error checking availability:", error);
     res.status(500).json({ message: "Server error", error });
@@ -976,13 +992,53 @@ router.post('/book', authMiddleware, async (req, res) => {
     const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ');
     const trimmedStation = normalize(station);
 
-
+    // Check if user already has a booking for this exact time slot
     const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time });
 
     if (existingBooking) {
       return res.status(400).json({ message: 'You already have a booking for this time slot.' });
     }
 
+    // CRITICAL: Check station capacity before allowing new booking
+    try {
+      // Get station details to determine capacity
+      const stationDetails = await Station.findOne({ 
+        $or: [
+          { "Station Name": { $regex: new RegExp(`^${trimmedStation}$`, 'i') } },
+          { name: { $regex: new RegExp(`^${trimmedStation}$`, 'i') } }
+        ]
+      });
+      
+      const stationCapacity = stationDetails?.["Duplicate Count"] || 1;
+      console.log(`🏢 Station ${trimmedStation} has capacity: ${stationCapacity}`);
+      
+      // Count existing bookings (both pending and approved) for this exact time slot
+      const existingBookingsCount = await Booking.countDocuments({
+        station: { $regex: new RegExp(`^${trimmedStation}$`, 'i') },
+        date,
+        time,
+        status: { $in: ['pending', 'approved'] }
+      });
+      
+      console.log(`📊 Found ${existingBookingsCount} existing bookings for ${trimmedStation} on ${date} at ${time}`);
+      
+      // Check if station is already at capacity
+      if (existingBookingsCount >= stationCapacity) {
+        console.log(`❌ Station ${trimmedStation} is at full capacity (${existingBookingsCount}/${stationCapacity})`);
+        return res.status(400).json({ 
+          message: `This time slot is fully booked. Station ${station} has ${stationCapacity} charging point${stationCapacity > 1 ? 's' : ''} and all are reserved for ${time} on ${date}.`,
+          capacity: stationCapacity,
+          currentBookings: existingBookingsCount
+        });
+      }
+      
+      console.log(`✅ Station ${trimmedStation} has available capacity (${existingBookingsCount + 1}/${stationCapacity})`);
+      
+    } catch (capacityError) {
+      console.error('Error checking station capacity:', capacityError);
+      // Continue with booking creation but log the error
+      console.warn('⚠️ Could not verify station capacity, proceeding with booking...');
+    }
 
     const newBooking = new Booking({
       user: userEmail,
@@ -993,7 +1049,6 @@ router.post('/book', authMiddleware, async (req, res) => {
       estimatedChargeTime,
       currentBattery,
       createdAt: new Date(),
-
       status: 'pending'
     });
 
@@ -1466,5 +1521,152 @@ router.post('/process-pending', authMiddleware, async (req, res) => {
     res.status(500).json({ message: 'Error processing appointments', error: error.message });
   }
 });
+
+// Get waiting time for a specific booking
+router.get('/waiting-time/:station/:date/:time', authMiddleware, async (req, res) => {
+  try {
+    const { station, date, time } = req.params;
+    const userEmail = req.user.email;
+
+    const normalize = (str) =>
+      decodeURIComponent(str).trim().toLowerCase().replace(/\s+/g, ' ');
+
+    const normalizedStation = normalize(station);
+
+    // Get the station details to know how many charging points it has
+    const stationDetails = await Station.findOne({ 
+      name: { $regex: new RegExp(`^${normalizedStation}$`, 'i') }
+    });
+    
+    const numChargingPoints = stationDetails?.["Duplicate Count"] || 1;
+
+    // Get all approved bookings for this station and date
+    const allBookings = await Booking.find({
+      station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') },
+      date,
+      status: 'approved'
+    });
+
+    // Get all active charging sessions for this station
+    const activeChargingSessions = await ActiveCharging.find({
+      station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') }
+    });
+
+    // Check if all charging points are currently occupied
+    const stationFull = activeChargingSessions.length >= numChargingPoints;
+
+    // Find the specific booking for this user
+    const userBooking = allBookings.find(booking => 
+      booking.user === userEmail && booking.time === time
+    );
+
+    if (!userBooking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Calculate waiting time using the same logic as ChargingQueue
+    const waitingTime = calculateWaitingTimeForBooking(userBooking, allBookings, numChargingPoints);
+
+    res.json({
+      waitingTime,
+      stationFull,
+      numChargingPoints,
+      activeChargingSessions: activeChargingSessions.length
+    });
+  } catch (error) {
+    console.error('Error calculating waiting time:', error);
+    res.status(500).json({ message: 'Error calculating waiting time' });
+  }
+});
+
+// Helper function to calculate waiting time for a booking
+function calculateWaitingTimeForBooking(targetBooking, allBookings, numChargingPoints) {
+  const now = new Date();
+  const currentHourInMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentDateStr = now.toISOString().split('T')[0];
+  
+  const [targetHours, targetMinutes] = targetBooking.time.split(":").map(Number);
+  const targetTimeInMinutes = targetHours * 60 + targetMinutes;
+  const targetDuration = targetBooking.estimatedChargeTime || 30;
+  
+  // Skip calculation if booking is in the past
+  if (targetBooking.date < currentDateStr || 
+      (targetBooking.date === currentDateStr && targetTimeInMinutes < currentHourInMinutes)) {
+    return 0; // Booking time has passed
+  }
+  
+  // If booking time hasn't arrived yet (current time is earlier)
+  if (targetBooking.date === currentDateStr && targetTimeInMinutes > currentHourInMinutes) {
+    const minutesToAppointment = targetTimeInMinutes - currentHourInMinutes;
+    if (minutesToAppointment <= 10) {
+      return 0; // Ready to charge soon
+    }
+  }
+  
+  // Sort all bookings by time, then by priority
+  const sortedBookings = [...allBookings].sort((a, b) => {
+    if (a.time !== b.time) {
+      return a.time.localeCompare(b.time);
+    }
+    return (a.priorityScore || 0) - (b.priorityScore || 0);
+  });
+  
+  const targetIndex = sortedBookings.findIndex(booking => 
+    booking._id.equals(targetBooking._id)
+  );
+  
+  if (targetIndex === -1) return 0;
+  
+  // Initialize charging points availability
+  const isToday = targetBooking.date === currentDateStr;
+  const chargingPoints = Array(numChargingPoints).fill(isToday ? currentHourInMinutes : 0);
+  
+  // Process all bookings before the target booking
+  const relevantBookings = sortedBookings.filter((booking, i) => {
+    if (i === targetIndex) return false;
+    
+    const [bookingHours, bookingMinutes] = booking.time.split(":").map(Number);
+    const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
+    const bookingDuration = booking.estimatedChargeTime || 30;
+    
+    // If booking is earlier than target booking
+    if (bookingTimeInMinutes < targetTimeInMinutes) {
+      // Check if it will finish before target booking starts
+      const bookingEndTime = bookingTimeInMinutes + bookingDuration;
+      return bookingEndTime > targetTimeInMinutes;
+    }
+    
+    // If booking is at same time as target but comes before in queue
+    if (bookingTimeInMinutes === targetTimeInMinutes) {
+      return i < targetIndex;
+    }
+    
+    return false;
+  });
+  
+  // Process relevant bookings to update charging point availability
+  for (const booking of relevantBookings) {
+    const [hours, minutes] = booking.time.split(":").map(Number);
+    const startTimeInMinutes = hours * 60 + minutes;
+    const duration = booking.estimatedChargeTime || 30;
+    
+    // Find the charging point that will be available first
+    let earliestAvailable = Math.min(...chargingPoints);
+    let earliestPointIndex = chargingPoints.indexOf(earliestAvailable);
+    
+    // When this booking will actually start charging
+    const actualStart = Math.max(startTimeInMinutes, chargingPoints[earliestPointIndex]);
+    
+    // Update when this charging point will be free
+    chargingPoints[earliestPointIndex] = actualStart + duration;
+  }
+  
+  // Calculate when target booking can start
+  let earliestAvailable = Math.min(...chargingPoints);
+  const actualStart = Math.max(targetTimeInMinutes, earliestAvailable);
+  const waitTime = actualStart - targetTimeInMinutes;
+  
+  return Math.max(0, waitTime);
+}
 
 module.exports = router;

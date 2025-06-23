@@ -87,4 +87,25 @@ router.get('/details/:stationName', async (req, res) => {
   }
 });
 
+// GET /api/stations/search - Search stations by name
+router.get('/search', async (req, res) => {
+  try {
+    const { name } = req.query;
+    
+    if (!name) {
+      return res.status(400).json({ error: 'Station name is required' });
+    }
+
+    // Search for stations with matching name (case-insensitive)
+    const stations = await Station.find({
+      'Station Name': { $regex: new RegExp(name, 'i') }
+    });
+    
+    res.json(stations);
+  } catch (error) {
+    console.error('Error searching stations:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 module.exports = router;

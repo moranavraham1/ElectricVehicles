@@ -234,9 +234,9 @@
 
 .booking-info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 15px;
-  margin-bottom: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .booking-info-grid .info-item {
@@ -742,4 +742,25 @@
   padding-bottom: 8px;
   border-bottom: 1px solid rgba(59, 130, 246, 0.2);
 
+}
+
+/* Waiting time styles */
+.waiting-time {
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+}
+
+.waiting-time .icon {
+  color: #b8860b;
+}
+
+.waiting-time label {
+  color: #b8860b;
+  font-weight: 600;
+}
+
+.waiting-time p {
+  color: #8b6914;
+  font-weight: 500;
 }

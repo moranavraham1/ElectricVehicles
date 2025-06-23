@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const ActiveCharging = require('../models/ActiveCharging');
+const Booking = require('../models/Booking');
 const jwt = require('jsonwebtoken');
 
 // Middleware to verify JWT token
@@ -93,8 +94,23 @@ router.delete('/', authenticateToken, async (req, res) => {
             });
         }
 
+        // Also delete the corresponding booking to free up the spot
+        try {
+            await Booking.findOneAndDelete({
+                user: userId,
+                station: station,
+                date: date,
+                time: time,
+                status: 'approved'
+            });
+            console.log('Corresponding booking deleted to free up the charging spot');
+        } catch (bookingError) {
+            console.error('Error deleting corresponding booking:', bookingError);
+            // Continue even if booking deletion fails
+        }
+
         res.status(200).json({
-            message: 'Active charging session ended successfully',
+            message: 'Active charging session ended successfully and spot freed for next user',
             session: result
         });
 

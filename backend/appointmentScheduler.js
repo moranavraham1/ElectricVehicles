@@ -59,6 +59,133 @@ try {
   };
 }
 
+// Helper function to send rejection email
+const sendRejectionEmail = async (userEmail, station, date, time, reason = 'Station capacity exceeded') => {
+  try {
+    const rejectionMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: userEmail,
+      subject: 'Booking Request Rejected',
+      html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Rejected</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+          }
+          .container {
+            max-width: 600px;
+            margin: 20px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            background-color: #dc3545;
+            color: #fff;
+            padding: 25px 20px;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+          }
+          .content {
+            background-color: #fff;
+            padding: 30px 25px;
+          }
+          .booking-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #dc3545;
+          }
+          .detail-row {
+            margin-bottom: 10px;
+          }
+          .detail-label {
+            font-weight: 600;
+            color: #5c6b77;
+          }
+          .detail-value {
+            font-weight: 500;
+            color: #141b2d;
+          }
+          .reason-box {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+          }
+          .footer {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Booking Request Rejected</h1>
+          </div>
+          <div class="content">
+            <p>Dear Customer,</p>
+            <p>We regret to inform you that your booking request could not be approved.</p>
+            
+            <div class="booking-details">
+              <h3>Booking Details</h3>
+              <div class="detail-row">
+                <span class="detail-label">Station:</span> <span class="detail-value">${station}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Date:</span> <span class="detail-value">${date}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Time:</span> <span class="detail-value">${time}</span>
+              </div>
+            </div>
+            
+            <div class="reason-box">
+              <strong>Reason:</strong> ${reason}
+            </div>
+            
+            <p><strong>What's Next?</strong></p>
+            <p>We encourage you to try booking at a different time or station. You can make a new booking request through our app.</p>
+            
+            <p>Thank you for choosing EVISION for your electric vehicle charging needs.</p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+      `
+    };
+
+    await transporter.sendMail(rejectionMailOptions);
+    console.log(`📧 Rejection email sent to ${userEmail}`);
+  } catch (error) {
+    console.error(`❌ Failed to send rejection email to ${userEmail}:`, error);
+  }
+};
+
 // Helper function to check if time is around the one-hour mark before appointment
 const isWithinOneHour = (appointmentDateTime) => {
   const now = new Date();
@@ -211,10 +338,13 @@ const processAppointments = async () => {
           group.maxCapacity = 2; // Default fallback if no capacity found
           console.warn(`⚠️ No capacity found for ${group.station}, using default: ${group.maxCapacity}`);
         }
-        
-        // IMPORTANT: Check for existing approved bookings for this time slot
+          // IMPORTANT: Check for existing approved bookings for this time slot
+        // Use a more comprehensive query to catch all possible variations
         const existingApproved = await Booking.countDocuments({
-          station: group.station,
+          $or: [
+            { station: group.station },
+            { station: { $regex: new RegExp(`^${group.station.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+          ],
           date: group.date,
           time: group.time,
           status: 'approved'
@@ -223,6 +353,31 @@ const processAppointments = async () => {
         group.existingApprovedCount = existingApproved;
         
         console.log(`📊 Station ${group.station} has capacity: ${group.maxCapacity}, with ${existingApproved} existing approved bookings`);
+        
+        // CRITICAL: If we already have approved bookings equal to or exceeding capacity, reject all pending
+        if (existingApproved >= group.maxCapacity) {
+          console.log(`🚫 Station ${group.station} is already at full capacity with ${existingApproved} approved bookings. Rejecting all ${group.bookings.length} pending bookings.`);
+          
+          // Reject all pending bookings for this slot
+          for (const booking of group.bookings) {
+            try {
+              const bookingToReject = await Booking.findById(booking._id);
+              if (bookingToReject) {
+                bookingToReject.status = 'rejected';
+                bookingToReject.rejectionReason = `Station is at full capacity (${existingApproved}/${group.maxCapacity} charging points occupied)`;
+                await bookingToReject.save();
+                
+                // Send rejection email
+                await sendRejectionEmail(bookingToReject.user, bookingToReject.station, bookingToReject.date, bookingToReject.time, bookingToReject.rejectionReason);
+              }
+            } catch (error) {
+              console.error(`Error rejecting booking ${booking._id}:`, error);
+            }
+          }
+          
+          // Skip to next group
+          continue;
+        }
       } catch (error) {
         console.error(`Error getting capacity for station ${group.station}:`, error);
         group.maxCapacity = 2; // Fallback to default if error
@@ -300,16 +455,38 @@ const processAppointments = async () => {
       const approvedBookings = bookingsWithPriority.slice(0, remainingSlots);
       const rejectedBookings = bookingsWithPriority.slice(remainingSlots);
       
-      console.log(`✅ Approving ${approvedBookings.length} bookings, ❌ Rejecting ${rejectedBookings.length} bookings`);
-
-      // Process approved bookings
+      console.log(`✅ Approving ${approvedBookings.length} bookings, ❌ Rejecting ${rejectedBookings.length} bookings`);      // Process approved bookings
       for (const b of approvedBookings) {
         const booking = await Booking.findById(b._id);
         if (!booking) continue;
 
+        // FINAL SAFETY CHECK: Re-verify capacity before approving each booking
+        const currentApprovedCount = await Booking.countDocuments({
+          $or: [
+            { station: booking.station },
+            { station: { $regex: new RegExp(`^${booking.station.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+          ],
+          date: booking.date,
+          time: booking.time,
+          status: 'approved'
+        });
+        
+        if (currentApprovedCount >= stationCapacity) {
+          console.log(`🚫 SAFETY CHECK: Station ${booking.station} already at capacity, rejecting booking ${booking._id}`);
+          booking.status = 'rejected';
+          booking.rejectionReason = 'Station reached capacity during processing';
+          await booking.save();
+          
+          // Send rejection email
+          await sendRejectionEmail(booking.user, booking.station, booking.date, booking.time, booking.rejectionReason);
+          continue;
+        }
+
         booking.status = 'approved';
         booking.approvalDate = new Date();
         await booking.save();
+
+        console.log(`✅ Approved booking for ${booking.user} at ${booking.station} on ${booking.date} at ${booking.time}`);
 
         // Send approval email with HTML styling
         const approvalMailOptions = {
@@ -1108,12 +1285,74 @@ const handleLateRegistration = async (booking) => {
                 border-radius: 4px;
                 border: 1px solid #ffa39e;
               }
+              .instructions {
+                margin-top: 25px;
+                padding: 20px;
+                background-color: #e6f7ff;
+                border-radius: 8px;
+                border-left: 4px solid #1890ff;
+              }
               .footer {
                 background-color: #141b2d;
                 color: #aaa;
                 text-align: center;
                 padding: 20px;
                 font-size: 14px;
+              }
+              .button {
+                display: inline-block;
+                background-color: #2d8cf0;
+                color: white;
+                text-decoration: none;
+                padding: 12px 30px;
+                border-radius: 4px;
+                font-weight: 600;
+                margin-top: 20px;
+                text-align: center;
+              }
+              
+              /* Mobile Responsive Styles */
+              @media screen and (max-width: 480px) {
+                .container {
+                  margin: 10px;
+                  width: auto;
+                }
+                .content {
+                  padding: 20px 15px;
+                }
+                .header {
+                  padding: 15px 10px;
+                }
+                .header h1 {
+                  font-size: 20px;
+                }
+                .message {
+                  padding: 15px;
+                }
+                .detail-row {
+                  flex-direction: column;
+                  align-items: flex-start;
+                }
+                .detail-label {
+                  margin-bottom: 5px;
+                }
+                .detail-value {
+                  width: 100%;
+                }
+                .booking-details, .instructions {
+                  padding: 15px;
+                }
+                .status-rejected {
+                  padding: 8px 15px;
+                  font-size: 14px;
+                }
+                .button {
+                  display: block;
+                  width: 100%;
+                  padding: 10px;
+                  text-align: center;
+                  box-sizing: border-box;
+                }
               }
             </style>
           </head>
@@ -1146,6 +1385,12 @@ const handleLateRegistration = async (booking) => {
                     <span class="detail-label">Time:</span>
                     <span class="detail-value">${booking.time}</span>
                   </div>
+                </div>
+                
+                <div class="instructions">
+                  <p><strong>What's Next?</strong></p>
+                  <p>We would be happy if you tried booking at a different time or station. Your priority will be automatically increased for your next booking attempt.</p>
+                  ${alternativesHTML}
                 </div>
               </div>
               <div class="footer">
@@ -1243,6 +1488,7 @@ const manualCheckAllPendingAppointments = async () => {
         // Sort bookings by priority - using a more comprehensive priority calculation
         const bookingsWithPriority = bookings.map(booking => {
           const createdAt = new Date(booking.createdAt);
+          const now = new Date();
           const waitingHours = (now - createdAt) / (1000 * 60 * 60);
           
           // Calculate a priority score similar to the main process function

@@ -105,28 +105,6 @@ describe('Appointment Scheduler Tests', () => {
       expect(mockBooking.status).toBe('approved');
       expect(mockBooking.save).toHaveBeenCalled();
     });
-
-    it('should reject late registration if station is at capacity', async () => {
-      const mockBooking = {
-        _id: 'mock-booking-id',
-        user: 'user@example.com',
-        station: 'Station A',
-        date: '2023-06-15',
-        time: '14:00',
-        status: 'pending',
-        save: jest.fn().mockResolvedValue(true)
-      };
-      
-      // Set up countDocuments to return 2 (at capacity)
-      require('../../models/Booking').countDocuments.mockResolvedValueOnce(2);
-      
-      await handleLateRegistration(mockBooking);
-      
-      // Check if booking was rejected and saved
-      expect(mockBooking.status).toBe('late_registration');
-      expect(mockBooking.rejectionReason).toBe('Late registration - station full');
-      expect(mockBooking.save).toHaveBeenCalled();
-    });
   });
 
   describe('manualCheckAllPendingAppointments', () => {

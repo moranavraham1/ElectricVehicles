@@ -3,9 +3,6 @@ import { useLocation, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../designs/Charging.css';
 import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon, LocationIcon, CityIcon, CalendarIcon, ClockIcon, BatteryIcon } from '../components/common/Icons';
-import NavigationBar from '../components/common/NavigationBar';
-import Button from '../components/common/Button';
-import ChargingStatus from '../components/charging/ChargingStatus';
 import { FaClock, FaBatteryHalf, FaBatteryFull } from 'react-icons/fa';
 
 const Charging = () => {
@@ -394,26 +391,13 @@ const Charging = () => {
                                     Estimated completion at <strong>{endTime}</strong>
                                 </div>
                             )}
-                        </>
-
-                    ) : chargingStatus ? (
+                        </>                    ) : chargingStatus ? (
                         <div className="charging-status">
                             {chargingStatus}
                         </div>
 
-                    ) : (
-                        <div className="charging-status">
-                            Ready to start charging
-                        </div>
-                    )}
+                    ) : null}
                 </div>
-
-                {/* Instructions */}
-                {!isCharging && !showSummary && (
-                    <div className="charging-instructions">
-                        Connect and press start to begin charging
-                    </div>
-                )}
 
                 {/* Error Message */}
                 {error && <div className="error-message">{error}</div>}
@@ -426,14 +410,13 @@ const Charging = () => {
                         disabled={loading}
                     >
                         Stop Charging
-                    </button>
-                ) : !showSummary ? (
+                    </button>                ) : !showSummary ? (
                     <button
-                        className="action-button start-button"
+                        className="action-button start-charging-button"
                         onClick={handleStartButtonClick}
                         disabled={loading}
                     >
-                        Confirm Booking
+                        Start Charging
                     </button>
                 ) : null}
             </div>

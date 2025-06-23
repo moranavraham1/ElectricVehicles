@@ -214,16 +214,15 @@ const ChargingQueue = () => {
         // Our actual start time is the later of our booking time or when a point becomes available
         const actualStart = Math.max(targetTimeInMinutes, chargingPoints[earliestPointIndex]);
         const waitTime = actualStart - targetTimeInMinutes;
-        
-        // Format the wait time message
+          // Format the wait time message
         if (waitTime <= 0) {
-            return "No waiting time - station available";
+            return 0; // No waiting time
         } else if (waitTime < 60) {
-            return `Estimated wait: ${waitTime} minutes`;
+            return waitTime; // Return wait time in minutes
         } else {
             const hours = Math.floor(waitTime / 60);
             const mins = waitTime % 60;
-            return `Estimated wait: ${hours} hour${hours > 1 ? 's' : ''}${mins > 0 ? ` ${mins} minutes` : ''}`;
+            return waitTime; // Return total minutes, let the UI format it
         }
     };
 
@@ -335,9 +334,16 @@ const ChargingQueue = () => {
                                             </div>
                                             <div className="queue-item-row">
                                                 <span className="charging-icon">⏱️</span> <strong>Charging Time:</strong> {booking.estimatedChargeTime} minutes
-                                            </div>
-                                            <div className="queue-item-row">
-                                                <span className="waiting-icon">⏳</span> <strong>{waitingTime}</strong>
+                                            </div>                                            <div className="queue-item-row">
+                                                <span className="waiting-icon">⏳</span> 
+                                                <strong>
+                                                    {waitingTime === 0 
+                                                        ? "No waiting time - ready to charge" 
+                                                        : waitingTime < 60
+                                                            ? `Estimated wait: ${waitingTime} minutes`
+                                                            : `Estimated wait: ${Math.floor(waitingTime / 60)} hour${Math.floor(waitingTime / 60) > 1 ? 's' : ''}${waitingTime % 60 > 0 ? ` ${waitingTime % 60} minutes` : ''}`
+                                                    }
+                                                </strong>
                                             </div>
                                         </div>
                                     </div>

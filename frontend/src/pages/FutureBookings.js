@@ -86,11 +86,10 @@ const CompletedIcon = () => (
   </svg>
 );
 
-function FutureBookings() {
-  const [bookings, setBookings] = useState([]);
+function FutureBookings() {  const [bookings, setBookings] = useState([]);
   const [payments, setPayments] = useState([]);
   const [appointments, setAppointments] = useState([]);
-
+  const [waitingTimes, setWaitingTimes] = useState({}); // Store waiting times for each booking
 
   const [activeCharging, setActiveCharging] = useState(null);
   const [currentTime, setCurrentTime] = useState({ date: "", hour: "" });
@@ -155,7 +154,6 @@ function FutureBookings() {
   useEffect(() => {
     // This effect just causes a re-render when currentTime changes
   }, [currentTime]);
-
   const fetchBookings = async () => {
     try {
       setLoading(true);
@@ -171,11 +169,61 @@ function FutureBookings() {
       const data = await response.json();
       setBookings(data);
       setError(null);
+      
+      // Fetch waiting times for all bookings
+      await fetchWaitingTimes(data);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       setError("Could not load your bookings. Please try again later.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWaitingTimes = async (bookingsData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const waitingTimesPromises = bookingsData
+        .filter(booking => booking.status === 'approved')
+        .map(async (booking) => {
+          try {
+            const encodedStation = encodeURIComponent(booking.station);
+            const response = await fetch(
+              `${process.env.REACT_APP_BACKEND_URL}/api/bookings/waiting-time/${encodedStation}/${booking.date}/${booking.time}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              return {
+                bookingId: booking._id,
+                waitingTime: data.waitingTime,
+                stationFull: data.stationFull
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching waiting time for booking ${booking._id}:`, error);
+          }
+          return null;
+        });
+
+      const waitingTimesResults = await Promise.all(waitingTimesPromises);
+      const waitingTimesMap = {};
+      
+      waitingTimesResults.forEach(result => {
+        if (result) {
+          waitingTimesMap[result.bookingId] = {
+            waitingTime: result.waitingTime,
+            stationFull: result.stationFull
+          };
+        }
+      });
+      
+      setWaitingTimes(waitingTimesMap);
+    } catch (error) {
+      console.error("Error fetching waiting times:", error);
     }
   };
 
@@ -375,6 +423,32 @@ function FutureBookings() {
       return "active";
     }
 
+    // Get waiting time info for this booking
+    const waitingInfo = waitingTimes[booking._id];
+    
+    if (booking.status === 'approved' && waitingInfo) {
+      const { waitingTime, stationFull } = waitingInfo;
+      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+      const actualStartTime = new Date(bookingDateTime.getTime() + (waitingTime * 60000));
+      const timeToActualStart = (actualStartTime - now) / (1000 * 60);
+      
+      // If all charging points are occupied, user must wait
+      if (stationFull && waitingTime > 0) {
+        return "upcoming";
+      }
+      
+      // If we're within 10 minutes of the actual start time (including waiting time)
+      if (timeToActualStart >= -10 && timeToActualStart <= 10) {
+        return "ready";
+      }
+      
+      // If we're still waiting for the calculated start time
+      if (timeToActualStart > 10) {
+        return "upcoming";
+      }
+    }
+
+    // Fallback to original logic for non-approved bookings or when waiting time is not available
     // If booking time has passed by more than 10 minutes without starting charging
     if (timeDiffInMinutes > 10) {
       return "expired";
@@ -571,6 +645,61 @@ function FutureBookings() {
 
     return () => clearInterval(interval);
   }, []);
+  // Function to fetch station details by station name
+  const fetchStationDetails = async (stationName) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      // First, try to search by exact name match
+      let response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/stations/search?name=${encodeURIComponent(stationName)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.ok) {
+        const stations = await response.json();
+        
+        // Try to find exact match first
+        let matchedStation = stations.find(station => 
+          station['Station Name'].toLowerCase().trim() === stationName.toLowerCase().trim()
+        );
+
+        // If no exact match, try partial match
+        if (!matchedStation && stations.length > 0) {
+          matchedStation = stations.find(station => 
+            station['Station Name'].toLowerCase().includes(stationName.toLowerCase()) ||
+            stationName.toLowerCase().includes(station['Station Name'].toLowerCase())
+          );
+        }
+
+        // If still no match, try getting all stations and search through them
+        if (!matchedStation) {
+          response = await fetch(
+            `${process.env.REACT_APP_BACKEND_URL}/api/stations`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          
+          if (response.ok) {
+            const allStations = await response.json();
+            matchedStation = allStations.find(station => {
+              const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ');
+              return normalize(station['Station Name']) === normalize(stationName);
+            });
+          }
+        }
+
+        return matchedStation || null;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching station details:", error);
+      return null;
+    }
+  };
 
   if (loading && bookings.length === 0 && appointments.length === 0) {
     return (
@@ -772,9 +901,7 @@ function FutureBookings() {
                                 <label>Time</label>
                                 <p>{booking.time}</p>
                               </div>
-                            </div>
-
-                            {booking.estimatedChargeTime && (
+                            </div>                            {booking.estimatedChargeTime && (
                               <div className="info-item charging-time">
                                 <ChargingIcon />
                                 <div>
@@ -783,20 +910,70 @@ function FutureBookings() {
                                 </div>
                               </div>
                             )}
+
+                            {/* Show waiting time for approved bookings */}
+                            {booking.status === 'approved' && waitingTimes[booking._id] && (
+                              <div className="info-item waiting-time">
+                                <ClockIcon />
+                                <div>
+                                  <label>Expected Wait</label>
+                                  <p>
+                                    {waitingTimes[booking._id].waitingTime === 0 
+                                      ? "No waiting time" 
+                                      : `${waitingTimes[booking._id].waitingTime} minutes`}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
-                          <div className="booking-actions">
-                            {status === 'ready' && (
+                          <div className="booking-actions">                            {status === 'ready' && (
                               <button
                                 className="action-btn start-btn"
-                                onClick={() => navigate('/charging', {
-                                  state: {
-                                    station: booking.station,
-                                    date: booking.date,
-                                    time: booking.time,
-                                    estimatedChargeTime: booking.estimatedChargeTime
+                                onClick={async (e) => {
+                                  // Prevent multiple clicks
+                                  const button = e.target;
+                                  const originalText = button.textContent;
+                                  button.disabled = true;
+                                  button.textContent = 'Loading...';
+                                  
+                                  try {
+                                    // Fetch full station details before navigating
+                                    const stationDetails = await fetchStationDetails(booking.station);
+                                    
+                                    navigate('/charging', {
+                                      state: {
+                                        station: stationDetails || {
+                                          'Station Name': booking.station,
+                                          'Address': 'N/A',
+                                          'City': 'N/A'
+                                        },
+                                        date: booking.date,
+                                        time: booking.time,
+                                        estimatedChargeTime: booking.estimatedChargeTime,
+                                        currentBattery: booking.currentBattery,
+                                        bookingId: booking._id
+                                      }
+                                    });
+                                  } catch (error) {
+                                    console.error('Error fetching station details:', error);
+                                    // Navigate anyway with basic station info
+                                    navigate('/charging', {
+                                      state: {
+                                        station: {
+                                          'Station Name': booking.station,
+                                          'Address': 'N/A',
+                                          'City': 'N/A'
+                                        },
+                                        date: booking.date,
+                                        time: booking.time,
+                                        estimatedChargeTime: booking.estimatedChargeTime,
+                                        currentBattery: booking.currentBattery,
+                                        bookingId: booking._id
+                                      }
+                                    });
                                   }
-                                })}
+                                }}
                               >
                                 <CarIcon /> Go to Charging
                               </button>
@@ -818,16 +995,30 @@ function FutureBookings() {
                               >
                                 <CancelIcon /> Cancel Booking
                               </button>
-                            )}                            
-                            {status === 'upcoming' && (
+                            )}                              {status === 'upcoming' && (
                               <div className="status-message upcoming">
-                                <p>You can start charging 10 minutes before your scheduled time</p>
+                                {booking.status === 'approved' && waitingTimes[booking._id] ? (
+                                  waitingTimes[booking._id].waitingTime > 0 ? (
+                                    <p>Expected wait time: {waitingTimes[booking._id].waitingTime} minutes. 
+                                       {waitingTimes[booking._id].stationFull ? ' All charging points are currently occupied.' : ''}
+                                    </p>
+                                  ) : (
+                                    <p>You can start charging 10 minutes before your scheduled time</p>
+                                  )
+                                ) : (
+                                  <p>You can start charging 10 minutes before your scheduled time</p>
+                                )}
                               </div>
                             )}
 
                             {status === 'ready' && (
                               <div className="status-message ready">
-                                <p>⚡ Charging window is now open! You have until 10 minutes after your scheduled time to start.</p>
+                                <p>⚡ Ready to start charging now! 
+                                   {booking.status === 'approved' && waitingTimes[booking._id] && waitingTimes[booking._id].waitingTime > 0 
+                                     ? ` (After ${waitingTimes[booking._id].waitingTime} minute wait)`
+                                     : ''
+                                   }
+                                </p>
                               </div>
                             )}
 

@@ -47,6 +47,16 @@ function Landing() {
     });
     const [showScrollButton, setShowScrollButton] = useState(false);
 
+    // Check for existing authentication and redirect to home if logged in
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        
+        if (token && loggedInUser) {
+            navigate('/home');
+        }
+    }, [navigate]);
+
     useEffect(() => {
         const checkScroll = () => {
             if (window.pageYOffset > 300) {

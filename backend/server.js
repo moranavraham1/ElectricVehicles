@@ -57,41 +57,7 @@ app.get('/', (req, res) => {
 // Start the appointment scheduler
 startScheduler();
 
-const cleanupExpiredBookings = async () => {
-  try {
-    const now = new Date();
-    const bookings = await Booking.find({ status: { $in: ['pending', 'approved'] } });
-
-    const expiredBookings = [];
-    for (const booking of bookings) {
-      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
-      const timeDiffInMinutes = (now - bookingDateTime) / (1000 * 60);
-      
-      if (timeDiffInMinutes > 10) {
-        const activeCharging = await ActiveCharging.findOne({
-          user: booking.user,
-          station: booking.station,
-          date: booking.date,
-          time: booking.time
-        });
-
-        if (!activeCharging) {
-          expiredBookings.push(booking._id);
-        }
-      }
-    }
-
-    if (expiredBookings.length > 0) {
-      await Booking.deleteMany({ _id: { $in: expiredBookings } });
-      console.log(`🗑️ Cleaned up ${expiredBookings.length} expired bookings`);
-    }
-  } catch (error) {
-    console.error('Error cleaning up expired bookings:', error);
-  }
-};
-
-// Run cleanup every 5 minutes
-setInterval(cleanupExpiredBookings, 5 * 60 * 1000);
+// Removed automatic booking cleanup - bookings are now only removed when user stops charging
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

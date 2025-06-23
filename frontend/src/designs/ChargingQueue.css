@@ -192,7 +192,7 @@
 
 .waiting-icon {
   font-size: 16px;
-  color: #3B82F6;
+  margin-right: 8px;
 }
 
 /* Status indicators */
@@ -368,4 +368,23 @@
 .queue-actions button:hover:not(:disabled) {
   opacity: 0.9;
   transform: translateY(-2px);
+}
+
+/* Waiting time indicator styles */
+.waiting-icon {
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.queue-item-row:has(.waiting-icon) strong {
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.queue-item-row:has(.waiting-icon) {
+  background: rgba(251, 191, 36, 0.1);
+  border-left: 3px solid #fbbf24;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
 }

@@ -34,8 +34,7 @@ const NavigationBar = ({
   };
 
   return (
-    <nav className="bottom-navigation">
-      <Link to="/" className={`nav-item ${activePage === 'home' ? 'active' : ''}`}>
+    <nav className="bottom-navigation">      <Link to="/home" className={`nav-item ${activePage === 'home' ? 'active' : ''}`}>
         <HomeIcon />
         <span>Home</span>
       </Link>
@@ -49,8 +48,7 @@ const NavigationBar = ({
         <HeartIcon filled={activePage === 'favorites'} />
         <span>Favorites</span>
       </Link>
-      
-      <Link to="/profile" className={`nav-item ${activePage === 'profile' ? 'active' : ''}`}>
+        <Link to="/personal-area" className={`nav-item ${activePage === 'profile' || activePage === 'personal-area' ? 'active' : ''}`}>
         <UserIcon />
         <span>{userName ? userName.split(' ')[0] : 'Profile'}</span>
       </Link>

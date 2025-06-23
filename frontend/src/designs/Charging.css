@@ -908,3 +908,62 @@ body {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
 }
+
+/* Green Start Charging button styling */
+.start-charging-button {
+    background: linear-gradient(135deg, #10B981, #059669) !important;
+    color: white !important;
+    font-weight: 700;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    padding: 15px 30px;
+    font-size: 16px;
+    width: 90%;
+    max-width: 300px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.start-charging-button:hover {
+    background: linear-gradient(135deg, #34D399, #10B981) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.5);
+}
+
+.start-charging-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+}
+
+.start-charging-button:focus {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5), 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.start-charging-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+}
+
+/* Add shine effect for start charging button */
+.start-charging-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(to right,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0.3),
+            rgba(255, 255, 255, 0));
+    transform: skewX(-25deg);
+}
+
+.start-charging-button:hover::before {
+    animation: shine 1.5s infinite;
+}
+
+/* ...existing code... */
