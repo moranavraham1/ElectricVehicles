@@ -59,9 +59,95 @@ try {
   };
 }
 
+// Create a Map to store user rejection history
+const userRejectionHistory = new Map();
+
+// Helper function to update user rejection history
+const updateRejectionHistory = (userEmail, station, date, time) => {
+  const key = userEmail;
+  
+  if (!userRejectionHistory.has(key)) {
+    userRejectionHistory.set(key, {
+      rejectionCount: 1,
+      lastRejection: new Date(),
+      stations: {
+        [station]: {
+          rejectionCount: 1,
+          lastRejection: new Date(),
+          agingBonus: 5, // Initial bonus of 5 points
+          history: [{ date, time }]
+        }
+      }
+    });
+  } else {
+    const history = userRejectionHistory.get(key);
+    history.rejectionCount += 1;
+    history.lastRejection = new Date();
+    
+    // Update or create station-specific history
+    if (!history.stations[station]) {
+      history.stations[station] = {
+        rejectionCount: 1,
+        lastRejection: new Date(),
+        agingBonus: 5, // Initial bonus
+        history: [{ date, time }]
+      };
+    } else {
+      const stationHistory = history.stations[station];
+      stationHistory.rejectionCount += 1;
+      stationHistory.lastRejection = new Date();
+      
+      // Increase aging bonus with each rejection, capped at 20
+      stationHistory.agingBonus = Math.min(20, stationHistory.agingBonus + 5);
+      
+      // Keep track of the last 3 rejected times for this station
+      stationHistory.history.push({ date, time });
+      if (stationHistory.history.length > 3) {
+        stationHistory.history.shift(); // Remove oldest entry
+      }
+    }
+    
+    userRejectionHistory.set(key, history);
+  }
+  
+  const stationBonus = userRejectionHistory.get(key).stations[station].agingBonus;
+  console.log(`👴 Updated rejection history for ${userEmail} at station ${station}: ${userRejectionHistory.get(key).stations[station].rejectionCount} rejections, ${stationBonus} bonus points`);
+};
+
+// Helper function to get aging bonus for a user at a specific station
+const getAgingBonus = (userEmail, station) => {
+  if (!userRejectionHistory.has(userEmail)) {
+    return 0;
+  }
+  
+  const history = userRejectionHistory.get(userEmail);
+  
+  // If no history for this specific station, return 0
+  if (!history.stations[station]) {
+    return 0;
+  }
+  
+  const stationHistory = history.stations[station];
+  
+  // Check if the rejection history is recent (within last 48 hours)
+  const now = new Date();
+  const hoursSinceLastRejection = (now - stationHistory.lastRejection) / (1000 * 60 * 60);
+  
+  if (hoursSinceLastRejection > 48) {
+    // Reset aging bonus if it's been more than 48 hours
+    stationHistory.agingBonus = Math.max(0, stationHistory.agingBonus - 5);
+    userRejectionHistory.set(userEmail, history);
+  }
+  
+  return stationHistory.agingBonus;
+};
+
 // Helper function to send rejection email
 const sendRejectionEmail = async (userEmail, station, date, time, reason = 'Station capacity exceeded') => {
   try {
+    // Update rejection history for this user
+    updateRejectionHistory(userEmail, station, date, time);
+
     const rejectionMailOptions = {
       from: process.env.EMAIL_USER,
       to: userEmail,
@@ -414,22 +500,28 @@ const processAppointments = async () => {
         const processingTime = booking.estimatedChargeTime || 30; // In minutes
         const deadlineTime = 60; // Default deadline is 60 minutes
         const laxity = Math.max(1, deadlineTime - processingTime);
+        
+        // Get additional aging bonus from rejection history for this specific station
+        const rejectionAgingBonus = getAgingBonus(booking.user, booking.station);
 
         // LLEP algorithm prioritizes tasks with lowest laxity
         // Aging increases priority based on waiting time
         // Battery level gives priority to lower battery vehicles
+        // Added rejection history bonus to prevent starvation
 
         // The lower this score, the higher the priority
         const priorityScore = (
           laxity - // Base priority is laxity (lower is higher priority)
           (waitingHours * 2) - // Aging factor (longer wait reduces score)
-          ((100 - (booking.currentBattery || 50)) / 10) // Battery factor (lower battery reduces score)
+          ((100 - (booking.currentBattery || 50)) / 10) - // Battery factor (lower battery reduces score)
+          rejectionAgingBonus // New: Station-specific rejection history bonus (reduces score)
         );
 
         return {
           ...booking.toObject(),
           laxity,
           waitingHours,
+          rejectionAgingBonus, // Add this to the object for logging
           priorityScore
         };
       });
@@ -437,10 +529,10 @@ const processAppointments = async () => {
       // Sort bookings by priority score (lower is better)
       bookingsWithPriority.sort((a, b) => a.priorityScore - b.priorityScore);
 
-      // Log the sorted bookings
+      // Log the sorted bookings with rejection history bonus
       console.log("📋 Prioritized bookings:");
       bookingsWithPriority.forEach((booking, idx) => {
-        console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Laxity: ${booking.laxity}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h`);
+        console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Laxity: ${booking.laxity}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h, Rejection Bonus: ${booking.rejectionAgingBonus}`);
       });
 
       // Use station capacity - ensure it's a valid number
@@ -1491,15 +1583,20 @@ const manualCheckAllPendingAppointments = async () => {
           const now = new Date();
           const waitingHours = (now - createdAt) / (1000 * 60 * 60);
           
+          // Get additional aging bonus from rejection history for this specific station
+          const rejectionAgingBonus = getAgingBonus(booking.user, booking.station);
+          
           // Calculate a priority score similar to the main process function
           // Lower score = higher priority
           const priorityScore = 50 - 
             (waitingHours * 2) - // Aging factor
-            ((100 - (booking.currentBattery || 50)) / 10); // Battery factor
+            ((100 - (booking.currentBattery || 50)) / 10) - // Battery factor
+            rejectionAgingBonus; // Station-specific rejection history bonus
             
           return {
             ...booking.toObject(),
             waitingHours,
+            rejectionAgingBonus,
             priorityScore
           };
         });
@@ -1510,7 +1607,7 @@ const manualCheckAllPendingAppointments = async () => {
         // Log the sorted bookings
         console.log("📋 Prioritized bookings:");
         bookingsWithPriority.forEach((booking, idx) => {
-          console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h`);
+          console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h, Rejection Bonus: ${booking.rejectionAgingBonus}`);
         });
 
         // Take top N bookings based on remaining capacity
@@ -1589,12 +1686,12 @@ Your Service Team`
               // Delete the booking after sending the email
               await Booking.findByIdAndDelete(updatedBooking._id);
               console.log(`🗑️ Deleted booking ${updatedBooking._id}`);
-            } catch (error) {
-              console.error(`Failed to send rejection email to ${bookingDetails.user}:`, error);
-              
-              // Delete the booking even if email fails
-              await Booking.findByIdAndDelete(updatedBooking._id);
-            }
+          } catch (error) {
+            console.error(`❌ Failed to send rejection email to ${bookingDetails.user}:`, error);
+            
+            // Delete the booking even if email fails
+            await Booking.findByIdAndDelete(updatedBooking._id);
+          }
         }
       }
     }
@@ -1988,10 +2085,77 @@ const cleanupRejectedBookings = async () => {
   }
 };
 
+// Add a function to get rejection history for a user (for API access)
+const getUserRejectionHistory = (userEmail, station = null) => {
+  if (!userRejectionHistory.has(userEmail)) {
+    return {
+      rejectionCount: 0,
+      stations: {}
+    };
+  }
+  
+  const history = userRejectionHistory.get(userEmail);
+  
+  // If station is specified, return only that station's history
+  if (station && history.stations[station]) {
+    return {
+      stationName: station,
+      ...history.stations[station]
+    };
+  }
+  
+  return history;
+};
+
+// Add a function to clean up old rejection history entries
+const cleanupOldRejectionHistory = () => {
+  const now = new Date();
+  let cleanedCount = 0;
+  let stationEntriesRemoved = 0;
+  
+  userRejectionHistory.forEach((history, userEmail) => {
+    let shouldRemoveUser = true;
+    let stationsToRemove = [];
+    
+    // Check each station entry
+    Object.keys(history.stations).forEach(station => {
+      const stationHistory = history.stations[station];
+      const daysSinceLastRejection = (now - stationHistory.lastRejection) / (1000 * 60 * 60 * 24);
+      
+      // Remove station entries older than 7 days
+      if (daysSinceLastRejection > 7) {
+        stationsToRemove.push(station);
+        stationEntriesRemoved++;
+      } else {
+        shouldRemoveUser = false;
+      }
+    });
+    
+    // Remove old station entries
+    stationsToRemove.forEach(station => {
+      delete history.stations[station];
+    });
+    
+    // If all station entries were removed, remove the user entry
+    if (shouldRemoveUser && Object.keys(history.stations).length === 0) {
+      userRejectionHistory.delete(userEmail);
+      cleanedCount++;
+    }
+  });
+  
+  if (cleanedCount > 0 || stationEntriesRemoved > 0) {
+    console.log(`🧹 Cleaned up ${cleanedCount} users and ${stationEntriesRemoved} station entries from rejection history`);
+  }
+};
+
+// Run rejection history cleanup daily
+cron.schedule('0 0 * * *', cleanupOldRejectionHistory);
+
 module.exports = {
   startScheduler,
   handleLateRegistration,
-  manualCheckAllPendingAppointments, // Export for API access
-  fixOverbookedSlots, // Export for direct API access if needed
-  cleanupRejectedBookings // Export for direct API access if needed
+  manualCheckAllPendingAppointments,
+  fixOverbookedSlots,
+  cleanupRejectedBookings,
+  getUserRejectionHistory
 };
