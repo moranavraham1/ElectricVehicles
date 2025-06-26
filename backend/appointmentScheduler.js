@@ -62,6 +62,10 @@ try {
 // Create a Map to store user rejection history
 const userRejectionHistory = new Map();
 
+// Create a Set to track bookings that are currently being processed
+// This will prevent race conditions where the same booking is processed by multiple functions simultaneously
+const processingBookings = new Set();
+
 // Helper function to update user rejection history
 const updateRejectionHistory = (userEmail, station, date, time) => {
   const key = userEmail;
@@ -448,14 +452,23 @@ const processAppointments = async () => {
           for (const booking of group.bookings) {
             try {
               const bookingToReject = await Booking.findById(booking._id);
-              if (bookingToReject) {
+              if (!bookingToReject) {
+                console.log(`⚠️ Booking ${booking._id} not found, skipping`);
+                continue;
+              }
+              
+              // Skip bookings that are already processed
+              if (bookingToReject.status !== 'pending') {
+                console.log(`⚠️ Booking ${booking._id} has status ${bookingToReject.status}, not 'pending'. Skipping.`);
+                continue;
+              }
+              
                 bookingToReject.status = 'rejected';
                 bookingToReject.rejectionReason = `Station is at full capacity (${existingApproved}/${group.maxCapacity} charging points occupied)`;
                 await bookingToReject.save();
                 
                 // Send rejection email
                 await sendRejectionEmail(bookingToReject.user, bookingToReject.station, bookingToReject.date, bookingToReject.time, bookingToReject.rejectionReason);
-              }
             } catch (error) {
               console.error(`Error rejecting booking ${booking._id}:`, error);
             }
@@ -550,8 +563,28 @@ const processAppointments = async () => {
       console.log(`✅ Approving ${approvedBookings.length} bookings, ❌ Rejecting ${rejectedBookings.length} bookings`);      // Process approved bookings
       for (const b of approvedBookings) {
         const booking = await Booking.findById(b._id);
-        if (!booking) continue;
-
+        if (!booking) {
+          console.log(`⚠️ Booking ${b._id} not found, skipping`);
+          continue;
+        }
+        
+        // Skip bookings that are already processed
+        if (booking.status !== 'pending') {
+          console.log(`⚠️ Booking ${b._id} has status ${booking.status}, not 'pending'. Skipping.`);
+          continue;
+        }
+        
+        // Check if this booking is already being processed by another function
+        const bookingId = booking._id.toString();
+        if (processingBookings.has(bookingId)) {
+          console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
+          continue;
+        }
+        
+        // Add this booking to the processing set
+        processingBookings.add(bookingId);
+        
+        try {
         // FINAL SAFETY CHECK: Re-verify capacity before approving each booking
         const currentApprovedCount = await Booking.countDocuments({
           $or: [
@@ -810,14 +843,38 @@ const processAppointments = async () => {
           console.log(`📧 Approval email sent to ${booking.user}`);
         } catch (error) {
           console.error(`❌ Failed to send approval email to ${booking.user}:`, error);
+          }
+        } finally {
+          // Always remove the booking from the processing set when done
+          processingBookings.delete(bookingId);
         }
       }
       
       // Process rejected bookings - make sure we reject all bookings that exceed capacity
       for (const b of rejectedBookings) {
         const booking = await Booking.findById(b._id);
-        if (!booking) continue;
-
+        if (!booking) {
+          console.log(`⚠️ Booking ${b._id} not found, skipping`);
+          continue;
+        }
+        
+        // Skip bookings that are already processed
+        if (booking.status !== 'pending') {
+          console.log(`⚠️ Booking ${b._id} has status ${booking.status}, not 'pending'. Skipping.`);
+          continue;
+        }
+        
+        // Check if this booking is already being processed by another function
+        const bookingId = booking._id.toString();
+        if (processingBookings.has(bookingId)) {
+          console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
+          continue;
+        }
+        
+        // Add this booking to the processing set
+        processingBookings.add(bookingId);
+        
+        try {
         // Find alternative options
         const alternatives = await findNearbyAlternatives(booking);
 
@@ -1092,6 +1149,10 @@ const processAppointments = async () => {
           console.error(`❌ Failed to send rejection email to ${bookingDetails.user}:`, error);
           // Delete the booking even if email fails
           await Booking.findByIdAndDelete(booking._id);
+          }
+        } finally {
+          // Always remove the booking from the processing set when done
+          processingBookings.delete(bookingId);
         }
       }
     }
@@ -1103,31 +1164,88 @@ const processAppointments = async () => {
 // Handle late registrations (after approval process has run)
 const handleLateRegistration = async (booking) => {
   try {
+    // Check if this booking is already being processed by another function
+    const bookingId = booking._id.toString();
+    if (processingBookings.has(bookingId)) {
+      console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
+      return booking;
+    }
+    
+    // Add this booking to the processing set
+    processingBookings.add(bookingId);
+    
+  try {
     const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
     const now = new Date();
     const oneHourBefore = new Date(bookingDateTime);
     oneHourBefore.setHours(oneHourBefore.getHours() - 1);
 
+      // First check if this booking has already been processed
+      // This prevents a booking from being both rejected and approved
+      const existingBooking = await Booking.findById(booking._id);
+      if (!existingBooking) {
+        console.log(`⚠️ Booking ${booking._id} not found. Skipping.`);
+        return booking;
+      }
+      
+      // IMPORTANT: If the booking is already rejected or late_registration, don't change it
+      if (existingBooking.status === 'rejected' || existingBooking.status === 'late_registration') {
+        console.log(`⚠️ Booking ${booking._id} is already ${existingBooking.status}. Not changing status.`);
+        return existingBooking;
+      }
+      
+      // If booking is already approved, don't process it again
+      if (existingBooking.status === 'approved') {
+        console.log(`⚠️ Booking ${booking._id} is already approved. Not processing again.`);
+        return existingBooking;
+      }
+      
+      // Only process pending bookings
+      if (existingBooking.status !== 'pending') {
+        console.log(`⚠️ Booking ${booking._id} has status: ${existingBooking.status}. Only pending bookings should be processed.`);
+        return existingBooking;
+      }
+
     // Check if registration is after the 1-hour cutoff
-    if (now > oneHourBefore) {
+      if (now > oneHourBefore && now < bookingDateTime) {
+        // Get station details to determine actual capacity
+        let stationCapacity = 2; // Default fallback
+        try {
+          const stationDetails = await Station.findOne({ "Station Name": existingBooking.station });
+          if (stationDetails && stationDetails["Duplicate Count"]) {
+            stationCapacity = parseInt(stationDetails["Duplicate Count"]);
+            console.log(`📊 Station ${existingBooking.station} has capacity: ${stationCapacity}`);
+          } else {
+            console.log(`⚠️ Could not find capacity for station ${existingBooking.station}, using default: ${stationCapacity}`);
+          }
+        } catch (error) {
+          console.error(`Error getting capacity for station ${existingBooking.station}:`, error);
+        }
+
       // Get approved bookings count
       const approvedCount = await Booking.countDocuments({
-        station: booking.station,
-        date: booking.date,
-        time: booking.time,
+          station: existingBooking.station,
+          date: existingBooking.date,
+          time: existingBooking.time,
         status: 'approved'
       });
 
-      // Check if there's still capacity available (assume max 2)
-      if (approvedCount < 2) {
+        console.log(`📊 Station ${existingBooking.station} has ${approvedCount}/${stationCapacity} approved bookings`);
+
+        // Check if there's still capacity available
+        if (approvedCount < stationCapacity) {
         // Automatically approve if there's still room
-        booking.status = 'approved';
-        booking.approvalDate = new Date();
+          existingBooking.status = 'approved';
+          existingBooking.approvalDate = new Date();
+
+          // Save the booking with the new status
+          await existingBooking.save();
+          console.log(`✅ Late booking approved for ${existingBooking.user} at ${existingBooking.station} on ${existingBooking.date} at ${existingBooking.time}`);
 
         // Send approval email with HTML styling
         const approvalMailOptions = {
           from: process.env.EMAIL,
-          to: booking.user,
+            to: existingBooking.user,
           subject: 'Late Registration Approved',
           html: `
           <!DOCTYPE html>
@@ -1251,15 +1369,15 @@ const handleLateRegistration = async (booking) => {
                 <div class="booking-details">
                   <div class="detail-row">
                     <span class="detail-label">Charging Station:</span>
-                    <span class="detail-value">${booking.station}</span>
+                      <span class="detail-value">${existingBooking.station}</span>
                   </div>
                   <div class="detail-row">
                     <span class="detail-label">Date:</span>
-                    <span class="detail-value">${booking.date}</span>
+                      <span class="detail-value">${existingBooking.date}</span>
                   </div>
                   <div class="detail-row">
                     <span class="detail-label">Time:</span>
-                    <span class="detail-value">${booking.time}</span>
+                      <span class="detail-value">${existingBooking.time}</span>
                   </div>
                 </div>
               </div>
@@ -1275,13 +1393,17 @@ const handleLateRegistration = async (booking) => {
         transporter.sendMail(approvalMailOptions);
       } else {
         // Mark as late registration
-        booking.status = 'late_registration';
-        booking.rejectionReason = 'Late registration - station full';
+          existingBooking.status = 'late_registration';
+          existingBooking.rejectionReason = 'Late registration - station full';
+
+          // Save the booking with the new status
+          await existingBooking.save();
+          console.log(`❌ Late booking rejected for ${existingBooking.user} at ${existingBooking.station} on ${existingBooking.date} at ${existingBooking.time} - station full (${approvedCount}/${stationCapacity})`);
 
         // Send late registration email with HTML styling
         const lateMailOptions = {
           from: process.env.EMAIL,
-          to: booking.user,
+            to: existingBooking.user,
           subject: 'Late Registration - Station Full',
           html: `
           <!DOCTYPE html>
@@ -1467,15 +1589,15 @@ const handleLateRegistration = async (booking) => {
                 <div class="booking-details">
                   <div class="detail-row">
                     <span class="detail-label">Charging Station:</span>
-                    <span class="detail-value">${booking.station}</span>
+                      <span class="detail-value">${existingBooking.station}</span>
                   </div>
                   <div class="detail-row">
                     <span class="detail-label">Date:</span>
-                    <span class="detail-value">${booking.date}</span>
+                      <span class="detail-value">${existingBooking.date}</span>
                   </div>
                   <div class="detail-row">
                     <span class="detail-label">Time:</span>
-                    <span class="detail-value">${booking.time}</span>
+                      <span class="detail-value">${existingBooking.time}</span>
                   </div>
                 </div>
                 
@@ -1495,12 +1617,28 @@ const handleLateRegistration = async (booking) => {
         };
 
         transporter.sendMail(lateMailOptions);
+        }
+      } else {
+        // Registration is NOT within the 1-hour window, keep it as pending
+        existingBooking.status = 'pending';
+        await existingBooking.save();
+        console.log(`📅 Booking for ${existingBooking.station} on ${existingBooking.date} at ${existingBooking.time} kept as pending (not within 1-hour window)`);
       }
 
-      await booking.save();
+      return existingBooking;
+    } finally {
+      // Always remove the booking from the processing set when done
+      processingBookings.delete(bookingId);
     }
   } catch (error) {
     console.error('Error handling late registration:', error);
+    
+    // Make sure to remove the booking from the processing set even if an error occurs
+    if (booking && booking._id) {
+      processingBookings.delete(booking._id.toString());
+    }
+    
+    return booking;
   }
 };
 
@@ -1619,8 +1757,28 @@ const manualCheckAllPendingAppointments = async () => {
         // Update status and send emails for approved bookings
         for (const booking of approved) {
           const updatedBooking = await Booking.findById(booking._id);
-          if (!updatedBooking) continue;
+          if (!updatedBooking) {
+            console.log(`⚠️ Booking ${booking._id} not found, skipping`);
+            continue;
+          }
           
+          // Skip bookings that are already processed
+          if (updatedBooking.status !== 'pending') {
+            console.log(`⚠️ Booking ${booking._id} has status ${updatedBooking.status}, not 'pending'. Skipping.`);
+            continue;
+          }
+          
+          // Check if this booking is already being processed by another function
+          const bookingId = updatedBooking._id.toString();
+          if (processingBookings.has(bookingId)) {
+            console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
+            continue;
+          }
+          
+          // Add this booking to the processing set
+          processingBookings.add(bookingId);
+          
+          try {
           updatedBooking.status = 'approved';
           updatedBooking.approvalDate = now;
           await updatedBooking.save();
@@ -1646,14 +1804,38 @@ Your Service Team`
             console.log(`📧 Approval email sent to ${updatedBooking.user} (manual check)`);
           } catch (error) {
             console.error(`Failed to send approval email to ${updatedBooking.user}:`, error);
+            }
+          } finally {
+            // Always remove the booking from the processing set when done
+            processingBookings.delete(bookingId);
           }
         }
 
         // Update status and send emails for rejected bookings
         for (const booking of rejected) {
           const updatedBooking = await Booking.findById(booking._id);
-          if (!updatedBooking) continue;
+          if (!updatedBooking) {
+            console.log(`⚠️ Booking ${booking._id} not found, skipping`);
+            continue;
+          }
           
+          // Skip bookings that are already processed
+          if (updatedBooking.status !== 'pending') {
+            console.log(`⚠️ Booking ${booking._id} has status ${updatedBooking.status}, not 'pending'. Skipping.`);
+            continue;
+          }
+          
+          // Check if this booking is already being processed by another function
+          const bookingId = updatedBooking._id.toString();
+          if (processingBookings.has(bookingId)) {
+            console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
+            continue;
+          }
+          
+          // Add this booking to the processing set
+          processingBookings.add(bookingId);
+          
+          try {
           console.log(`🗑️ Deleting rejected booking ${updatedBooking._id} for user ${updatedBooking.user}`);
           // Save booking details for the email
           const bookingDetails = {
@@ -1691,6 +1873,10 @@ Your Service Team`
             
             // Delete the booking even if email fails
             await Booking.findByIdAndDelete(updatedBooking._id);
+            }
+          } finally {
+            // Always remove the booking from the processing set when done
+            processingBookings.delete(bookingId);
           }
         }
       }

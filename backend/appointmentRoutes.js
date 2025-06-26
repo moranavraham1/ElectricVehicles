@@ -44,28 +44,32 @@ router.post('/', authMiddleware, async (req, res) => {
     const oneHourBefore = new Date(appointmentDateTime);
     oneHourBefore.setHours(oneHourBefore.getHours() - 1);
     
-    // Save the appointment
+    // Save the appointment first to get an ID
     await newAppointment.save();
     
     // Handle late registration if needed
-    if (now >= oneHourBefore) {
-      await handleLateRegistration(newAppointment);
+    if (now >= oneHourBefore && now < appointmentDateTime) {
+      console.log(`🕒 Late registration detected for ${email} at ${stationName} on ${appointmentDate} at ${appointmentTime}`);
       
-      // If the status is late_registration, inform the user
-      if (newAppointment.status === 'late_registration') {
+      // Process through late registration handler
+      const processedAppointment = await handleLateRegistration(newAppointment);
+      
+      // Return appropriate response based on status after processing
+      if (processedAppointment.status === 'late_registration') {
         return res.status(201).json({ 
           message: 'Your appointment was registered after the booking deadline. The station is currently full. Please check your email for alternative options.',
-          appointment: newAppointment 
+          appointment: processedAppointment 
         });
       }
       
-      // If automatically approved
-      if (newAppointment.status === 'approved') {
+      if (processedAppointment.status === 'approved') {
         return res.status(201).json({ 
           message: 'Your late registration was automatically approved as we still have capacity available.',
-          appointment: newAppointment 
+          appointment: processedAppointment 
         });
       }
+      
+      // If still pending, continue with normal flow
     } else {
       // Regular booking confirmation email for non-late registrations
       const mailOptions = {
@@ -187,22 +191,28 @@ router.put('/:id', authMiddleware, async (req, res) => {
     oneHourBefore.setHours(oneHourBefore.getHours() - 1);
     
     // If it's a late registration, handle accordingly
-    if (now >= oneHourBefore) {
-      await handleLateRegistration(updatedAppointment);
+    if (now >= oneHourBefore && now < appointmentDateTime) {
+      console.log(`🕒 Late update detected for ${updatedAppointment.email} at ${updatedAppointment.stationName} on ${updatedAppointment.appointmentDate} at ${updatedAppointment.appointmentTime}`);
       
-      if (updatedAppointment.status === 'late_registration') {
+      // Process through late registration handler
+      const processedAppointment = await handleLateRegistration(updatedAppointment);
+      
+      // Return appropriate response based on status after processing
+      if (processedAppointment.status === 'late_registration') {
         return res.status(200).json({ 
           message: 'Your appointment was updated after the booking deadline. The station is currently full. Please check your email for alternative options.',
-          appointment: updatedAppointment
+          appointment: processedAppointment
         });
       }
       
-      if (updatedAppointment.status === 'approved') {
+      if (processedAppointment.status === 'approved') {
         return res.status(200).json({ 
           message: 'Your late registration update was automatically approved as we still have capacity available.',
-          appointment: updatedAppointment
+          appointment: processedAppointment
         });
       }
+      
+      // If still pending, continue with normal flow
     } else {
       // Reset status to pending if time was changed to a non-late slot
       updatedAppointment.status = 'pending';

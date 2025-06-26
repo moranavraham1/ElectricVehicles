@@ -1012,12 +1012,28 @@ router.post('/book', authMiddleware, async (req, res) => {
       const stationCapacity = stationDetails?.["Duplicate Count"] || 1;
       console.log(`🏢 Station ${trimmedStation} has capacity: ${stationCapacity}`);
       
-      // Count existing bookings (both pending and approved) for this exact time slot
+      // Check if the requested booking is more than one hour ahead
+      const bookingDateTime = new Date(`${date}T${time}:00`);
+      const now = new Date();
+      const oneHourAhead = new Date(now);
+      oneHourAhead.setHours(oneHourAhead.getHours() + 1);
+      
+      const isMoreThanOneHourAhead = bookingDateTime > oneHourAhead;
+      
+      // For bookings more than one hour ahead, only count approved bookings against capacity
+      // For bookings less than one hour ahead, count both pending and approved bookings
+      let bookingStatusFilter = { $in: ['pending', 'approved'] };
+      if (isMoreThanOneHourAhead) {
+        bookingStatusFilter = 'approved';
+        console.log(`⏰ Booking is more than 1 hour ahead, only counting approved bookings against capacity`);
+      }
+      
+      // Count existing bookings for this exact time slot
       const existingBookingsCount = await Booking.countDocuments({
         station: { $regex: new RegExp(`^${trimmedStation}$`, 'i') },
         date,
         time,
-        status: { $in: ['pending', 'approved'] }
+        status: bookingStatusFilter
       });
       
       console.log(`📊 Found ${existingBookingsCount} existing bookings for ${trimmedStation} on ${date} at ${time}`);

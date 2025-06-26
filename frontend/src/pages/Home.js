@@ -435,28 +435,68 @@ const Home = () => {
       console.log(`🔌 Station capacity: ${maxCapacity} charging points`);
       let updatedChargingSlots = {};
 
-      availableTimeSlots = availableTimeSlots.filter(time => {
+      // Get current time
+      const now = new Date();
+      // Calculate one hour from now threshold
+      const oneHourFromNow = new Date(now);
+      oneHourFromNow.setHours(now.getHours() + 1);
+      
+      // Get ALL possible time slots from the response, not just available ones
+      // This is important to include fully booked slots that are one hour ahead
+      let allTimeSlots = [];
+      
+      // Extract all time slots from the bookingsPerTime object
+      for (const timeSlot in bookingsPerTime) {
+        if (!availableTimeSlots.includes(timeSlot)) {
+          allTimeSlots.push(timeSlot);
+        }
+      }
+      
+      // Combine with available time slots to get all possible slots
+      allTimeSlots = [...new Set([...availableTimeSlots, ...allTimeSlots])];
+      console.log("💡 All possible time slots:", allTimeSlots);
+      
+      // Process each time slot
+      const processedTimeSlots = allTimeSlots.map(time => {
         const bookedCount = bookingsPerTime[time] || 0;
         const remainingSlots = maxCapacity - bookedCount;
         updatedChargingSlots[time] = remainingSlots;
-        return remainingSlots > 0;
-      });
-      const now = new Date();
-      availableTimeSlots = availableTimeSlots.filter(time => {
+        return { time, remainingSlots };
+      }).filter(({ time, remainingSlots }) => {
         const [hour, minute] = time.split(":");
-
-        // Ensure proper date format for creating date object (YYYY-MM-DD)
+        
+        // Create date object for this time slot
         const slotDateTime = new Date(`${selectedDate}T${hour}:${minute}:00`);
-        const isAfterNow = slotDateTime > now;
-        console.log(`💡 Time slot ${time} - Date: ${slotDateTime.toISOString()} - Is after now (${now.toISOString()}): ${isAfterNow}`);
-        return isAfterNow;
+        
+        // Check if slot is at least one hour in the future
+        const isOneHourAhead = slotDateTime >= oneHourFromNow;
+        
+        // If it's at least one hour ahead, include it regardless of capacity
+        // Otherwise, check if there are remaining slots
+        const shouldInclude = isOneHourAhead || remainingSlots > 0;
+        
+        console.log(`💡 Time slot ${time} - Is one hour ahead: ${isOneHourAhead}, Remaining slots: ${remainingSlots}, Include: ${shouldInclude}`);
+        
+        // Still need to be after current time (basic check)
+        return slotDateTime > now && shouldInclude;
+      }).map(item => item.time);
+
+      // Sort time slots chronologically
+      const sortedTimeSlots = processedTimeSlots.sort((a, b) => {
+        const [aHour, aMinute] = a.split(":").map(Number);
+        const [bHour, bMinute] = b.split(":").map(Number);
+        
+        if (aHour !== bHour) {
+          return aHour - bHour;
+        }
+        return aMinute - bMinute;
       });
 
-      console.log("💡 Final available time slots:", availableTimeSlots);
+      console.log("💡 Final sorted time slots:", sortedTimeSlots);
 
-      setAvailableTimes(availableTimeSlots);
+      setAvailableTimes(sortedTimeSlots);
       setChargingSlots(updatedChargingSlots);
-      setIsAvailable(availableTimeSlots.length > 0);
+      setIsAvailable(sortedTimeSlots.length > 0);
     } catch (error) {
       console.error("Error fetching available times:", error);
       setAvailableTimes([]);
@@ -483,7 +523,9 @@ const Home = () => {
   const handleSuggestionClick = (suggestion) => {
     setSearchQuery(suggestion['Station Name']);
     setSuggestions([]);
-  };  const bookAppointment = async () => {
+  };
+
+  const bookAppointment = async () => {
     if (!selectedStation || !date || !time) {
       alert("Please select a station, date, and time.");
       return;
@@ -511,8 +553,17 @@ const Home = () => {
       
       console.log(`🔍 Final check - Time ${time}: ${currentBookingsForTime}/${maxCapacity} slots used`);
       
-      // Check if the selected time is still available
-      if (!availableTimes.includes(time)) {
+      // Check if time is at least one hour from now
+      const now = new Date();
+      const oneHourFromNow = new Date(now);
+      oneHourFromNow.setHours(now.getHours() + 1);
+      
+      const [hour, minute] = time.split(":");
+      const selectedDateTime = new Date(`${date}T${hour}:${minute}:00`);
+      const isOneHourAhead = selectedDateTime >= oneHourFromNow;
+      
+      // Check if the selected time is still available or if it's at least one hour ahead
+      if (!availableTimes.includes(time) && !isOneHourAhead) {
         alert(`⚠️ Sorry! This time slot (${time}) is no longer available.\n\nStation "${selectedStation["Station Name"]}" has ${maxCapacity} charging point${maxCapacity > 1 ? 's' : ''} and all are now reserved for this time.\n\nPlease select a different time slot.`);
         
         // Refresh available times to show current status
@@ -521,7 +572,8 @@ const Home = () => {
         return;
       }
 
-      // If still available, proceed with booking
+      // Submit booking request - always as pending status
+      // The appointment scheduler will process it ~1 hour before the appointment time
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/book`,
         {
@@ -540,7 +592,7 @@ const Home = () => {
         }
       );
 
-      alert("Booking request submitted successfully! You will receive a confirmation email 1 hour before your appointment time.");
+      alert("Booking request submitted successfully! Your booking will remain in 'pending' status until approximately 1 hour before the scheduled time. At that point, our system will process all pending requests and you will receive a confirmation email if your booking is approved.");
 
       // Refresh bookings list to update status
       fetchUserBookings();
@@ -562,7 +614,20 @@ const Home = () => {
       if (error.response && error.response.status === 400) {
         const errorData = error.response.data;
         if (errorData.capacity && errorData.currentBookings) {
-          alert(`⚠️ This time slot is fully booked!\n\nStation "${selectedStation["Station Name"]}" has ${errorData.capacity} charging point${errorData.capacity > 1 ? 's' : ''} and all are reserved for ${time} on ${date}.\n\nPlease choose a different time slot.`);
+          // Check if the booking is at least one hour ahead
+          const now = new Date();
+          const oneHourFromNow = new Date(now);
+          oneHourFromNow.setHours(now.getHours() + 1);
+          
+          const [hour, minute] = time.split(":");
+          const selectedDateTime = new Date(`${date}T${hour}:${minute}:00`);
+          const isOneHourAhead = selectedDateTime >= oneHourFromNow;
+          
+          if (isOneHourAhead) {
+            alert(`⚠️ There seems to be an issue with your booking request. For time slots more than 1 hour ahead, you should be able to make a booking even if others have pending bookings.\n\nPlease try again or contact support if the issue persists.`);
+          } else {
+            alert(`⚠️ This time slot is fully booked!\n\nStation "${selectedStation["Station Name"]}" has ${errorData.capacity} charging point${errorData.capacity > 1 ? 's' : ''} and all are reserved for ${time} on ${date}.\n\nPlease choose a different time slot.`);
+          }
         } else {
           alert(`❌ Booking failed: ${errorData.message || 'Unknown error'}`);
         }
@@ -1570,7 +1635,7 @@ const Home = () => {
                   // 🔒 Real-time check when user selects a time
                   try {
                     console.log(`🔍 Checking if time ${selectedTime} is still available...`);
-                      const availabilityResponse = await axios.post(
+                    const availabilityResponse = await axios.post(
                       `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
                       {
                         station: selectedStation["Station Name"] || selectedStation,
@@ -1586,7 +1651,19 @@ const Home = () => {
                     const { availableTimes, maxCapacity, bookingsPerTime } = availabilityResponse.data;
                     const currentBookingsForTime = bookingsPerTime[selectedTime] || 0;
                     
-                    if (!availableTimes.includes(selectedTime)) {
+                    // Check if time is at least one hour from now
+                    const now = new Date();
+                    const oneHourFromNow = new Date(now);
+                    oneHourFromNow.setHours(now.getHours() + 1);
+                    
+                    const [hour, minute] = selectedTime.split(":");
+                    const selectedDateTime = new Date(`${date}T${hour}:${minute}:00`);
+                    const isOneHourAhead = selectedDateTime >= oneHourFromNow;
+                    
+                    console.log(`🔍 Selected time: ${selectedTime} - Is one hour ahead: ${isOneHourAhead}`);
+                    
+                    // If time is fully booked and not at least one hour ahead, show warning
+                    if (!availableTimes.includes(selectedTime) && !isOneHourAhead) {
                       alert(`⚠️ Sorry! The time slot ${selectedTime} is no longer available.\n\nStation "${selectedStation["Station Name"]}" has ${maxCapacity} charging point${maxCapacity > 1 ? 's' : ''} and all are now reserved for this time.\n\nPlease select a different time.`);
                       
                       // Update available times and clear selection
@@ -1595,7 +1672,7 @@ const Home = () => {
                       return;
                     }
                     
-                    console.log(`✅ Time ${selectedTime} is still available (${currentBookingsForTime}/${maxCapacity})`);
+                    console.log(`✅ Time ${selectedTime} is acceptable for booking ${isOneHourAhead ? '(one hour ahead rule)' : '(slots available)'}`);
                   } catch (error) {
                     console.error("Error checking time availability:", error);
                     // Continue with selection even if check fails
