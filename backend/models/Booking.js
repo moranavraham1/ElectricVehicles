@@ -38,7 +38,10 @@ const bookingSchema = new mongoose.Schema({
   paymentMethod: { type: String },
   // Charging information
   initialBattery: { type: Number },
-  finalBattery: { type: Number }
+  finalBattery: { type: Number },
+  // Track when the charging session ends
+  endTime: { type: Date },
+  targetBattery: { type: Number }
 });
 
 // Create a compound index for user, station, date and time for faster lookups

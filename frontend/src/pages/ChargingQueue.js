@@ -226,6 +226,19 @@ const ChargingQueue = () => {
         }
     };
 
+    // Format the wait time message
+    const formatWaitingTime = (minutes) => {
+        if (minutes === 0) {
+            return "No waiting time";
+        } else if (minutes < 60) {
+            return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+        } else {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${hours} hour${hours !== 1 ? 's' : ''}${mins > 0 ? ` ${mins} minute${mins !== 1 ? 's' : ''}` : ''}`;
+        }
+    };
+
     // Add function to manually trigger appointment processing
     const triggerProcessing = async () => {
         try {
@@ -261,6 +274,58 @@ const ChargingQueue = () => {
                 </h1>
                 <p className="queue-subtitle">for {stationName} - {selectedDate}</p>
             </div>
+
+            {/* האם יש תור למשתמש הנוכחי? */}
+            {queue.length > 0 && (() => {
+                const sortedQueue = [...queue].sort((a, b) => {
+                    if (a.time !== b.time) {
+                        return a.time.localeCompare(b.time);
+                    }
+                    if (a.priorityScore !== b.priorityScore) {
+                        return a.priorityScore - b.priorityScore;
+                    }
+                    return (a.currentBattery ?? 100) - (b.currentBattery ?? 100);
+                });
+
+                const userBookingIndex = sortedQueue.findIndex(booking => 
+                    booking.user.toLowerCase() === currentUserEmail
+                );
+
+                if (userBookingIndex !== -1) {
+                    const userBooking = sortedQueue[userBookingIndex];
+                    const waitingTime = calculateWaitingTime(userBookingIndex, sortedQueue);
+                    const formattedWaitingTime = formatWaitingTime(waitingTime);
+                    
+                    return (
+                        <div className="user-booking-summary">
+                            <h3>Your Position in Queue</h3>
+                            <div className="user-booking-details">
+                                <div className="user-booking-position">
+                                    <span className="position-number">{userBookingIndex + 1}</span>
+                                    <span className="position-total">of {sortedQueue.length}</span>
+                                </div>
+                                <div className="user-booking-info">
+                                    <div className="user-booking-time">
+                                        <span className="time-label">⏰ Time:</span>
+                                        <span className="time-value">{userBooking.time}</span>
+                                    </div>
+                                    <div className="user-waiting-time">
+                                        <span className="waiting-time-label">⏳ Estimated Wait:</span>
+                                        <span className="waiting-time-value">
+                                            {waitingTime === 0 
+                                                ? "No waiting - Ready to charge" 
+                                                : formattedWaitingTime
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                
+                return null;
+            })()}
 
             <div className="queue-actions">
                 <button 
@@ -339,9 +404,7 @@ const ChargingQueue = () => {
                                                 <strong>
                                                     {waitingTime === 0 
                                                         ? "No waiting time - ready to charge" 
-                                                        : waitingTime < 60
-                                                            ? `Estimated wait: ${waitingTime} minutes`
-                                                            : `Estimated wait: ${Math.floor(waitingTime / 60)} hour${Math.floor(waitingTime / 60) > 1 ? 's' : ''}${waitingTime % 60 > 0 ? ` ${waitingTime % 60} minutes` : ''}`
+                                                        : `Estimated wait: ${formatWaitingTime(waitingTime)}`
                                                     }
                                                 </strong>
                                             </div>

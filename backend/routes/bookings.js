@@ -1589,10 +1589,12 @@ function calculateWaitingTimeForBooking(targetBooking, allBookings, numChargingP
   const targetTimeInMinutes = targetHours * 60 + targetMinutes;
   const targetDuration = targetBooking.estimatedChargeTime || 30;
   
-  // Skip calculation if booking is in the past
+  // Modified: Only skip calculation if booking is more than 10 minutes in the past
+  // This ensures bookings remain active for 10 minutes after their scheduled time
   if (targetBooking.date < currentDateStr || 
-      (targetBooking.date === currentDateStr && targetTimeInMinutes < currentHourInMinutes)) {
-    return 0; // Booking time has passed
+      (targetBooking.date === currentDateStr && 
+       (targetTimeInMinutes + 10) < currentHourInMinutes)) {
+    return 0; // Booking time has passed by more than 10 minutes
   }
   
   // If booking time hasn't arrived yet (current time is earlier)
@@ -1629,11 +1631,18 @@ function calculateWaitingTimeForBooking(targetBooking, allBookings, numChargingP
     const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
     const bookingDuration = booking.estimatedChargeTime || 30;
     
+    // Modified: Consider bookings that are active within their 10-minute window after scheduled time
+    const isActiveBooking = booking.date === currentDateStr && 
+                           (bookingTimeInMinutes <= currentHourInMinutes && 
+                            currentHourInMinutes <= (bookingTimeInMinutes + 10));
+    
     // If booking is earlier than target booking
     if (bookingTimeInMinutes < targetTimeInMinutes) {
       // Check if it will finish before target booking starts
       const bookingEndTime = bookingTimeInMinutes + bookingDuration;
-      return bookingEndTime > targetTimeInMinutes;
+      
+      // Modified: Include bookings that overlap with target time, considering the extended 10-minute window
+      return bookingEndTime > targetTimeInMinutes || isActiveBooking;
     }
     
     // If booking is at same time as target but comes before in queue
@@ -1658,6 +1667,7 @@ function calculateWaitingTimeForBooking(targetBooking, allBookings, numChargingP
     const actualStart = Math.max(startTimeInMinutes, chargingPoints[earliestPointIndex]);
     
     // Update when this charging point will be free
+    // Modified: Ensure the charging point is occupied for the full duration of the booking
     chargingPoints[earliestPointIndex] = actualStart + duration;
   }
   

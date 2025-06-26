@@ -32,6 +32,10 @@ const Charging = () => {
     const [endTime, setEndTime] = useState('');
     const timerRef = useRef(null);
     
+    // Waiting time modal state
+    const [showWaitingModal, setShowWaitingModal] = useState(false);
+    const [waitingTimeInfo, setWaitingTimeInfo] = useState({ time: 0, stationFull: false });
+    
     // Initialize battery level with proper fallback
     const initialBatteryLevel = typeof incomingBatteryLevel === 'number' && !isNaN(incomingBatteryLevel) 
         ? incomingBatteryLevel 
@@ -137,8 +141,36 @@ const Charging = () => {
             }
 
             // Extract station name properly
-            const stationName = station['Station Name'] || station.name || station;
+            const stationName = (station['Station Name'] || station.name || station || '').trim();
             console.log("Station name extracted:", stationName);
+            
+            // CRITICAL FIX: Check for availability before starting charging
+            // This ensures users can't start charging if there's an overlap with another booking
+            try {
+                const availabilityResponse = await axios.get(
+                    `${process.env.REACT_APP_BACKEND_URL}/api/bookings/waiting-time/${encodeURIComponent(stationName)}/${date}/${time}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+                
+                const { waitingTime, stationFull } = availabilityResponse.data;
+                console.log("⏰ Waiting time check result:", { waitingTime, stationFull });
+                
+                // If there's a waiting time or the station is full, prevent charging
+                if (waitingTime > 0 || stationFull) {
+                    setError('');
+                    // Clear any previous errors and show the waiting time message
+                    setChargingStatus('');
+                    setLoading(false);
+                    
+                    // Show waiting time UI instead of error
+                    return showWaitingTimeModal(waitingTime, stationFull);
+                }
+                
+                console.log("✅ Station is available for charging");
+            } catch (availabilityError) {
+                console.error("Error checking availability:", availabilityError);
+                // Continue with charging attempt even if check fails
+            }
 
             // Create active charging record in database
             const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/active-charging`, {
@@ -184,7 +216,7 @@ const Charging = () => {
             // Stop the charging timer
             stopTimer();              // Delete active charging record from database
             try {
-                const stationName = station['Station Name'] || station.name || station;
+                const stationName = (station['Station Name'] || station.name || station || '').trim();
                 console.log("Stopping charging for station:", stationName);
                 
                 await axios.delete(`${process.env.REACT_APP_BACKEND_URL}/api/active-charging`, {
@@ -310,6 +342,31 @@ const Charging = () => {
     const handleStartButtonClick = () => {
         console.log("Start button clicked");
         startCharging();
+    };
+
+    // Function to show waiting time modal instead of error
+    const showWaitingTimeModal = (waitingTime, stationFull) => {
+        setWaitingTimeInfo({ time: waitingTime, stationFull });
+        setShowWaitingModal(true);
+        return false; // Return false to prevent charging from continuing
+    };
+    
+    // Function to view the full queue
+    const viewFullQueue = () => {
+        const today = new Date().toISOString().split('T')[0]; // Get current date in YYYY-MM-DD format
+        const stationName = (station['Station Name'] || station.name || station || '').trim();
+        navigate(`/charging-queue/${encodeURIComponent(stationName)}/${today}`);
+    };
+
+    // Format waiting time for display
+    const formatWaitingTime = (minutes) => {
+        if (minutes < 60) {
+            return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+        } else {
+            const hours = Math.floor(minutes / 60);
+            const remainingMinutes = minutes % 60;
+            return `${hours} hour${hours !== 1 ? 's' : ''}${remainingMinutes > 0 ? ` ${remainingMinutes} minute${remainingMinutes !== 1 ? 's' : ''}` : ''}`;
+        }
     };
 
     if (!station) {
@@ -461,6 +518,48 @@ const Charging = () => {
                         <div className="summary-actions">
                             <button onClick={goToPayment} className="action-button primary-button">
                                 Proceed to Payment
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
+
+            {/* Waiting Time Modal */}
+            {showWaitingModal && (
+                <>
+                    <div className="modal-overlay" onClick={() => setShowWaitingModal(false)}></div>
+                    <div className="waiting-time-modal">
+                        <div className="waiting-modal-header">
+                            <h2>Charging Station Busy</h2>
+                        </div>
+                        <div className="waiting-modal-content">
+                            {waitingTimeInfo.stationFull && (
+                                <div className="station-status">
+                                    <span className="status-icon">🔌</span>
+                                    <p>All charging points at this station are currently in use.</p>
+                                </div>
+                            )}
+                            
+                            <div className="waiting-time-info">
+                                <span className="waiting-icon">⏳</span>
+                                <p>
+                                    <strong>Estimated Waiting Time:</strong>
+                                    <span className="waiting-time-value"> {formatWaitingTime(waitingTimeInfo.time)}</span>
+                                </p>
+                            </div>
+                            
+                            <div className="waiting-explanation">
+                                <p>There {waitingTimeInfo.time === 1 ? 'is' : 'are'} currently other booking{waitingTimeInfo.time !== 1 ? 's' : ''} in progress that will finish before your scheduled time.</p>
+                                <p>You can view the full queue to see your position.</p>
+                            </div>
+                        </div>
+                        
+                        <div className="waiting-modal-actions">
+                            <button onClick={viewFullQueue} className="view-queue-button">
+                                View Full Queue
+                            </button>
+                            <button onClick={() => setShowWaitingModal(false)} className="close-modal-button">
+                                Close
                             </button>
                         </div>
                     </div>

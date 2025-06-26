@@ -844,6 +844,13 @@ const Home = () => {
           return false;
         }
         
+        // CRITICAL FIX: Check if there are other users whose charging time would overlap with this booking
+        // If the waiting time > 0, it means someone else is charging and we must wait
+        if (booking.waitingInfo && booking.waitingInfo.waitingTime > 0) {
+          console.log("⏰ Must wait for others to finish charging:", booking.waitingInfo.waitingTime, "minutes");
+          return false; 
+        }
+        
         // Accept bookings from 10 minutes before to 10 minutes after actual start time
         const isWithinWindow = timeDiffInMinutes >= -10 && timeDiffInMinutes <= 10;
         console.log("✅ Is within 10-minute window of actual start:", isWithinWindow);
@@ -905,11 +912,19 @@ const Home = () => {
     const closestBooking = relevantBookings[0];
     console.log("✅ Ready to charge with booking:", closestBooking);
     
-    let message = 'You can start charging now!';
+    // CRITICAL FIX: Final check for any waiting time - if we have to wait, we can't charge yet
     if (closestBooking.waitingInfo && closestBooking.waitingInfo.waitingTime > 0) {
-      message += ` (Expected wait: ${closestBooking.waitingInfo.waitingTime} minutes)`;
+      console.log("⏰ Cannot start charging now - must wait:", closestBooking.waitingInfo.waitingTime, "minutes");
+      
+      return {
+        hasBooking: true,
+        status: 'booking_scheduled',
+        booking: closestBooking,
+        message: `Your booking is ready, but you need to wait approximately ${closestBooking.waitingInfo.waitingTime} minutes before charging as other users are currently using the station.`
+      };
     }
     
+    let message = 'You can start charging now!';
     return {
       hasBooking: true,
       status: 'ready_to_charge',

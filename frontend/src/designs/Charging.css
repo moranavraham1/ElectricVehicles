@@ -966,4 +966,126 @@ body {
     animation: shine 1.5s infinite;
 }
 
-/* ...existing code... */
+/* Waiting Time Modal */
+.waiting-time-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.waiting-modal-header {
+    background-color: #3B82F6;
+    color: white;
+    padding: 15px;
+    text-align: center;
+}
+
+.waiting-modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.waiting-modal-content {
+    padding: 20px;
+    flex: 1;
+}
+
+.station-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #EF4444;
+}
+
+.status-icon {
+    font-size: 24px;
+}
+
+.station-status p {
+    margin: 0;
+    font-weight: 500;
+}
+
+.waiting-time-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #3B82F6;
+}
+
+.waiting-icon {
+    font-size: 24px;
+}
+
+.waiting-time-info p {
+    margin: 0;
+}
+
+.waiting-time-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #3B82F6;
+}
+
+.waiting-explanation {
+    margin-top: 20px;
+    color: #4B5563;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.waiting-modal-actions {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #E5E7EB;
+}
+
+.view-queue-button, .close-modal-button {
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-queue-button {
+    background-color: #3B82F6;
+    color: white;
+    border: none;
+    flex: 1;
+    margin-right: 10px;
+}
+
+.view-queue-button:hover {
+    background-color: #2563EB;
+}
+
+.close-modal-button {
+    background-color: white;
+    color: #4B5563;
+    border: 1px solid #D1D5DB;
+    flex: 1;
+}
+
+.close-modal-button:hover {
+    background-color: #F3F4F6;
+}
