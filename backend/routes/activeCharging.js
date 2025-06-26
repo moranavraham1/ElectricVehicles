@@ -4,6 +4,7 @@ const ActiveCharging = require('../models/ActiveCharging');
 const Booking = require('../models/Booking');
 const jwt = require('jsonwebtoken');
 const Station = require('../Station');
+const User = require('../User');
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
@@ -202,10 +203,10 @@ router.delete('/', authenticateToken, async (req, res) => {
             });
         }
 
-        // Instead of deleting the booking, mark it as completed
-        // This keeps the booking in the system for 10 minutes after scheduled time
+        // Find and delete the corresponding booking immediately
         try {
-            const booking = await Booking.findOne({
+            // First try to find by email in the user field
+            let booking = await Booking.findOne({
                 user: userEmail,
                 station: { $regex: new RegExp(`^${station.trim()}$`, 'i') },
                 date: date,
@@ -213,27 +214,32 @@ router.delete('/', authenticateToken, async (req, res) => {
                 status: 'approved'
             });
             
-            if (booking) {
-                booking.status = 'completed';
-                booking.endTime = new Date(); // Record when charging ended
-                await booking.save();
-                console.log('Booking marked as completed instead of being deleted');
+            if (!booking) {
+                // If booking not found with email, we need to get the user's email from User model
+                // since ActiveCharging stores userId (ObjectId) but Booking stores email
+                const userRecord = await User.findById(userId);
                 
-                // Schedule deletion of the booking after 10 minutes
-                setTimeout(async () => {
-                    try {
-                        await Booking.findByIdAndDelete(booking._id);
-                        console.log(`Booking ${booking._id} deleted after 10-minute retention period`);
-                    } catch (error) {
-                        console.error('Error deleting booking after timeout:', error);
-                    }
-                }, 10 * 60 * 1000); // 10 minutes in milliseconds
+                if (userRecord) {
+                    booking = await Booking.findOne({
+                        user: userRecord.email,
+                        station: { $regex: new RegExp(`^${station.trim()}$`, 'i') },
+                        date: date,
+                        time: time,
+                        status: 'approved'
+                    });
+                }
+            }
+            
+            if (booking) {
+                // Delete the booking immediately
+                await Booking.findByIdAndDelete(booking._id);
+                console.log(`Booking ${booking._id} deleted immediately after stopping charging`);
             } else {
-                console.log('No matching booking found to mark as completed');
+                console.log('No matching booking found to delete');
             }
         } catch (bookingError) {
-            console.error('Error updating booking status:', bookingError);
-            // Continue even if booking update fails
+            console.error('Error deleting booking:', bookingError);
+            // Continue even if booking delete fails
         }
 
         res.status(200).json({

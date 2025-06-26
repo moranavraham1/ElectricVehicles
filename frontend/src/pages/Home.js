@@ -942,11 +942,20 @@ const Home = () => {
     
     if (bookingCheck.status === 'ready_to_charge') {
       console.log("✅ User can start charging - navigating to charging page");
-      // User can start charging
+      
+      // Extract all necessary data from the booking for charging
+      const booking = bookingCheck.booking;
+      
+      // User can start charging - pass all required data to the charging page
       navigate('/charging', { 
         state: { 
           station,
-          booking: bookingCheck.booking
+          date: booking.date,
+          time: booking.time,
+          estimatedChargeTime: booking.estimatedChargeTime || 30,
+          currentBattery: booking.currentBattery || batteryLevel,
+          targetBattery: booking.targetBattery || 80,
+          booking: booking
         } 
       });
     } else {

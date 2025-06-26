@@ -13,14 +13,17 @@ const Charging = () => {
         date: incomingDate,
         time: incomingTime,
         estimatedChargeTime: incomingChargeTime,
-        currentBattery: incomingBatteryLevel
+        currentBattery: incomingBatteryLevel,
+        targetBattery: incomingTargetBattery,
+        booking
     } = location.state || {};
 
     // Debug logging
     useEffect(() => {
         console.log('Location state:', location.state);
         console.log('Incoming battery level:', incomingBatteryLevel);
-    }, [location.state, incomingBatteryLevel]);
+        console.log('Incoming booking:', booking);
+    }, [location.state, incomingBatteryLevel, booking]);
 
     const [isCharging, setIsCharging] = useState(false);
     const [error, setError] = useState('');
@@ -42,22 +45,36 @@ const Charging = () => {
         : 25; // Default to 25% if no valid value provided
     
     const [batteryLevel, setBatteryLevel] = useState(initialBatteryLevel);
+    const [targetBatteryLevel, setTargetBatteryLevel] = useState(incomingTargetBattery || 80);
     const [showSummary, setShowSummary] = useState(false);
     const [chargingSummary, setChargingSummary] = useState({
         duration: 0,
         initialBattery: 0,
         finalBattery: 0,
+        targetBattery: 0,
         batteryGained: 0
     });
 
     const [chargingStatus, setChargingStatus] = useState('');
-
 
     // Format date for display
     const formatDisplayDate = (dateStr) => {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date(dateStr).toLocaleDateString(undefined, options);
     };
+
+    // Auto-start charging when component mounts if we have all required data
+    useEffect(() => {
+        // Check if we have all the required data to start charging
+        if (station && date && time && !isCharging && !loading) {
+            console.log("🔌 Auto-starting charging with data:", { station, date, time });
+            // Small delay to ensure component is fully mounted
+            const timer = setTimeout(() => {
+                startCharging();
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [station, date, time, isCharging, loading]);
 
     useEffect(() => {
         let batteryRef;        const monitorBattery = async () => {
@@ -242,6 +259,7 @@ const Charging = () => {
                     duration: elapsedTime,
                     initialBattery: initialBatteryLevel,
                     finalBattery: batteryLevel,
+                    targetBattery: targetBatteryLevel,
                     batteryGained: batteryGained.toFixed(1)
                 });
                 
@@ -269,14 +287,14 @@ const Charging = () => {
                 // Use the initial battery level we calculated
                 const startLevel = initialBatteryLevel;
                 // Calculate rate based on estimated time or use default rate
-                const rate = estimatedChargeTime ? (100 - startLevel) / (estimatedChargeTime * 60) : 0.02;
-                const newLevel = Math.min(100, prevLevel + rate);
+                const rate = estimatedChargeTime ? (targetBatteryLevel - startLevel) / (estimatedChargeTime * 60) : 0.02;
+                const newLevel = Math.min(targetBatteryLevel, prevLevel + rate);
                 
-                // Auto-stop charging when battery reaches 100%
-                if (newLevel >= 100 && prevLevel < 100) {
+                // Auto-stop charging when battery reaches target level
+                if (newLevel >= targetBatteryLevel && prevLevel < targetBatteryLevel) {
                     setTimeout(() => {
-                        console.log("Battery reached 100%, stopping charging automatically");
-                        setChargingStatus('Battery full! Stopping charging automatically...');
+                        console.log(`Battery reached target level (${targetBatteryLevel}%), stopping charging automatically`);
+                        setChargingStatus(`Battery reached target level (${targetBatteryLevel}%)! Stopping charging automatically...`);
                         stopCharging();
                     }, 1000);
                 }
@@ -428,8 +446,45 @@ const Charging = () => {
                                 style={{ width: `${batteryLevel}%` }}>
                                 <span className="battery-percentage">{Math.round(batteryLevel)}%</span>
                             </div>
-                        </div>                        <div style={{ textAlign: 'center', marginTop: 'var(--spacing-sm)' }}>
+                            {targetBatteryLevel > batteryLevel && (
+                                <div 
+                                    className="target-battery-marker"
+                                    style={{ 
+                                        left: `${targetBatteryLevel}%`, 
+                                        position: 'absolute',
+                                        top: '50%',
+                                        transform: 'translateY(-50%)',
+                                        height: '120%',
+                                        width: '2px',
+                                        backgroundColor: '#4CAF50',
+                                        zIndex: 2
+                                    }}
+                                >
+                                    <span style={{
+                                        position: 'absolute',
+                                        top: '-20px',
+                                        left: '-12px',
+                                        backgroundColor: '#4CAF50',
+                                        color: 'white',
+                                        padding: '2px 5px',
+                                        borderRadius: '3px',
+                                        fontSize: '12px'
+                                    }}>
+                                        {targetBatteryLevel}%
+                                    </span>
+                                </div>
+                            )}
+                        </div>                        <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            marginTop: 'var(--spacing-sm)' 
+                        }}>
                             <span className="battery-status">{getBatteryStatus(batteryLevel)}</span>
+                            {targetBatteryLevel > batteryLevel && (
+                                <span style={{ fontSize: '14px', color: '#4CAF50' }}>
+                                    Target: {targetBatteryLevel}%
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>                {/* Charging Status / Timer */}
@@ -507,6 +562,16 @@ const Charging = () => {
                                 <span className="summary-value">{Math.round(chargingSummary.finalBattery)}%</span>
                             </div>
 
+                            <div className="summary-item">
+                                <FaBatteryFull className="summary-icon" />
+                                <span className="summary-label">Target Battery</span>
+                                <span className="summary-value">{chargingSummary.targetBattery}%</span>
+                            </div>
+                            
+                            <div className="summary-item">
+                                <span className="summary-label">Battery Gained</span>
+                                <span className="summary-value">+{chargingSummary.batteryGained}%</span>
+                            </div>
                             
                             <div className="summary-message">
                                 Your charging session has been completed successfully.
