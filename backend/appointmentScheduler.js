@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const nodemailer = require('nodemailer');
 const Booking = require('./models/Booking');
 const Station = require('./Station');
+const User = require('./User');
 require('dotenv').config();
 
 // Configure email transporter with better error handling
@@ -17,7 +18,7 @@ try {
         console.log('📧 [EMAIL NOT SENT - MISSING CREDENTIALS] Would send email:', {
           to: mailOptions.to,
           subject: mailOptions.subject,
-          text: mailOptions.text.substring(0, 100) + '...'
+          text: mailOptions.text ? mailOptions.text.substring(0, 100) + '...' : 'No text content'
         });
         return { response: 'Email logged to console (mock)' };
       }
@@ -52,7 +53,7 @@ try {
       console.log('📧 [EMAIL NOT SENT - ERROR] Would send email:', {
         to: mailOptions.to,
         subject: mailOptions.subject,
-        text: mailOptions.text.substring(0, 100) + '...'
+        text: mailOptions.text ? mailOptions.text.substring(0, 100) + '...' : 'No text content'
       });
       return { response: 'Email logged to console (fallback)' };
     }
@@ -65,6 +66,9 @@ const userRejectionHistory = new Map();
 // Create a Set to track bookings that are currently being processed
 // This will prevent race conditions where the same booking is processed by multiple functions simultaneously
 const processingBookings = new Set();
+
+// Create a Set to track bookings that have already been processed (to prevent duplicate processing)
+const processedBookings = new Set();
 
 // Helper function to update user rejection history
 const updateRejectionHistory = (userEmail, station, date, time) => {
@@ -144,136 +148,6 @@ const getAgingBonus = (userEmail, station) => {
   }
   
   return stationHistory.agingBonus;
-};
-
-// Helper function to send rejection email
-const sendRejectionEmail = async (userEmail, station, date, time, reason = 'Station capacity exceeded') => {
-  try {
-    // Update rejection history for this user
-    updateRejectionHistory(userEmail, station, date, time);
-
-    const rejectionMailOptions = {
-      from: process.env.EMAIL_USER,
-      to: userEmail,
-      subject: 'Booking Request Rejected',
-      html: `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Booking Rejected</title>
-        <style>
-          body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            background-color: #f7f7f7;
-            margin: 0;
-            padding: 0;
-          }
-          .container {
-            max-width: 600px;
-            margin: 20px auto;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-          }
-          .header {
-            background-color: #dc3545;
-            color: #fff;
-            padding: 25px 20px;
-            text-align: center;
-          }
-          .header h1 {
-            margin: 0;
-            font-size: 24px;
-            font-weight: 600;
-          }
-          .content {
-            background-color: #fff;
-            padding: 30px 25px;
-          }
-          .booking-details {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-            border-left: 4px solid #dc3545;
-          }
-          .detail-row {
-            margin-bottom: 10px;
-          }
-          .detail-label {
-            font-weight: 600;
-            color: #5c6b77;
-          }
-          .detail-value {
-            font-weight: 500;
-            color: #141b2d;
-          }
-          .reason-box {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 15px;
-            border-radius: 6px;
-            margin: 20px 0;
-            border: 1px solid #f5c6cb;
-          }
-          .footer {
-            background-color: #f8f9fa;
-            color: #6c757d;
-            text-align: center;
-            padding: 20px;
-            font-size: 14px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>Booking Request Rejected</h1>
-          </div>
-          <div class="content">
-            <p>Dear Customer,</p>
-            <p>We regret to inform you that your booking request could not be approved.</p>
-            
-            <div class="booking-details">
-              <h3>Booking Details</h3>
-              <div class="detail-row">
-                <span class="detail-label">Station:</span> <span class="detail-value">${station}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Date:</span> <span class="detail-value">${date}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label">Time:</span> <span class="detail-value">${time}</span>
-              </div>
-            </div>
-            
-            <div class="reason-box">
-              <strong>Reason:</strong> ${reason}
-            </div>
-            
-            <p><strong>What's Next?</strong></p>
-            <p>We encourage you to try booking at a different time or station. You can make a new booking request through our app.</p>
-            
-            <p>Thank you for choosing EVISION for your electric vehicle charging needs.</p>
-          </div>
-          <div class="footer">
-            <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
-          </div>
-        </div>
-      </body>
-      </html>
-      `
-    };
-
-    await transporter.sendMail(rejectionMailOptions);
-    console.log(`📧 Rejection email sent to ${userEmail}`);
-  } catch (error) {
-    console.error(`❌ Failed to send rejection email to ${userEmail}:`, error);
-  }
 };
 
 // Helper function to check if time is around the one-hour mark before appointment
@@ -373,6 +247,14 @@ const processAppointments = async () => {
     let missedBookings = 0;
 
     for (const booking of pendingBookings) {
+      const bookingId = booking._id.toString();
+      
+      // Skip if this booking has already been processed to prevent duplicate processing
+      if (processedBookings.has(bookingId)) {
+        console.log(`⚠️ Booking ${bookingId} has already been processed. Skipping.`);
+        continue;
+      }
+      
       const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
       const oneHourBefore = new Date(bookingDateTime);
       oneHourBefore.setHours(oneHourBefore.getHours() - 1);
@@ -394,9 +276,9 @@ const processAppointments = async () => {
             station: booking.station,
             date: booking.date,
             time: booking.time,
-            maxCapacity: 0, // Initialize to 0, will be updated with actual station capacity
+            maxCapacity: 0,
             bookings: [],
-            existingApprovedCount: 0 // Track already approved bookings
+            existingApprovedCount: 0
           };
         }
 
@@ -418,18 +300,22 @@ const processAppointments = async () => {
       
       try {
         // Get station details to determine actual capacity
-        const stationDetails = await Station.findOne({ "Station Name": group.station });
+        const stationDetails = await Station.findOne({ 
+          "Station Name": { $regex: new RegExp(`^${group.station.trim()}\\s*$`, 'i') }
+        });
+        
+        console.log(`🔍 Looking for station: "${group.station}" -> Found: ${stationDetails ? `"${stationDetails['Station Name']}" with capacity ${stationDetails['Duplicate Count']}` : 'NOT FOUND'}`);
         
         // Ensure we have a valid capacity number
         if (stationDetails && stationDetails["Duplicate Count"]) {
           // Convert to integer and ensure it's at least 1
           group.maxCapacity = Math.max(1, parseInt(stationDetails["Duplicate Count"]) || 1);
         } else {
-          group.maxCapacity = 2; // Default fallback if no capacity found
+          group.maxCapacity = 1; // Changed default to 1 instead of 2
           console.warn(`⚠️ No capacity found for ${group.station}, using default: ${group.maxCapacity}`);
         }
-          // IMPORTANT: Check for existing approved bookings for this time slot
-        // Use a more comprehensive query to catch all possible variations
+
+        // IMPORTANT: Check for existing approved bookings for this time slot
         const existingApproved = await Booking.countDocuments({
           $or: [
             { station: group.station },
@@ -450,28 +336,18 @@ const processAppointments = async () => {
           
           // Reject all pending bookings for this slot
           for (const booking of group.bookings) {
-            try {
-              const bookingToReject = await Booking.findById(booking._id);
-              if (!bookingToReject) {
-                console.log(`⚠️ Booking ${booking._id} not found, skipping`);
-                continue;
-              }
-              
-              // Skip bookings that are already processed
-              if (bookingToReject.status !== 'pending') {
-                console.log(`⚠️ Booking ${booking._id} has status ${bookingToReject.status}, not 'pending'. Skipping.`);
-                continue;
-              }
-              
-                bookingToReject.status = 'rejected';
-                bookingToReject.rejectionReason = `Station is at full capacity (${existingApproved}/${group.maxCapacity} charging points occupied)`;
-                await bookingToReject.save();
-                
-                // Send rejection email
-                await sendRejectionEmail(bookingToReject.user, bookingToReject.station, bookingToReject.date, bookingToReject.time, bookingToReject.rejectionReason);
-            } catch (error) {
-              console.error(`Error rejecting booking ${booking._id}:`, error);
-            }
+            const bookingId = booking._id.toString();
+            
+            // Skip if already processed
+            if (processedBookings.has(bookingId)) continue;
+            
+            // Mark as processed to prevent duplicates
+            processedBookings.add(bookingId);
+            
+            // Delete the booking and send rejection email
+            await sendRejectionEmail(booking.user, booking.station, booking.date, booking.time, 'Station already at full capacity');
+            await Booking.findByIdAndDelete(booking._id);
+            console.log(`🗑️ Deleted rejected booking ${booking._id} for user ${booking.user}`);
           }
           
           // Skip to next group
@@ -479,7 +355,7 @@ const processAppointments = async () => {
         }
       } catch (error) {
         console.error(`Error getting capacity for station ${group.station}:`, error);
-        group.maxCapacity = 2; // Fallback to default if error
+        group.maxCapacity = 1; // Fallback to default if error - changed to 1
         group.existingApprovedCount = 0;
       }
       
@@ -504,7 +380,7 @@ const processAppointments = async () => {
       console.log(`📊 Station capacity: ${group.maxCapacity}, Existing approved: ${group.existingApprovedCount}, Pending: ${group.bookings.length}`);
       
       // Calculate LLEP and aging metrics for each booking
-      const bookingsWithPriority = group.bookings.map(booking => {
+      const bookingsWithPriority = await Promise.all(group.bookings.map(async booking => {
         // Calculate waiting time (used for aging)
         const createdAt = new Date(booking.createdAt);
         const waitingHours = (now - createdAt) / (1000 * 60 * 60);
@@ -514,38 +390,46 @@ const processAppointments = async () => {
         const deadlineTime = 60; // Default deadline is 60 minutes
         const laxity = Math.max(1, deadlineTime - processingTime);
         
-        // Get additional aging bonus from rejection history for this specific station
-        const rejectionAgingBonus = getAgingBonus(booking.user, booking.station);
+        // Get user's laxity bonus from their profile
+        let userLaxityBonus = 0;
+        try {
+          const user = await User.findOne({ email: booking.user });
+          if (user) {
+            userLaxityBonus = user.laxity || 0;
+          }
+        } catch (error) {
+          console.error(`Error fetching user laxity for ${booking.user}:`, error);
+        }
 
         // LLEP algorithm prioritizes tasks with lowest laxity
         // Aging increases priority based on waiting time
         // Battery level gives priority to lower battery vehicles
-        // Added rejection history bonus to prevent starvation
+        // User laxity bonus gives priority to users who were previously rejected
 
         // The lower this score, the higher the priority
         const priorityScore = (
           laxity - // Base priority is laxity (lower is higher priority)
           (waitingHours * 2) - // Aging factor (longer wait reduces score)
           ((100 - (booking.currentBattery || 50)) / 10) - // Battery factor (lower battery reduces score)
-          rejectionAgingBonus // New: Station-specific rejection history bonus (reduces score)
+          userLaxityBonus // User's accumulated laxity bonus (reduces score)
         );
 
         return {
           ...booking.toObject(),
           laxity,
           waitingHours,
-          rejectionAgingBonus, // Add this to the object for logging
+          userLaxityBonus, // Add this to the object for logging
           priorityScore
         };
-      });
+      }));
 
       // Sort bookings by priority score (lower is better)
       bookingsWithPriority.sort((a, b) => a.priorityScore - b.priorityScore);
 
-      // Log the sorted bookings with rejection history bonus
+      // Log the sorted bookings with user laxity bonus
       console.log("📋 Prioritized bookings:");
       bookingsWithPriority.forEach((booking, idx) => {
-        console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Laxity: ${booking.laxity}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h, Rejection Bonus: ${booking.rejectionAgingBonus}`);
+        console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Laxity: ${booking.laxity}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h, User Laxity Bonus: ${booking.userLaxityBonus}`);
       });
 
       // Use station capacity - ensure it's a valid number
@@ -560,8 +444,18 @@ const processAppointments = async () => {
       const approvedBookings = bookingsWithPriority.slice(0, remainingSlots);
       const rejectedBookings = bookingsWithPriority.slice(remainingSlots);
       
-      console.log(`✅ Approving ${approvedBookings.length} bookings, ❌ Rejecting ${rejectedBookings.length} bookings`);      // Process approved bookings
+      console.log(`✅ Approving ${approvedBookings.length} bookings, ❌ Rejecting ${rejectedBookings.length} bookings`);
+
+      // Process approved bookings
       for (const b of approvedBookings) {
+        const bookingId = b._id.toString();
+        
+        // Skip if this booking has already been processed
+        if (processedBookings.has(bookingId)) {
+          console.log(`⚠️ Booking ${bookingId} has already been processed. Skipping.`);
+          continue;
+        }
+        
         const booking = await Booking.findById(b._id);
         if (!booking) {
           console.log(`⚠️ Booking ${b._id} not found, skipping`);
@@ -575,274 +469,60 @@ const processAppointments = async () => {
         }
         
         // Check if this booking is already being processed by another function
-        const bookingId = booking._id.toString();
         if (processingBookings.has(bookingId)) {
           console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
           continue;
         }
         
-        // Add this booking to the processing set
+        // Add this booking to the processing and processed sets
         processingBookings.add(bookingId);
+        processedBookings.add(bookingId);
         
         try {
-        // FINAL SAFETY CHECK: Re-verify capacity before approving each booking
-        const currentApprovedCount = await Booking.countDocuments({
-          $or: [
-            { station: booking.station },
-            { station: { $regex: new RegExp(`^${booking.station.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
-          ],
-          date: booking.date,
-          time: booking.time,
-          status: 'approved'
-        });
-        
-        if (currentApprovedCount >= stationCapacity) {
-          console.log(`🚫 SAFETY CHECK: Station ${booking.station} already at capacity, rejecting booking ${booking._id}`);
-          booking.status = 'rejected';
-          booking.rejectionReason = 'Station reached capacity during processing';
-          await booking.save();
+          // FINAL SAFETY CHECK: Re-verify capacity before approving each booking
+          const currentApprovedCount = await Booking.countDocuments({
+            $or: [
+              { station: booking.station },
+              { station: { $regex: new RegExp(`^${booking.station.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+            ],
+            date: booking.date,
+            time: booking.time,
+            status: 'approved'
+          });
           
-          // Send rejection email
-          await sendRejectionEmail(booking.user, booking.station, booking.date, booking.time, booking.rejectionReason);
-          continue;
-        }
+          if (currentApprovedCount >= stationCapacity) {
+            console.log(`🚫 Station capacity exceeded during processing. Rejecting booking ${booking._id}`);
+            
+            // Reject this booking instead of approving
+            await sendRejectionEmail(booking.user, booking.station, booking.date, booking.time, 'Station capacity exceeded during processing');
+            await Booking.findByIdAndDelete(booking._id);
+            continue;
+          }
 
-        booking.status = 'approved';
-        booking.approvalDate = new Date();
-        await booking.save();
+          booking.status = 'approved';
+          booking.approvalDate = new Date();
+          await booking.save();
 
-        console.log(`✅ Approved booking for ${booking.user} at ${booking.station} on ${booking.date} at ${booking.time}`);
+          // Reset user's laxity bonus when booking is approved
+          try {
+            await User.findOneAndUpdate(
+              { email: booking.user },
+              { laxity: 0 },
+              { new: true }
+            );
+            console.log(`🔄 Reset laxity bonus for user ${booking.user}`);
+          } catch (error) {
+            console.error(`❌ Failed to reset laxity for user ${booking.user}:`, error);
+          }
 
-        // Send approval email with HTML styling
-        const approvalMailOptions = {
-          from: process.env.EMAIL,
-          to: booking.user,
-          subject: 'Booking Approved',
-          html: `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Booking Approved</title>
-            <style>
-              body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                background-color: #f7f7f7;
-                margin: 0;
-                padding: 0;
-              }
-              .container {
-                max-width: 600px;
-                margin: 20px auto;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-              }
-              .header {
-                background-color: #141b2d;
-                color: #fff;
-                padding: 25px 20px;
-                text-align: center;
-                border-bottom: 4px solid #2d8cf0;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 24px;
-                font-weight: 600;
-              }
-              .content {
-                background-color: #f0f2f5;
-                padding: 30px 25px;
-              }
-              .greeting {
-                color: #141b2d;
-                font-size: 18px;
-                font-weight: 600;
-                margin-bottom: 25px;
-                text-align: center;
-              }
-              .message {
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 25px;
-                margin-bottom: 20px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                text-align: center;
-              }
-              .booking-details {
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 20px;
-                margin-top: 25px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-              }
-              .detail-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 12px;
-                padding-bottom: 12px;
-                border-bottom: 1px solid #eee;
-              }
-              .detail-row:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
-                padding-bottom: 0;
-              }
-              .detail-label {
-                font-weight: 600;
-                color: #5c6b77;
-              }
-              .detail-value {
-                font-weight: 500;
-                color: #141b2d;
-              }
-              .status-box {
-                margin: 25px 0;
-                text-align: center;
-              }
-              .status-approved {
-                display: inline-block;
-                background-color: #f6ffed;
-                color: #52c41a;
-                font-weight: 600;
-                padding: 10px 25px;
-                border-radius: 4px;
-                border: 1px solid #b7eb8f;
-              }
-              .instructions {
-                margin-top: 25px;
-                padding: 20px;
-                background-color: #e6f7ff;
-                border-radius: 8px;
-                border-left: 4px solid #1890ff;
-              }
-              .footer {
-                background-color: #141b2d;
-                color: #aaa;
-                text-align: center;
-                padding: 20px;
-                font-size: 14px;
-              }
-              .button {
-                display: inline-block;
-                background-color: #2d8cf0;
-                color: white;
-                text-decoration: none;
-                padding: 12px 30px;
-                border-radius: 4px;
-                font-weight: 600;
-                margin-top: 20px;
-                text-align: center;
-              }
-              
-              /* Mobile Responsive Styles */
-              @media screen and (max-width: 480px) {
-                .container {
-                  margin: 10px;
-                  width: auto;
-                }
-                .content {
-                  padding: 20px 15px;
-                }
-                .header {
-                  padding: 15px 10px;
-                }
-                .header h1 {
-                  font-size: 20px;
-                }
-                .message {
-                  padding: 15px;
-                }
-                .detail-row {
-                  flex-direction: column;
-                  align-items: flex-start;
-                }
-                .detail-label {
-                  margin-bottom: 5px;
-                }
-                .detail-value {
-                  width: 100%;
-                }
-                .booking-details, .instructions {
-                  padding: 15px;
-                }
-                .status-approved, .status-rejected {
-                  padding: 8px 15px;
-                  font-size: 14px;
-                }
-                .button {
-                  display: block;
-                  width: 100%;
-                  padding: 10px;
-                  text-align: center;
-                  box-sizing: border-box;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Booking Approved</h1>
-              </div>
-              <div class="content">
-                <div class="greeting">Welcome to EVISION</div>
-                
-                <div class="message">
-                  <p>Great news! Your charging station booking has been approved.</p>
-                  <p>You are now scheduled for charging according to the details below.</p>
-                </div>
-                
-                <div class="status-box">
-                  <span class="status-approved">Approved</span>
-                </div>
-                
-                <div class="booking-details">
-                  <div class="detail-row">
-                    <span class="detail-label">Charging Station:</span>
-                    <span class="detail-value">${booking.station}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Date:</span>
-                    <span class="detail-value">${booking.date}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Time:</span>
-                    <span class="detail-value">${booking.time}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Battery Level:</span>
-                    <span class="detail-value">${booking.currentBattery || 'N/A'}%</span>
-                  </div>
-                </div>
-                
-                <div class="instructions">
-                  <p><strong>Important Reminders:</strong></p>
-                  <ul>
-                    <li>Please arrive at the charging station on time</li>
-                    <li>Make sure to bring the appropriate cable for your vehicle</li>
-                    <li>Your booking ID is: ${booking._id}</li>
-                  </ul>
-                </div>
-              </div>
-              <div class="footer">
-                <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
-              </div>
-            </div>
-          </body>
-          </html>
-          `
-        };
+          console.log(`✅ Approved booking for ${booking.user} at ${booking.station} on ${booking.date} at ${booking.time}`);
 
-        console.log(`✅ Approving booking for ${booking.user}`);
-        try {
-          await transporter.sendMail(approvalMailOptions);
-          console.log(`📧 Approval email sent to ${booking.user}`);
-        } catch (error) {
-          console.error(`❌ Failed to send approval email to ${booking.user}:`, error);
+          // Send approval email
+          try {
+            await sendApprovalEmail(booking);
+            console.log(`📧 Approval email sent to ${booking.user}`);
+          } catch (error) {
+            console.error(`❌ Failed to send approval email to ${booking.user}:`, error);
           }
         } finally {
           // Always remove the booking from the processing set when done
@@ -852,6 +532,14 @@ const processAppointments = async () => {
       
       // Process rejected bookings - make sure we reject all bookings that exceed capacity
       for (const b of rejectedBookings) {
+        const bookingId = b._id.toString();
+        
+        // Skip if this booking has already been processed
+        if (processedBookings.has(bookingId)) {
+          console.log(`⚠️ Booking ${bookingId} has already been processed. Skipping.`);
+          continue;
+        }
+        
         const booking = await Booking.findById(b._id);
         if (!booking) {
           console.log(`⚠️ Booking ${b._id} not found, skipping`);
@@ -865,291 +553,24 @@ const processAppointments = async () => {
         }
         
         // Check if this booking is already being processed by another function
-        const bookingId = booking._id.toString();
         if (processingBookings.has(bookingId)) {
           console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
           continue;
         }
         
-        // Add this booking to the processing set
+        // Add this booking to the processing and processed sets
         processingBookings.add(bookingId);
+        processedBookings.add(bookingId);
         
         try {
-        // Find alternative options
-        const alternatives = await findNearbyAlternatives(booking);
-
-        console.log(`🗑️ Deleting rejected booking ${booking._id} for user ${booking.user}`);
-        // Instead of updating status, we'll delete the booking after sending the email
-        
-        console.log(`❌ Rejecting booking for ${booking.user} due to capacity limit exceeded`);
-
-        // Prepare alternative HTML content
-        let alternativesHTML = '';
-        if (alternatives.length > 0) {
-          alternativesHTML = `
-          <div style="margin-top: 20px; background-color: #fff8e6; border-radius: 8px; padding: 15px; border-left: 4px solid #faad14;">
-            <p><strong>Available Alternatives:</strong></p>
-            <ul style="padding-left: 20px;">
-          `;
-
-          alternatives.forEach((alt, index) => {
-            alternativesHTML += `
-              <li style="margin-bottom: 10px;">
-                <strong>Station:</strong> ${alt.station}<br>
-                <strong>Date:</strong> ${alt.date}<br>
-                <strong>Time:</strong> ${alt.time}
-              </li>
-            `;
-          });
-
-          alternativesHTML += `
-            </ul>
-          </div>
-          `;
-        } else {
-          alternativesHTML = `
-          <p style="margin-top: 15px; color: #888;">No alternative bookings found at this time.</p>
-          `;
-        }
-        
-        // Save booking details for the email before deleting
-        const bookingDetails = {
-          station: booking.station,
-          date: booking.date,
-          time: booking.time,
-          user: booking.user
-        };
-        
-        // Send rejection email with HTML styling
-        const rejectionMailOptions = {
-          from: process.env.EMAIL,
-          to: booking.user,
-          subject: 'Booking Rejected',
-          html: `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Booking Rejected</title>
-            <style>
-              body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                background-color: #f7f7f7;
-                margin: 0;
-                padding: 0;
-              }
-              .container {
-                max-width: 600px;
-                margin: 20px auto;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-              }
-              .header {
-                background-color: #141b2d;
-                color: #fff;
-                padding: 25px 20px;
-                text-align: center;
-                border-bottom: 4px solid #2d8cf0;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 24px;
-                font-weight: 600;
-              }
-              .content {
-                background-color: #f0f2f5;
-                padding: 30px 25px;
-              }
-              .greeting {
-                color: #141b2d;
-                font-size: 18px;
-                font-weight: 600;
-                margin-bottom: 25px;
-                text-align: center;
-              }
-              .message {
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 25px;
-                margin-bottom: 20px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                text-align: center;
-              }
-              .booking-details {
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 20px;
-                margin-top: 25px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-              }
-              .detail-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 12px;
-                padding-bottom: 12px;
-                border-bottom: 1px solid #eee;
-              }
-              .detail-row:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
-                padding-bottom: 0;
-              }
-              .detail-label {
-                font-weight: 600;
-                color: #5c6b77;
-              }
-              .detail-value {
-                font-weight: 500;
-                color: #141b2d;
-              }
-              .status-box {
-                margin: 25px 0;
-                text-align: center;
-              }
-              .status-rejected {
-                display: inline-block;
-                background-color: #fff1f0;
-                color: #f5222d;
-                font-weight: 600;
-                padding: 10px 25px;
-                border-radius: 4px;
-                border: 1px solid #ffa39e;
-              }
-              .instructions {
-                margin-top: 25px;
-                padding: 20px;
-                background-color: #e6f7ff;
-                border-radius: 8px;
-                border-left: 4px solid #1890ff;
-              }
-              .footer {
-                background-color: #141b2d;
-                color: #aaa;
-                text-align: center;
-                padding: 20px;
-                font-size: 14px;
-              }
-              .button {
-                display: inline-block;
-                background-color: #2d8cf0;
-                color: white;
-                text-decoration: none;
-                padding: 12px 30px;
-                border-radius: 4px;
-                font-weight: 600;
-                margin-top: 20px;
-                text-align: center;
-              }
-              
-              /* Mobile Responsive Styles */
-              @media screen and (max-width: 480px) {
-                .container {
-                  margin: 10px;
-                  width: auto;
-                }
-                .content {
-                  padding: 20px 15px;
-                }
-                .header {
-                  padding: 15px 10px;
-                }
-                .header h1 {
-                  font-size: 20px;
-                }
-                .message {
-                  padding: 15px;
-                }
-                .detail-row {
-                  flex-direction: column;
-                  align-items: flex-start;
-                }
-                .detail-label {
-                  margin-bottom: 5px;
-                }
-                .detail-value {
-                  width: 100%;
-                }
-                .booking-details, .instructions {
-                  padding: 15px;
-                }
-                .status-rejected {
-                  padding: 8px 15px;
-                  font-size: 14px;
-                }
-                .button {
-                  display: block;
-                  width: 100%;
-                  padding: 10px;
-                  text-align: center;
-                  box-sizing: border-box;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Booking Rejected</h1>
-              </div>
-              <div class="content">
-                <div class="greeting">Welcome to EVISION</div>
-                
-                <div class="message">
-                  <p>We regret to inform you that your charging station booking could not be approved due to full capacity.</p>
-                  <p>This may be due to high demand during the requested time or the LLEP scheduling algorithm prioritizing other vehicles.</p>
-                </div>
-                
-                <div class="status-box">
-                  <span class="status-rejected">Rejected</span>
-                </div>
-                
-                <div class="booking-details">
-                  <div class="detail-row">
-                    <span class="detail-label">Charging Station:</span>
-                    <span class="detail-value">${booking.station}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Date:</span>
-                    <span class="detail-value">${booking.date}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Time:</span>
-                    <span class="detail-value">${booking.time}</span>
-                  </div>
-                </div>
-                
-                <div class="instructions">
-                  <p><strong>What's Next?</strong></p>
-                  <p>We would be happy if you tried booking at a different time or station. Your priority will be automatically increased for your next booking attempt.</p>
-                  ${alternativesHTML}
-                </div>
-              </div>
-              <div class="footer">
-                <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
-              </div>
-            </div>
-          </body>
-          </html>
-          `
-        };
-
-        console.log(`❌ Rejecting booking for ${bookingDetails.user}`);
-        try {
-          await transporter.sendMail(rejectionMailOptions);
-          console.log(`📧 Rejection email sent to ${bookingDetails.user}`);
+          console.log(`❌ Rejecting booking for ${booking.user} due to capacity limit exceeded`);
           
-          // Delete the booking after sending the email
+          // Send rejection email before deleting
+          await sendRejectionEmail(booking.user, booking.station, booking.date, booking.time, 'Station capacity exceeded');
+          
+          // Delete the booking
           await Booking.findByIdAndDelete(booking._id);
-          console.log(`🗑️ Deleted booking ${booking._id}`);
-        } catch (error) {
-          console.error(`❌ Failed to send rejection email to ${bookingDetails.user}:`, error);
-          // Delete the booking even if email fails
-          await Booking.findByIdAndDelete(booking._id);
-          }
+          console.log(`🗑️ Deleted rejected booking ${booking._id} for user ${booking.user}`);
         } finally {
           // Always remove the booking from the processing set when done
           processingBookings.delete(bookingId);
@@ -1161,27 +582,297 @@ const processAppointments = async () => {
   }
 };
 
+// Helper function to send approval email
+const sendApprovalEmail = async (booking) => {
+  const approvalMailOptions = {
+    from: process.env.EMAIL_USER,
+    to: booking.user,
+    subject: 'Booking Approved',
+    html: `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Booking Approved</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          line-height: 1.6;
+          color: #333;
+          background-color: #f7f7f7;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          max-width: 600px;
+          margin: 20px auto;
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+          background-color: #141b2d;
+          color: #fff;
+          padding: 25px 20px;
+          text-align: center;
+        }
+        .header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 600;
+        }
+        .content {
+          background-color: #fff;
+          padding: 30px 25px;
+        }
+        .booking-details {
+          background-color: #f8f9fa;
+          border-radius: 8px;
+          padding: 20px;
+          margin: 20px 0;
+        }
+        .detail-row {
+          margin-bottom: 12px;
+          display: flex;
+          justify-content: space-between;
+        }
+        .detail-label {
+          font-weight: 600;
+          color: #5c6b77;
+        }
+        .detail-value {
+          font-weight: 500;
+          color: #141b2d;
+        }
+        .footer {
+          background-color: #f8f9fa;
+          color: #6c757d;
+          text-align: center;
+          padding: 20px;
+          font-size: 14px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Booking Approved</h1>
+        </div>
+        <div class="content">
+          <p>Great news! Your charging station booking has been approved.</p>
+          
+          <div class="booking-details">
+            <div class="detail-row">
+              <span class="detail-label">Station:</span>
+              <span class="detail-value">${booking.station}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Date:</span>
+              <span class="detail-value">${booking.date}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Time:</span>
+              <span class="detail-value">${booking.time}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">Battery Level:</span>
+              <span class="detail-value">${booking.currentBattery || 'N/A'}%</span>
+            </div>
+          </div>
+          
+          <p>Please arrive at the charging station on time.</p>
+        </div>
+        <div class="footer">
+          <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+    `
+  };
+
+  await transporter.sendMail(approvalMailOptions);
+};
+
+// Helper function to send rejection email
+const sendRejectionEmail = async (userEmail, station, date, time, reason = 'Station capacity exceeded') => {
+  try {
+    // Add laxity bonus to user when their booking is rejected
+    const laxityBonus = 5; // Bonus points for rejection
+    try {
+      const user = await User.findOneAndUpdate(
+        { email: userEmail },
+        { $inc: { laxity: laxityBonus } },
+        { new: true, upsert: false }
+      );
+      
+      if (user) {
+        console.log(`📈 Added ${laxityBonus} laxity points to user ${userEmail}. Total laxity: ${user.laxity}`);
+      } else {
+        console.warn(`⚠️ User ${userEmail} not found when trying to update laxity`);
+      }
+    } catch (error) {
+      console.error(`❌ Failed to update laxity for user ${userEmail}:`, error);
+    }
+
+    const rejectionMailOptions = {
+      from: process.env.EMAIL_USER,
+      to: userEmail,
+      subject: 'Booking Request Rejected',
+      html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Booking Rejected</title>
+        <style>
+          body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f7f7f7;
+            margin: 0;
+            padding: 0;
+          }
+          .container {
+            max-width: 600px;
+            margin: 20px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            background-color: #dc3545;
+            color: #fff;
+            padding: 25px 20px;
+            text-align: center;
+          }
+          .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+          }
+          .content {
+            background-color: #fff;
+            padding: 30px 25px;
+          }
+          .booking-details {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+            border-left: 4px solid #dc3545;
+          }
+          .detail-row {
+            margin-bottom: 10px;
+          }
+          .detail-label {
+            font-weight: 600;
+            color: #5c6b77;
+          }
+          .detail-value {
+            font-weight: 500;
+            color: #141b2d;
+          }
+          .reason-box {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+          }
+          .priority-box {
+            background-color: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 20px 0;
+            border: 1px solid #c3e6cb;
+          }
+          .footer {
+            background-color: #f8f9fa;
+            color: #6c757d;
+            text-align: center;
+            padding: 20px;
+            font-size: 14px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Booking Request Rejected</h1>
+          </div>
+          <div class="content">
+            <p>Dear Customer,</p>
+            <p>We regret to inform you that your booking request could not be approved.</p>
+            
+            <div class="booking-details">
+              <h3>Booking Details</h3>
+              <div class="detail-row">
+                <span class="detail-label">Station:</span> <span class="detail-value">${station}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Date:</span> <span class="detail-value">${date}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Time:</span> <span class="detail-value">${time}</span>
+              </div>
+            </div>
+            
+            <div class="reason-box">
+              <strong>Reason:</strong> ${reason}
+            </div>
+            
+            <div class="priority-box">
+              <strong>Good News:</strong> We've increased your priority for future bookings! You now have better chances of getting approved for your next booking request.
+            </div>
+            
+            <p><strong>What's Next?</strong></p>
+            <p>We encourage you to try booking at a different time or station. Your priority has been increased for future bookings.</p>
+            
+            <p>Thank you for choosing EVISION for your electric vehicle charging needs.</p>
+          </div>
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+      `
+    };
+
+    await transporter.sendMail(rejectionMailOptions);
+    console.log(`📧 Rejection email sent to ${userEmail}`);
+  } catch (error) {
+    console.error(`❌ Failed to send rejection email to ${userEmail}:`, error);
+  }
+};
+
 // Handle late registrations (after approval process has run)
 const handleLateRegistration = async (booking) => {
   try {
     // Check if this booking is already being processed by another function
     const bookingId = booking._id.toString();
-    if (processingBookings.has(bookingId)) {
-      console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
+    if (processingBookings.has(bookingId) || processedBookings.has(bookingId)) {
+      console.log(`🔒 Booking ${bookingId} is already being processed or has been processed. Skipping.`);
       return booking;
     }
     
     // Add this booking to the processing set
     processingBookings.add(bookingId);
+    processedBookings.add(bookingId);
     
-  try {
-    const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
-    const now = new Date();
-    const oneHourBefore = new Date(bookingDateTime);
-    oneHourBefore.setHours(oneHourBefore.getHours() - 1);
+    try {
+      const bookingDateTime = new Date(`${booking.date}T${booking.time}:00`);
+      const now = new Date();
+      const oneHourBefore = new Date(bookingDateTime);
+      oneHourBefore.setHours(oneHourBefore.getHours() - 1);
 
       // First check if this booking has already been processed
-      // This prevents a booking from being both rejected and approved
       const existingBooking = await Booking.findById(booking._id);
       if (!existingBooking) {
         console.log(`⚠️ Booking ${booking._id} not found. Skipping.`);
@@ -1206,422 +897,72 @@ const handleLateRegistration = async (booking) => {
         return existingBooking;
       }
 
-    // Check if registration is after the 1-hour cutoff
+      // Check if registration is after the 1-hour cutoff
       if (now > oneHourBefore && now < bookingDateTime) {
         // Get station details to determine actual capacity
-        let stationCapacity = 2; // Default fallback
+        let stationCapacity = 1; // Default fallback changed to 1
         try {
-          const stationDetails = await Station.findOne({ "Station Name": existingBooking.station });
+          const stationDetails = await Station.findOne({ 
+            "Station Name": { $regex: new RegExp(`^${existingBooking.station.trim()}\\s*$`, 'i') }
+          });
           if (stationDetails && stationDetails["Duplicate Count"]) {
-            stationCapacity = parseInt(stationDetails["Duplicate Count"]);
-            console.log(`📊 Station ${existingBooking.station} has capacity: ${stationCapacity}`);
+            stationCapacity = Math.max(1, parseInt(stationDetails["Duplicate Count"]) || 1);
           } else {
-            console.log(`⚠️ Could not find capacity for station ${existingBooking.station}, using default: ${stationCapacity}`);
+            console.warn(`⚠️ No capacity found for ${existingBooking.station}, using default: ${stationCapacity}`);
           }
         } catch (error) {
           console.error(`Error getting capacity for station ${existingBooking.station}:`, error);
         }
 
-      // Get approved bookings count
-      const approvedCount = await Booking.countDocuments({
+        // Get approved bookings count
+        const approvedCount = await Booking.countDocuments({
           station: existingBooking.station,
           date: existingBooking.date,
           time: existingBooking.time,
-        status: 'approved'
-      });
+          status: 'approved'
+        });
 
         console.log(`📊 Station ${existingBooking.station} has ${approvedCount}/${stationCapacity} approved bookings`);
 
         // Check if there's still capacity available
         if (approvedCount < stationCapacity) {
-        // Automatically approve if there's still room
+          // Automatically approve if there's still room
           existingBooking.status = 'approved';
           existingBooking.approvalDate = new Date();
 
           // Save the booking with the new status
           await existingBooking.save();
+          
+          // Reset user's laxity bonus when booking is approved
+          try {
+            await User.findOneAndUpdate(
+              { email: existingBooking.user },
+              { laxity: 0 },
+              { new: true }
+            );
+            console.log(`🔄 Reset laxity bonus for late approved user ${existingBooking.user}`);
+          } catch (error) {
+            console.error(`❌ Failed to reset laxity for user ${existingBooking.user}:`, error);
+          }
+          
           console.log(`✅ Late booking approved for ${existingBooking.user} at ${existingBooking.station} on ${existingBooking.date} at ${existingBooking.time}`);
 
-        // Send approval email with HTML styling
-        const approvalMailOptions = {
-          from: process.env.EMAIL,
-            to: existingBooking.user,
-          subject: 'Late Registration Approved',
-          html: `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Late Registration Approved</title>
-            <style>
-              body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                background-color: #f7f7f7;
-                margin: 0;
-                padding: 0;
-              }
-              .container {
-                max-width: 600px;
-                margin: 20px auto;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-              }
-              .header {
-                background-color: #141b2d;
-                color: #fff;
-                padding: 25px 20px;
-                text-align: center;
-                border-bottom: 4px solid #2d8cf0;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 24px;
-                font-weight: 600;
-              }
-              .content {
-                background-color: #f0f2f5;
-                padding: 30px 25px;
-              }
-              .greeting {
-                color: #141b2d;
-                font-size: 18px;
-                font-weight: 600;
-                margin-bottom: 25px;
-                text-align: center;
-              }
-              .message {
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 25px;
-                margin-bottom: 20px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                text-align: center;
-              }
-              .booking-details {
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 20px;
-                margin-top: 25px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-              }
-              .detail-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 12px;
-                padding-bottom: 12px;
-                border-bottom: 1px solid #eee;
-              }
-              .detail-row:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
-                padding-bottom: 0;
-              }
-              .detail-label {
-                font-weight: 600;
-                color: #5c6b77;
-              }
-              .detail-value {
-                font-weight: 500;
-                color: #141b2d;
-              }
-              .status-box {
-                margin: 25px 0;
-                text-align: center;
-              }
-              .status-approved {
-                display: inline-block;
-                background-color: #f6ffed;
-                color: #52c41a;
-                font-weight: 600;
-                padding: 10px 25px;
-                border-radius: 4px;
-                border: 1px solid #b7eb8f;
-              }
-              .footer {
-                background-color: #141b2d;
-                color: #aaa;
-                text-align: center;
-                padding: 20px;
-                font-size: 14px;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Late Registration Approved</h1>
-              </div>
-              <div class="content">
-                <div class="greeting">Welcome to EVISION</div>
-                
-                <div class="message">
-                  <p>Good news! Even though your registration was made after the booking deadline, we were able to approve your booking as we still have capacity available.</p>
-                </div>
-                
-                <div class="status-box">
-                  <span class="status-approved">Approved</span>
-                </div>
-                
-                <div class="booking-details">
-                  <div class="detail-row">
-                    <span class="detail-label">Charging Station:</span>
-                      <span class="detail-value">${existingBooking.station}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Date:</span>
-                      <span class="detail-value">${existingBooking.date}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Time:</span>
-                      <span class="detail-value">${existingBooking.time}</span>
-                  </div>
-                </div>
-              </div>
-              <div class="footer">
-                <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
-              </div>
-            </div>
-          </body>
-          </html>
-          `
-        };
-
-        transporter.sendMail(approvalMailOptions);
-      } else {
-        // Mark as late registration
-          existingBooking.status = 'late_registration';
-          existingBooking.rejectionReason = 'Late registration - station full';
-
-          // Save the booking with the new status
-          await existingBooking.save();
-          console.log(`❌ Late booking rejected for ${existingBooking.user} at ${existingBooking.station} on ${existingBooking.date} at ${existingBooking.time} - station full (${approvedCount}/${stationCapacity})`);
-
-        // Send late registration email with HTML styling
-        const lateMailOptions = {
-          from: process.env.EMAIL,
-            to: existingBooking.user,
-          subject: 'Late Registration - Station Full',
-          html: `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Late Registration - Station Full</title>
-            <style>
-              body {
-                font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                line-height: 1.6;
-                color: #333;
-                background-color: #f7f7f7;
-                margin: 0;
-                padding: 0;
-              }
-              .container {
-                max-width: 600px;
-                margin: 20px auto;
-                border-radius: 8px;
-                overflow: hidden;
-                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-              }
-              .header {
-                background-color: #141b2d;
-                color: #fff;
-                padding: 25px 20px;
-                text-align: center;
-                border-bottom: 4px solid #2d8cf0;
-              }
-              .header h1 {
-                margin: 0;
-                font-size: 24px;
-                font-weight: 600;
-              }
-              .content {
-                background-color: #f0f2f5;
-                padding: 30px 25px;
-              }
-              .greeting {
-                color: #141b2d;
-                font-size: 18px;
-                font-weight: 600;
-                margin-bottom: 25px;
-                text-align: center;
-              }
-              .message {
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 25px;
-                margin-bottom: 20px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                text-align: center;
-              }
-              .booking-details {
-                background-color: #fff;
-                border-radius: 8px;
-                padding: 20px;
-                margin-top: 25px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-              }
-              .detail-row {
-                display: flex;
-                justify-content: space-between;
-                margin-bottom: 12px;
-                padding-bottom: 12px;
-                border-bottom: 1px solid #eee;
-              }
-              .detail-row:last-child {
-                border-bottom: none;
-                margin-bottom: 0;
-                padding-bottom: 0;
-              }
-              .detail-label {
-                font-weight: 600;
-                color: #5c6b77;
-              }
-              .detail-value {
-                font-weight: 500;
-                color: #141b2d;
-              }
-              .status-box {
-                margin: 25px 0;
-                text-align: center;
-              }
-              .status-rejected {
-                display: inline-block;
-                background-color: #fff1f0;
-                color: #f5222d;
-                font-weight: 600;
-                padding: 10px 25px;
-                border-radius: 4px;
-                border: 1px solid #ffa39e;
-              }
-              .instructions {
-                margin-top: 25px;
-                padding: 20px;
-                background-color: #e6f7ff;
-                border-radius: 8px;
-                border-left: 4px solid #1890ff;
-              }
-              .footer {
-                background-color: #141b2d;
-                color: #aaa;
-                text-align: center;
-                padding: 20px;
-                font-size: 14px;
-              }
-              .button {
-                display: inline-block;
-                background-color: #2d8cf0;
-                color: white;
-                text-decoration: none;
-                padding: 12px 30px;
-                border-radius: 4px;
-                font-weight: 600;
-                margin-top: 20px;
-                text-align: center;
-              }
-              
-              /* Mobile Responsive Styles */
-              @media screen and (max-width: 480px) {
-                .container {
-                  margin: 10px;
-                  width: auto;
-                }
-                .content {
-                  padding: 20px 15px;
-                }
-                .header {
-                  padding: 15px 10px;
-                }
-                .header h1 {
-                  font-size: 20px;
-                }
-                .message {
-                  padding: 15px;
-                }
-                .detail-row {
-                  flex-direction: column;
-                  align-items: flex-start;
-                }
-                .detail-label {
-                  margin-bottom: 5px;
-                }
-                .detail-value {
-                  width: 100%;
-                }
-                .booking-details, .instructions {
-                  padding: 15px;
-                }
-                .status-rejected {
-                  padding: 8px 15px;
-                  font-size: 14px;
-                }
-                .button {
-                  display: block;
-                  width: 100%;
-                  padding: 10px;
-                  text-align: center;
-                  box-sizing: border-box;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <div class="header">
-                <h1>Late Registration - Station Full</h1>
-              </div>
-              <div class="content">
-                <div class="greeting">Welcome to EVISION</div>
-                
-                <div class="message">
-                  <p>We regret to inform you that your booking could not be processed as it was made after the booking deadline and all stations are currently at full capacity.</p>
-                </div>
-                
-                <div class="status-box">
-                  <span class="status-rejected">Rejected</span>
-                </div>
-                
-                <div class="booking-details">
-                  <div class="detail-row">
-                    <span class="detail-label">Charging Station:</span>
-                      <span class="detail-value">${existingBooking.station}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Date:</span>
-                      <span class="detail-value">${existingBooking.date}</span>
-                  </div>
-                  <div class="detail-row">
-                    <span class="detail-label">Time:</span>
-                      <span class="detail-value">${existingBooking.time}</span>
-                  </div>
-                </div>
-                
-                <div class="instructions">
-                  <p><strong>What's Next?</strong></p>
-                  <p>We would be happy if you tried booking at a different time or station. Your priority will be automatically increased for your next booking attempt.</p>
-                  ${alternativesHTML}
-                </div>
-              </div>
-              <div class="footer">
-                <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
-              </div>
-            </div>
-          </body>
-          </html>
-          `
-        };
-
-        transporter.sendMail(lateMailOptions);
+          // Send approval email
+          try {
+            await sendApprovalEmail(existingBooking);
+            console.log(`📧 Late approval email sent to ${existingBooking.user}`);
+          } catch (error) {
+            console.error(`❌ Failed to send late approval email to ${existingBooking.user}:`, error);
+          }
+        } else {
+          // No capacity, reject
+          console.log(`❌ Late booking rejected for ${existingBooking.user} - no capacity`);
+          
+          await sendRejectionEmail(existingBooking.user, existingBooking.station, existingBooking.date, existingBooking.time, 'No capacity available for late registration');
+          await Booking.findByIdAndDelete(existingBooking._id);
         }
       } else {
         // Registration is NOT within the 1-hour window, keep it as pending
-        existingBooking.status = 'pending';
-        await existingBooking.save();
         console.log(`📅 Booking for ${existingBooking.station} on ${existingBooking.date} at ${existingBooking.time} kept as pending (not within 1-hour window)`);
       }
 
@@ -1687,18 +1028,18 @@ const manualCheckAllPendingAppointments = async () => {
         const time = key.split('|')[2];
         
         // Get station details to determine actual capacity
-        let capacity = 2; // Default fallback
+        let capacity = 1; // Default fallback changed to 1
         try {
-          const stationDetails = await Station.findOne({ "Station Name": stationName });
+          const stationDetails = await Station.findOne({ 
+            "Station Name": { $regex: new RegExp(`^${stationName.trim()}\\s*$`, 'i') }
+          });
           if (stationDetails && stationDetails["Duplicate Count"]) {
-            capacity = parseInt(stationDetails["Duplicate Count"]);
-            console.log(`📊 Station ${stationName} has capacity: ${capacity}`);
+            capacity = Math.max(1, parseInt(stationDetails["Duplicate Count"]) || 1);
           } else {
-            console.log(`⚠️ Could not find capacity for station ${stationName}, using default: ${capacity}`);
+            console.warn(`⚠️ No capacity found for ${stationName}, using default: ${capacity}`);
           }
         } catch (error) {
           console.error(`Error getting capacity for station ${stationName}:`, error);
-          console.log(`⚠️ Using default capacity of ${capacity}`);
         }
         
         // IMPORTANT: Check for existing approved bookings
@@ -1716,28 +1057,39 @@ const manualCheckAllPendingAppointments = async () => {
         console.log(`🔢 Station has ${remainingSlots} remaining slots out of ${capacity} total capacity`);
 
         // Sort bookings by priority - using a more comprehensive priority calculation
-        const bookingsWithPriority = bookings.map(booking => {
+        const bookingsWithPriority = await Promise.all(bookings.map(async booking => {
           const createdAt = new Date(booking.createdAt);
           const now = new Date();
           const waitingHours = (now - createdAt) / (1000 * 60 * 60);
+          const processingTime = booking.estimatedChargeTime || 30;
+          const deadlineTime = 60;
+          const laxity = Math.max(1, deadlineTime - processingTime);
           
-          // Get additional aging bonus from rejection history for this specific station
-          const rejectionAgingBonus = getAgingBonus(booking.user, booking.station);
-          
-          // Calculate a priority score similar to the main process function
-          // Lower score = higher priority
-          const priorityScore = 50 - 
-            (waitingHours * 2) - // Aging factor
-            ((100 - (booking.currentBattery || 50)) / 10) - // Battery factor
-            rejectionAgingBonus; // Station-specific rejection history bonus
-            
+          // Get user's laxity bonus from their profile
+          let userLaxityBonus = 0;
+          try {
+            const user = await User.findOne({ email: booking.user });
+            if (user) {
+              userLaxityBonus = user.laxity || 0;
+            }
+          } catch (error) {
+            console.error(`Error fetching user laxity for ${booking.user}:`, error);
+          }
+
+          const priorityScore = (
+            laxity -
+            (waitingHours * 2) -
+            ((100 - (booking.currentBattery || 50)) / 10) -
+            userLaxityBonus
+          );
+
           return {
             ...booking.toObject(),
+            priorityScore,
             waitingHours,
-            rejectionAgingBonus,
-            priorityScore
+            userLaxityBonus
           };
-        });
+        }));
         
         // Sort by priority score (lower is better)
         bookingsWithPriority.sort((a, b) => a.priorityScore - b.priorityScore);
@@ -1745,7 +1097,7 @@ const manualCheckAllPendingAppointments = async () => {
         // Log the sorted bookings
         console.log("📋 Prioritized bookings:");
         bookingsWithPriority.forEach((booking, idx) => {
-          console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h, Rejection Bonus: ${booking.rejectionAgingBonus}`);
+          console.log(`${idx + 1}. User: ${booking.user}, Priority: ${booking.priorityScore.toFixed(2)}, Battery: ${booking.currentBattery || 'N/A'}, Waiting: ${booking.waitingHours.toFixed(1)}h, User Laxity Bonus: ${booking.userLaxityBonus}`);
         });
 
         // Take top N bookings based on remaining capacity
@@ -1756,127 +1108,56 @@ const manualCheckAllPendingAppointments = async () => {
 
         // Update status and send emails for approved bookings
         for (const booking of approved) {
-          const updatedBooking = await Booking.findById(booking._id);
-          if (!updatedBooking) {
-            console.log(`⚠️ Booking ${booking._id} not found, skipping`);
-            continue;
-          }
+          const bookingId = booking._id.toString();
           
-          // Skip bookings that are already processed
-          if (updatedBooking.status !== 'pending') {
-            console.log(`⚠️ Booking ${booking._id} has status ${updatedBooking.status}, not 'pending'. Skipping.`);
-            continue;
-          }
+          // Skip if already processed
+          if (processedBookings.has(bookingId)) continue;
+          processedBookings.add(bookingId);
           
-          // Check if this booking is already being processed by another function
-          const bookingId = updatedBooking._id.toString();
-          if (processingBookings.has(bookingId)) {
-            console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
-            continue;
-          }
-          
-          // Add this booking to the processing set
-          processingBookings.add(bookingId);
-          
-          try {
-          updatedBooking.status = 'approved';
-          updatedBooking.approvalDate = now;
-          await updatedBooking.save();
-
-          try {
-            await transporter.sendMail({
-              from: process.env.EMAIL,
-              to: updatedBooking.user,
-              subject: 'Booking Approved (Manual Check)',
-              text: `Dear User,
-              
-Your booking has been approved through our manual check system.
-
-Station: ${updatedBooking.station}
-Date: ${updatedBooking.date}
-Time: ${updatedBooking.time}
-
-Please arrive on time for your appointment.
-
-Best regards,
-Your Service Team`
-            });
-            console.log(`📧 Approval email sent to ${updatedBooking.user} (manual check)`);
-          } catch (error) {
-            console.error(`Failed to send approval email to ${updatedBooking.user}:`, error);
+          const dbBooking = await Booking.findById(booking._id);
+          if (dbBooking && dbBooking.status === 'pending') {
+            dbBooking.status = 'approved';
+            dbBooking.approvalDate = new Date();
+            await dbBooking.save();
+            
+            // Reset user's laxity bonus when booking is approved
+            try {
+              await User.findOneAndUpdate(
+                { email: dbBooking.user },
+                { laxity: 0 },
+                { new: true }
+              );
+              console.log(`🔄 Reset laxity bonus for manually approved user ${dbBooking.user}`);
+            } catch (error) {
+              console.error(`❌ Failed to reset laxity for user ${dbBooking.user}:`, error);
             }
-          } finally {
-            // Always remove the booking from the processing set when done
-            processingBookings.delete(bookingId);
+            
+            try {
+              await sendApprovalEmail(dbBooking);
+              console.log(`📧 Manual approval email sent to ${dbBooking.user}`);
+            } catch (error) {
+              console.error(`❌ Failed to send manual approval email to ${dbBooking.user}:`, error);
+            }
           }
         }
 
         // Update status and send emails for rejected bookings
         for (const booking of rejected) {
-          const updatedBooking = await Booking.findById(booking._id);
-          if (!updatedBooking) {
-            console.log(`⚠️ Booking ${booking._id} not found, skipping`);
-            continue;
-          }
+          const bookingId = booking._id.toString();
           
-          // Skip bookings that are already processed
-          if (updatedBooking.status !== 'pending') {
-            console.log(`⚠️ Booking ${booking._id} has status ${updatedBooking.status}, not 'pending'. Skipping.`);
-            continue;
-          }
+          // Skip if already processed
+          if (processedBookings.has(bookingId)) continue;
+          processedBookings.add(bookingId);
           
-          // Check if this booking is already being processed by another function
-          const bookingId = updatedBooking._id.toString();
-          if (processingBookings.has(bookingId)) {
-            console.log(`🔒 Booking ${bookingId} is already being processed by another function. Skipping.`);
-            continue;
-          }
-          
-          // Add this booking to the processing set
-          processingBookings.add(bookingId);
-          
-          try {
-          console.log(`🗑️ Deleting rejected booking ${updatedBooking._id} for user ${updatedBooking.user}`);
-          // Save booking details for the email
-          const bookingDetails = {
-            station: updatedBooking.station,
-            date: updatedBooking.date,
-            time: updatedBooking.time,
-            user: updatedBooking.user
-          };
-
-          try {
-            await transporter.sendMail({
-              from: process.env.EMAIL,
-              to: bookingDetails.user,
-              subject: 'Booking Rejected (Manual Check)',
-              text: `Dear User,
-              
-We regret to inform you that your booking could not be approved due to full capacity.
-
-Station: ${bookingDetails.station}
-Date: ${bookingDetails.date}
-Time: ${bookingDetails.time}
-
-You can book a new appointment through our app.
-
-Best regards,
-Your Service Team`
-            });
-                          console.log(`📧 Rejection email sent to ${bookingDetails.user} (manual check)`);
-              
-              // Delete the booking after sending the email
-              await Booking.findByIdAndDelete(updatedBooking._id);
-              console.log(`🗑️ Deleted booking ${updatedBooking._id}`);
-          } catch (error) {
-            console.error(`❌ Failed to send rejection email to ${bookingDetails.user}:`, error);
-            
-            // Delete the booking even if email fails
-            await Booking.findByIdAndDelete(updatedBooking._id);
+          const dbBooking = await Booking.findById(booking._id);
+          if (dbBooking && dbBooking.status === 'pending') {
+            try {
+              await sendRejectionEmail(dbBooking.user, dbBooking.station, dbBooking.date, dbBooking.time, 'Station capacity exceeded - manual check');
+              await Booking.findByIdAndDelete(dbBooking._id);
+              console.log(`🗑️ Manual rejection: Deleted booking ${dbBooking._id} for user ${dbBooking.user}`);
+            } catch (error) {
+              console.error(`❌ Failed to process manual rejection for ${dbBooking.user}:`, error);
             }
-          } finally {
-            // Always remove the booking from the processing set when done
-            processingBookings.delete(bookingId);
           }
         }
       }
@@ -1894,45 +1175,6 @@ Your Service Team`
       processed: 0
     };
   }
-};
-
-// Schedule the job to run every minute
-const startScheduler = () => {
-  // Run the cron job every 10 seconds for more precise timing
-  cron.schedule('*/10 * * * * *', () => {
-    const now = new Date();
-    console.log(`Running booking approval process at ${now.toISOString()}`);
-    
-    // First check and fix any overbooking issues
-    fixOverbookedSlots().then(() => {
-      // Then process pending appointments
-      processAppointments().then(() => {
-        // Clean up rejected bookings
-        cleanupRejectedBookings();
-      });
-    });
-  });
-
-  // Also run manual check at startup to catch any missed bookings
-  fixOverbookedSlots().then(() => {
-    manualCheckAllPendingAppointments().then(() => {
-      cleanupRejectedBookings();
-    });
-  });
-
-  // Run manual check every hour as a backup
-  cron.schedule('0 * * * *', () => {
-    console.log('Running hourly manual check');
-    
-    // First check and fix any overbooking issues
-    fixOverbookedSlots().then(() => {
-      manualCheckAllPendingAppointments().then(() => {
-        cleanupRejectedBookings();
-      });
-    });
-  });
-
-  console.log('Booking scheduler started - running every 10 seconds to ensure accurate scheduling!');
 };
 
 // Add automatic overbooking check and fix function
@@ -1966,11 +1208,13 @@ const fixOverbookedSlots = async () => {
       const [stationName, date, time] = key.split('|');
       
       // Get station capacity
-      let capacity = 2; // Default fallback
+      let capacity = 1; // Default fallback changed to 1
       try {
-        const stationDetails = await Station.findOne({ "Station Name": stationName });
+        const stationDetails = await Station.findOne({ 
+          "Station Name": { $regex: new RegExp(`^${stationName.trim()}\\s*$`, 'i') }
+        });
         if (stationDetails && stationDetails["Duplicate Count"]) {
-          capacity = parseInt(stationDetails["Duplicate Count"]);
+          capacity = Math.max(1, parseInt(stationDetails["Duplicate Count"]) || 1);
         }
       } catch (error) {
         console.error(`Error getting capacity for station ${stationName}:`, error);
@@ -1986,16 +1230,20 @@ const fixOverbookedSlots = async () => {
           const createdAt = new Date(booking.createdAt);
           const now = new Date();
           const waitingHours = (now - createdAt) / (1000 * 60 * 60);
-          
-          // Calculate a priority score similar to the main process function
-          // Lower score = higher priority
-          const priorityScore = 50 - 
-            (waitingHours * 2) - // Aging factor
-            ((100 - (booking.currentBattery || 50)) / 10); // Battery factor
-            
+          const processingTime = booking.estimatedChargeTime || 30;
+          const deadlineTime = 60;
+          const laxity = Math.max(1, deadlineTime - processingTime);
+          const rejectionAgingBonus = getAgingBonus(booking.user, booking.station);
+
+          const priorityScore = (
+            laxity -
+            (waitingHours * 2) -
+            ((100 - (booking.currentBattery || 50)) / 10) -
+            rejectionAgingBonus
+          );
+
           return {
             ...booking.toObject(),
-            waitingHours,
             priorityScore
           };
         });
@@ -2009,229 +1257,12 @@ const fixOverbookedSlots = async () => {
         
         // Reject the extra bookings
         for (const b of rejectedBookings) {
-          const booking = await Booking.findById(b._id);
-          if (!booking) continue;
-          
-          console.log(`🔄 Changing booking ${booking._id} for ${booking.user} from approved to rejected`);
-          
-          console.log(`🗑️ Deleting rejected booking ${booking._id} for user ${booking.user}`);
-          // Save booking details for the email
-          const bookingDetails = {
-            station: booking.station,
-            date: booking.date,
-            time: booking.time,
-            user: booking.user
-          };
-          
-          // Find alternative options for the user
-          const alternatives = await findNearbyAlternatives(booking);
-          
-          // Prepare alternative HTML content
-          let alternativesHTML = '';
-          if (alternatives.length > 0) {
-            alternativesHTML = `
-            <div style="margin-top: 20px; background-color: #fff8e6; border-radius: 8px; padding: 15px; border-left: 4px solid #faad14;">
-              <p><strong>Available Alternatives:</strong></p>
-              <ul style="padding-left: 20px;">
-            `;
-
-            alternatives.forEach((alt, index) => {
-              alternativesHTML += `
-                <li style="margin-bottom: 10px;">
-                  <strong>Station:</strong> ${alt.station}<br>
-                  <strong>Date:</strong> ${alt.date}<br>
-                  <strong>Time:</strong> ${alt.time}
-                </li>
-              `;
-            });
-
-            alternativesHTML += `
-              </ul>
-            </div>
-            `;
-          } else {
-            alternativesHTML = `
-            <p style="margin-top: 15px; color: #888;">No alternative bookings found at this time.</p>
-            `;
-          }
-          
-          // Send email notification with better styling
           try {
-            await transporter.sendMail({
-              from: process.env.EMAIL,
-              to: bookingDetails.user,
-              subject: 'Important: Booking Status Changed',
-              html: `
-              <!DOCTYPE html>
-              <html lang="en">
-              <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Booking Status Changed</title>
-                <style>
-                  body {
-                    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-                    line-height: 1.6;
-                    color: #333;
-                    background-color: #f7f7f7;
-                    margin: 0;
-                    padding: 0;
-                  }
-                  .container {
-                    max-width: 600px;
-                    margin: 20px auto;
-                    border-radius: 8px;
-                    overflow: hidden;
-                    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-                  }
-                  .header {
-                    background-color: #141b2d;
-                    color: #fff;
-                    padding: 25px 20px;
-                    text-align: center;
-                    border-bottom: 4px solid #2d8cf0;
-                  }
-                  .header h1 {
-                    margin: 0;
-                    font-size: 24px;
-                    font-weight: 600;
-                  }
-                  .content {
-                    background-color: #f0f2f5;
-                    padding: 30px 25px;
-                  }
-                  .greeting {
-                    color: #141b2d;
-                    font-size: 18px;
-                    font-weight: 600;
-                    margin-bottom: 25px;
-                    text-align: center;
-                  }
-                  .message {
-                    background-color: #fff;
-                    border-radius: 8px;
-                    padding: 25px;
-                    margin-bottom: 20px;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                    text-align: center;
-                  }
-                  .alert {
-                    background-color: #fff1f0;
-                    border-left: 4px solid #f5222d;
-                    padding: 15px;
-                    margin: 20px 0;
-                    border-radius: 4px;
-                  }
-                  .booking-details {
-                    background-color: #fff;
-                    border-radius: 8px;
-                    padding: 20px;
-                    margin-top: 25px;
-                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-                  }
-                  .detail-row {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 12px;
-                    padding-bottom: 12px;
-                    border-bottom: 1px solid #eee;
-                  }
-                  .detail-row:last-child {
-                    border-bottom: none;
-                    margin-bottom: 0;
-                    padding-bottom: 0;
-                  }
-                  .detail-label {
-                    font-weight: 600;
-                    color: #5c6b77;
-                  }
-                  .detail-value {
-                    font-weight: 500;
-                    color: #141b2d;
-                  }
-                  .status-box {
-                    margin: 25px 0;
-                    text-align: center;
-                  }
-                  .status-rejected {
-                    display: inline-block;
-                    background-color: #fff1f0;
-                    color: #f5222d;
-                    font-weight: 600;
-                    padding: 10px 25px;
-                    border-radius: 4px;
-                    border: 1px solid #ffa39e;
-                  }
-                  .footer {
-                    background-color: #141b2d;
-                    color: #aaa;
-                    text-align: center;
-                    padding: 20px;
-                    font-size: 14px;
-                  }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <div class="header">
-                    <h1>Booking Status Changed</h1>
-                  </div>
-                  <div class="content">
-                    <div class="greeting">Important Notice</div>
-                    
-                    <div class="alert">
-                      Your previously approved booking has been changed due to station capacity limitations.
-                    </div>
-                    
-                    <div class="message">
-                      <p>We regret to inform you that your previously approved booking has been changed to rejected status.</p>
-                      <p>This was necessary due to a system issue that allowed overbooking of charging stations.</p>
-                    </div>
-                    
-                    <div class="status-box">
-                      <span class="status-rejected">Booking Cancelled</span>
-                    </div>
-                    
-                    <div class="booking-details">
-                      <div class="detail-row">
-                        <span class="detail-label">Charging Station:</span>
-                        <span class="detail-value">${bookingDetails.station}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">Date:</span>
-                        <span class="detail-value">${bookingDetails.date}</span>
-                      </div>
-                      <div class="detail-row">
-                        <span class="detail-label">Time:</span>
-                        <span class="detail-value">${bookingDetails.time}</span>
-                      </div>
-                    </div>
-                    
-                    <div class="message" style="margin-top: 20px;">
-                      <p><strong>What's Next?</strong></p>
-                      <p>We encourage you to book a different time slot or station. Here are some alternatives that might work for you:</p>
-                      ${alternativesHTML}
-                      <p>We sincerely apologize for any inconvenience this may cause.</p>
-                    </div>
-                  </div>
-                  <div class="footer">
-                    <p>© ${new Date().getFullYear()} EVISION - Electric Vehicle Charging Solutions. All rights reserved.</p>
-                  </div>
-                </div>
-              </body>
-              </html>
-              `
-            });
-            console.log(`📧 Status change email sent to ${bookingDetails.user}`);
-            
-            // Delete the booking after sending the email
-            await Booking.findByIdAndDelete(booking._id);
-            console.log(`🗑️ Deleted booking ${booking._id}`);
+            await sendRejectionEmail(b.user, b.station, b.date, b.time, 'Overbooking correction - station capacity exceeded');
+            await Booking.findByIdAndDelete(b._id);
+            console.log(`🗑️ Overbooking fix: Deleted booking ${b._id} for user ${b.user}`);
           } catch (error) {
-            console.error(`❌ Failed to send email to ${bookingDetails.user}:`, error);
-            
-            // Delete the booking even if email fails
-            await Booking.findByIdAndDelete(booking._id);
+            console.error(`❌ Failed to fix overbooking for booking ${b._id}:`, error);
           }
         }
       }
@@ -2271,26 +1302,27 @@ const cleanupRejectedBookings = async () => {
   }
 };
 
-// Add a function to get rejection history for a user (for API access)
-const getUserRejectionHistory = (userEmail, station = null) => {
-  if (!userRejectionHistory.has(userEmail)) {
-    return {
-      rejectionCount: 0,
-      stations: {}
-    };
+// Add a function to clean up processed bookings to prevent memory leaks
+const cleanupProcessedBookings = () => {
+  // Clear all processed bookings periodically to prevent memory leaks
+  // This is safe because once a booking is processed (approved/rejected), it won't be pending anymore
+  const cleanedCount = processedBookings.size;
+  processedBookings.clear();
+  
+  if (cleanedCount > 0) {
+    console.log(`🧹 Cleaned up ${cleanedCount} processed booking IDs from memory`);
   }
-  
-  const history = userRejectionHistory.get(userEmail);
-  
-  // If station is specified, return only that station's history
-  if (station && history.stations[station]) {
-    return {
-      stationName: station,
-      ...history.stations[station]
-    };
+};
+
+// Add a function to get user laxity for API access
+const getUserLaxity = async (userEmail) => {
+  try {
+    const user = await User.findOne({ email: userEmail });
+    return user ? user.laxity || 0 : 0;
+  } catch (error) {
+    console.error(`Error fetching user laxity for ${userEmail}:`, error);
+    return 0;
   }
-  
-  return history;
 };
 
 // Add a function to clean up old rejection history entries
@@ -2334,8 +1366,50 @@ const cleanupOldRejectionHistory = () => {
   }
 };
 
-// Run rejection history cleanup daily
-cron.schedule('0 0 * * *', cleanupOldRejectionHistory);
+// Schedule the job to run every minute
+const startScheduler = () => {
+  // Run the cron job every 30 seconds for better timing precision
+  cron.schedule('*/30 * * * * *', () => {
+    const now = new Date();
+    console.log(`Running booking approval process at ${now.toISOString()}`);
+    
+    // First check and fix any overbooking issues
+    fixOverbookedSlots().then(() => {
+      // Then process pending appointments
+      processAppointments().then(() => {
+        // Clean up rejected bookings
+        cleanupRejectedBookings();
+      });
+    });
+  });
+
+  // Also run manual check at startup to catch any missed bookings
+  fixOverbookedSlots().then(() => {
+    manualCheckAllPendingAppointments().then(() => {
+      cleanupRejectedBookings();
+    });
+  });
+
+  // Run manual check every hour as a backup
+  cron.schedule('0 * * * *', () => {
+    console.log('Running hourly manual check');
+    
+    // First check and fix any overbooking issues
+    fixOverbookedSlots().then(() => {
+      manualCheckAllPendingAppointments().then(() => {
+        cleanupRejectedBookings();
+      });
+    });
+  });
+
+  // Clean up processed bookings every hour
+  cron.schedule('0 * * * *', cleanupProcessedBookings);
+  
+  // Run rejection history cleanup daily
+  cron.schedule('0 0 * * *', cleanupOldRejectionHistory);
+
+  console.log('Booking scheduler started - running every 30 seconds to ensure accurate scheduling!');
+};
 
 module.exports = {
   startScheduler,
@@ -2343,5 +1417,6 @@ module.exports = {
   manualCheckAllPendingAppointments,
   fixOverbookedSlots,
   cleanupRejectedBookings,
-  getUserRejectionHistory
+  processAppointments,
+  getUserLaxity
 };
