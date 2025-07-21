@@ -334,6 +334,43 @@ const processAppointments = async () => {
         if (existingApproved >= group.maxCapacity) {
           console.log(`🚫 Station ${group.station} is already at full capacity with ${existingApproved} approved bookings. Rejecting all ${group.bookings.length} pending bookings.`);
           
+          // CRITICAL FIX: Double-check the actual approved bookings to make sure there's no error in the count
+          try {
+            console.log(`🔍 Double-checking approved bookings for ${group.station} on ${group.date} at ${group.time}...`);
+            
+            const approvedBookings = await Booking.find({
+              $or: [
+                { station: group.station },
+                { station: { $regex: new RegExp(`^${group.station.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+              ],
+              date: group.date,
+              time: group.time,
+              status: 'approved'
+            });
+            
+            // Log details of each approved booking to help with debugging
+            console.log(`📋 Found ${approvedBookings.length} approved bookings:`);
+            approvedBookings.forEach((b, i) => {
+              console.log(`   ${i+1}. User: ${b.user}, ID: ${b._id}, Created: ${b.createdAt}`);
+            });
+            
+            // If the actual count is different from what we thought, update our count
+            if (approvedBookings.length !== existingApproved) {
+              console.log(`⚠️ Approved booking count mismatch! Expected ${existingApproved}, found ${approvedBookings.length}`);
+              group.existingApprovedCount = approvedBookings.length;
+              existingApproved = approvedBookings.length;
+            }
+            
+            // Only reject if we're still at or over capacity
+            if (existingApproved < group.maxCapacity) {
+              console.log(`✅ After verification, station has capacity! (${existingApproved}/${group.maxCapacity}). Not rejecting bookings.`);
+              continue;
+            }
+          } catch (error) {
+            console.error(`❌ Error double-checking approved bookings: ${error}`);
+            // Continue with the original count if there was an error
+          }
+          
           // Reject all pending bookings for this slot
           for (const booking of group.bookings) {
             const bookingId = booking._id.toString();
@@ -490,7 +527,21 @@ const processAppointments = async () => {
             status: 'approved'
           });
           
-          if (currentApprovedCount >= stationCapacity) {
+          // Add a small delay to ensure any concurrent operations are completed
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Double-check capacity right before approval
+          const finalApprovedCount = await Booking.countDocuments({
+            $or: [
+              { station: booking.station },
+              { station: { $regex: new RegExp(`^${booking.station.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+            ],
+            date: booking.date,
+            time: booking.time,
+            status: 'approved'
+          });
+          
+          if (finalApprovedCount >= stationCapacity) {
             console.log(`🚫 Station capacity exceeded during processing. Rejecting booking ${booking._id}`);
             
             // Reject this booking instead of approving
@@ -914,6 +965,9 @@ const handleLateRegistration = async (booking) => {
           console.error(`Error getting capacity for station ${existingBooking.station}:`, error);
         }
 
+        // Add a small delay to ensure any concurrent operations are completed
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         // Get approved bookings count
         const approvedCount = await Booking.countDocuments({
           station: existingBooking.station,
@@ -922,10 +976,82 @@ const handleLateRegistration = async (booking) => {
           status: 'approved'
         });
 
-        console.log(`📊 Station ${existingBooking.station} has ${approvedCount}/${stationCapacity} approved bookings`);
+        // CRITICAL FIX: Double-check the actual approved bookings to make sure there's no error in the count
+        let verifiedApprovedCount = approvedCount;
+        try {
+          console.log(`🔍 Double-checking approved bookings for ${existingBooking.station} on ${existingBooking.date} at ${existingBooking.time}...`);
+          
+          const approvedBookings = await Booking.find({
+            $or: [
+              { station: existingBooking.station },
+              { station: { $regex: new RegExp(`^${existingBooking.station.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+            ],
+            date: existingBooking.date,
+            time: existingBooking.time,
+            status: 'approved'
+          });
+          
+          // Log details of each approved booking to help with debugging
+          console.log(`📋 Found ${approvedBookings.length} approved bookings:`);
+          approvedBookings.forEach((b, i) => {
+            console.log(`   ${i+1}. User: ${b.user}, ID: ${b._id}, Created: ${b.createdAt}`);
+          });
+          
+          // If the actual count is different from what we thought, update our count
+          if (approvedBookings.length !== approvedCount) {
+            console.log(`⚠️ Approved booking count mismatch! Expected ${approvedCount}, found ${approvedBookings.length}`);
+            verifiedApprovedCount = approvedBookings.length;
+          }
+        } catch (error) {
+          console.error(`❌ Error double-checking approved bookings: ${error}`);
+          // Continue with the original count if there was an error
+        }
+
+        console.log(`📊 Station ${existingBooking.station} has ${verifiedApprovedCount}/${stationCapacity} approved bookings`);
 
         // Check if there's still capacity available
-        if (approvedCount < stationCapacity) {
+        if (verifiedApprovedCount < stationCapacity) {
+          // CRITICAL FIX: Double-check capacity right before approval to prevent race conditions
+          // Re-query to get the latest count in case another booking was just approved
+          const latestApprovedCount = await Booking.countDocuments({
+            station: existingBooking.station,
+            date: existingBooking.date,
+            time: existingBooking.time,
+            status: 'approved'
+          });
+          
+          // Verify this count as well
+          let verifiedLatestCount = latestApprovedCount;
+          try {
+            const latestBookings = await Booking.find({
+              $or: [
+                { station: existingBooking.station },
+                { station: { $regex: new RegExp(`^${existingBooking.station.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+              ],
+              date: existingBooking.date,
+              time: existingBooking.time,
+              status: 'approved'
+            });
+            
+            if (latestBookings.length !== latestApprovedCount) {
+              console.log(`⚠️ Latest count mismatch! Expected ${latestApprovedCount}, found ${latestBookings.length}`);
+              verifiedLatestCount = latestBookings.length;
+            }
+          } catch (error) {
+            console.error(`❌ Error verifying latest count: ${error}`);
+          }
+          
+          if (verifiedLatestCount >= stationCapacity) {
+            console.log(`⚠️ Capacity filled during processing! Station ${existingBooking.station} now has ${verifiedLatestCount}/${stationCapacity} approved bookings`);
+            
+            // No capacity, reject
+            console.log(`❌ Late booking rejected for ${existingBooking.user} - capacity filled during processing`);
+            
+            await sendRejectionEmail(existingBooking.user, existingBooking.station, existingBooking.date, existingBooking.time, 'No capacity available - filled during processing');
+            await Booking.findByIdAndDelete(existingBooking._id);
+            return null;
+          }
+          
           // Automatically approve if there's still room
           existingBooking.status = 'approved';
           existingBooking.approvalDate = new Date();
@@ -960,6 +1086,7 @@ const handleLateRegistration = async (booking) => {
           
           await sendRejectionEmail(existingBooking.user, existingBooking.station, existingBooking.date, existingBooking.time, 'No capacity available for late registration');
           await Booking.findByIdAndDelete(existingBooking._id);
+          return null;
         }
       } else {
         // Registration is NOT within the 1-hour window, keep it as pending
@@ -1051,6 +1178,36 @@ const manualCheckAllPendingAppointments = async () => {
         });
         
         console.log(`📊 Found ${existingApproved} existing approved bookings for this time slot`);
+        
+        // CRITICAL FIX: Double-check the actual approved bookings to make sure there's no error in the count
+        try {
+          console.log(`🔍 Double-checking approved bookings for ${stationName} on ${date} at ${time}...`);
+          
+          const approvedBookings = await Booking.find({
+            $or: [
+              { station: stationName },
+              { station: { $regex: new RegExp(`^${stationName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') } }
+            ],
+            date: date,
+            time: time,
+            status: 'approved'
+          });
+          
+          // Log details of each approved booking to help with debugging
+          console.log(`📋 Found ${approvedBookings.length} approved bookings:`);
+          approvedBookings.forEach((b, i) => {
+            console.log(`   ${i+1}. User: ${b.user}, ID: ${b._id}, Created: ${b.createdAt}`);
+          });
+          
+          // If the actual count is different from what we thought, update our count
+          if (approvedBookings.length !== existingApproved) {
+            console.log(`⚠️ Approved booking count mismatch! Expected ${existingApproved}, found ${approvedBookings.length}`);
+            existingApproved = approvedBookings.length;
+          }
+        } catch (error) {
+          console.error(`❌ Error double-checking approved bookings: ${error}`);
+          // Continue with the original count if there was an error
+        }
         
         // Calculate remaining slots
         const remainingSlots = Math.max(0, capacity - existingApproved);
@@ -1258,11 +1415,43 @@ const fixOverbookedSlots = async () => {
         // Reject the extra bookings
         for (const b of rejectedBookings) {
           try {
-            await sendRejectionEmail(b.user, b.station, b.date, b.time, 'Overbooking correction - station capacity exceeded');
-            await Booking.findByIdAndDelete(b._id);
-            console.log(`🗑️ Overbooking fix: Deleted booking ${b._id} for user ${b.user}`);
+            const bookingId = b._id.toString();
+            
+            // CRITICAL FIX: Skip if this booking is already being processed by another function
+            if (processingBookings.has(bookingId)) {
+              console.log(`🔒 Booking ${bookingId} is currently being processed by another function. Skipping overbooking fix.`);
+              continue;
+            }
+            
+            // Add to processing set to prevent race conditions
+            processingBookings.add(bookingId);
+            
+            try {
+              // Verify the booking still exists and is still approved before deleting
+              const currentBooking = await Booking.findById(bookingId);
+              if (!currentBooking) {
+                console.log(`⚠️ Booking ${bookingId} no longer exists. Skipping.`);
+                continue;
+              }
+              
+              if (currentBooking.status !== 'approved') {
+                console.log(`⚠️ Booking ${bookingId} is no longer approved (status: ${currentBooking.status}). Skipping.`);
+                continue;
+              }
+              
+              await sendRejectionEmail(b.user, b.station, b.date, b.time, 'Overbooking correction - station capacity exceeded');
+              await Booking.findByIdAndDelete(b._id);
+              console.log(`🗑️ Overbooking fix: Deleted booking ${b._id} for user ${b.user}`);
+            } finally {
+              // Always remove from processing set when done
+              processingBookings.delete(bookingId);
+            }
           } catch (error) {
             console.error(`❌ Failed to fix overbooking for booking ${b._id}:`, error);
+            // Make sure to remove from processing set even if error occurs
+            if (b && b._id) {
+              processingBookings.delete(b._id.toString());
+            }
           }
         }
       }
