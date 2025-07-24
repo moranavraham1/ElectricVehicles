@@ -47,6 +47,16 @@ function Landing() {
     });
     const [showScrollButton, setShowScrollButton] = useState(false);
 
+    // Check for existing authentication and redirect to home if logged in
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        
+        if (token && loggedInUser) {
+            navigate('/home');
+        }
+    }, [navigate]);
+
     useEffect(() => {
         const checkScroll = () => {
             if (window.pageYOffset > 300) {
@@ -152,7 +162,7 @@ function Landing() {
                     <div className="benefits-container">
                         <div className="benefit-item">
                             <h4>Nationwide Coverage</h4>
-                            <p>Over 2,000 charging stations across the country</p>
+                            <p>Over 1300+ charging stations across the country</p>
                         </div>
                         <div className="benefit-item">
                             <h4>Real-time Notifications</h4>

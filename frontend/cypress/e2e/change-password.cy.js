@@ -32,6 +32,8 @@ describe('Login and Password Change Test', () => {
     
     // Submit the password change form
     cy.contains('Change Password').click();
+
+    cy.wait(8000);
     
     // Verify success message appears (checking for existence instead of visibility)
     cy.contains('Password changed successfully! A confirmation email has been sent').should('exist');

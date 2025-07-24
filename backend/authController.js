@@ -49,7 +49,8 @@ const sendEmailAsync = async (options) => {
 
 // Registration Endpoint
 exports.register = async (req, res) => {
-  const { firstName, lastName, email, phone, password } = req.body;
+  let { firstName, lastName, email, phone, password } = req.body;
+  email = email.toLowerCase();
 
   try {
     if (!/^\d{10}$/.test(phone)) {
@@ -144,7 +145,8 @@ exports.registerStatus = (req, res) => {
 
 // Login Endpoint
 exports.login = async (req, res) => {
-  const { email, password } = req.body;
+  let { email, password } = req.body;
+  email = email.toLowerCase();
 
   try {
     // Check if the user exists
@@ -156,7 +158,7 @@ exports.login = async (req, res) => {
     // Check if the password matches
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password.' });
+      return res.status(400).json({ message: 'Invalid password.' });
     }
 
     // Check if the user's email is verified
@@ -185,7 +187,8 @@ exports.logout = (req, res) => {
 
 // Resend Verification Code Endpoint
 exports.resendVerificationCode = async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
+  email = email.toLowerCase();
 
   try {
     const user = await User.findOne({ email });
@@ -237,7 +240,8 @@ exports.resendVerificationCode = async (req, res) => {
 const crypto = require('crypto'); // נשתמש ליצירת טוקן ייחודי
 
 exports.forgotPassword = async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
+  email = email.toLowerCase();
 
   try {
     const user = await User.findOne({ email });
@@ -693,7 +697,8 @@ exports.resetPassword = async (req, res) => {
 
 // Check Email Existence
 exports.checkEmail = async (req, res) => {
-  const { email } = req.body;
+  let { email } = req.body;
+  email = email.toLowerCase();
 
   try {
     const existingUser = await User.findOne({ email });
@@ -705,6 +710,168 @@ exports.checkEmail = async (req, res) => {
   } catch (error) {
     console.error('Error checking email existence:', error);
     res.status(500).json({ message: 'Error checking email existence' });
+  }
+};
+
+// Delete Account endpoint
+exports.deleteAccount = async (req, res) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const { confirmText } = req.body;
+
+  try {
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
+    }
+
+    if (confirmText !== 'delete') {
+      return res.status(400).json({ message: 'Incorrect confirmation text. Please type "delete" to confirm.' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const userEmail = user.email;
+    console.log(`Deleting account for user: ${userEmail} (ID: ${user._id})`);
+
+    // Get Station and Booking models
+    const Station = require('./Station');
+    const Booking = require('./models/Booking');
+
+    // 1. Remove user's email from likedBy arrays in all stations
+    const stationUpdateResult = await Station.updateMany(
+      { likedBy: userEmail },
+      { $pull: { likedBy: userEmail } }
+    );
+    console.log(`Removed user email from ${stationUpdateResult.modifiedCount} stations' likedBy arrays`);
+
+    // 2. Delete all bookings associated with this user
+    const bookingDeleteResult = await Booking.deleteMany({ user: userEmail });
+    console.log(`Deleted ${bookingDeleteResult.deletedCount} bookings for this user`);
+
+    // 3. Delete the user
+    await User.findByIdAndDelete(user._id);
+    console.log(`User account with ID ${user._id} has been deleted`);
+
+    // Send email notification about account deletion
+    await transporter.sendMail({
+      ...mailOptions,
+      to: userEmail,
+      subject: 'Account Deletion Confirmation',
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">Account Successfully Deleted</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Hello ${user.firstName},</p>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Your account has been successfully deleted from our system, along with all your personal information and booking history.</p>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">We're sorry to see you go. If you change your mind, you're always welcome to create a new account.</p>
+            <p style="margin-bottom: 0; color: #475569; font-size: 14px;">If you did not request this deletion, please contact our support team immediately.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    res.status(200).json({
+      message: 'Account successfully deleted',
+      details: {
+        bookingsDeleted: bookingDeleteResult.deletedCount,
+        stationsUpdated: stationUpdateResult.modifiedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ message: 'Error deleting account.' });
+  }
+};
+
+// Delete Account endpoint
+exports.deleteAccount = async (req, res) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  const { confirmText } = req.body;
+
+  try {
+    if (!token) {
+      return res.status(401).json({ message: 'Access denied. No token provided.' });
+    }
+
+    if (confirmText !== 'delete') {
+      return res.status(400).json({ message: 'Incorrect confirmation text. Please type "delete" to confirm.' });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    const userEmail = user.email;
+    console.log(`Deleting account for user: ${userEmail} (ID: ${user._id})`);
+
+    // Get Station and Booking models
+    const Station = require('./Station');
+    const Booking = require('./models/Booking');
+
+    // 1. Remove user's email from likedBy arrays in all stations
+    const stationUpdateResult = await Station.updateMany(
+      { likedBy: userEmail },
+      { $pull: { likedBy: userEmail } }
+    );
+    console.log(`Removed user email from ${stationUpdateResult.modifiedCount} stations' likedBy arrays`);
+
+    // 2. Delete all bookings associated with this user
+    const bookingDeleteResult = await Booking.deleteMany({ user: userEmail });
+    console.log(`Deleted ${bookingDeleteResult.deletedCount} bookings for this user`);
+
+    // 3. Delete the user
+    await User.findByIdAndDelete(user._id);
+    console.log(`User account with ID ${user._id} has been deleted`);
+
+    // Send email notification about account deletion
+    await transporter.sendMail({
+      ...mailOptions,
+      to: userEmail,
+      subject: 'Account Deletion Confirmation',
+      html: `
+        <div style="font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: linear-gradient(135deg, #0c0e21, #1c294a); color: #ffffff; border-radius: 10px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #ffffff; font-size: 24px; margin-bottom: 10px;">EVISION</h1>
+            <div style="height: 3px; width: 60px; background: linear-gradient(90deg, #3B82F6, #0EA5E9); margin: 0 auto;"></div>
+          </div>
+          <div style="background-color: rgba(255, 255, 255, 0.9); padding: 30px; border-radius: 8px; color: #1E293B;">
+            <h2 style="color: #1E293B; font-size: 20px; margin-bottom: 20px;">Account Successfully Deleted</h2>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Hello ${user.firstName},</p>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">Your account has been successfully deleted from our system, along with all your personal information and booking history.</p>
+            <p style="margin-bottom: 20px; color: #475569; font-size: 16px;">We're sorry to see you go. If you change your mind, you're always welcome to create a new account.</p>
+            <p style="margin-bottom: 0; color: #475569; font-size: 14px;">If you did not request this deletion, please contact our support team immediately.</p>
+          </div>
+          <div style="text-align: center; margin-top: 30px; color: #94a3b8; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} EVISION. All rights reserved.</p>
+          </div>
+        </div>
+      `,
+    });
+
+    res.status(200).json({
+      message: 'Account successfully deleted',
+      details: {
+        bookingsDeleted: bookingDeleteResult.deletedCount,
+        stationsUpdated: stationUpdateResult.modifiedCount
+      }
+    });
+  } catch (error) {
+    console.error('Error deleting account:', error);
+    res.status(500).json({ message: 'Error deleting account.' });
   }
 };
 

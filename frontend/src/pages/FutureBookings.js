@@ -86,11 +86,10 @@ const CompletedIcon = () => (
   </svg>
 );
 
-function FutureBookings() {
-  const [bookings, setBookings] = useState([]);
+function FutureBookings() {  const [bookings, setBookings] = useState([]);
   const [payments, setPayments] = useState([]);
   const [appointments, setAppointments] = useState([]);
-
+  const [waitingTimes, setWaitingTimes] = useState({}); // Store waiting times for each booking
 
   const [activeCharging, setActiveCharging] = useState(null);
   const [currentTime, setCurrentTime] = useState({ date: "", hour: "" });
@@ -120,16 +119,41 @@ function FutureBookings() {
     const hourStr = `${now.getHours()}:00`;
     setCurrentTime({ date: dateStr, hour: hourStr });
   }, []);
-
   useEffect(() => {
-    fetchBookings();
-    fetchActiveCharging();
-
+    fetchBookings();    fetchActiveCharging();
     fetchPayments();
     fetchAppointments();
-
+    deleteExpiredBookings(); // Check and delete expired bookings on load
   }, []);
 
+  // Add real-time timer that updates every 30 seconds for more responsive UI
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setCurrentTime({ 
+        date: now.toISOString().split("T")[0],
+        hour: `${now.getHours()}:00`
+      });
+      
+      // Also check for expired bookings every 2 minutes
+      if (now.getSeconds() === 0 && now.getMinutes() % 2 === 0) {
+        deleteExpiredBookings();
+      }
+    };
+
+    // Update immediately
+    updateTime();
+
+    // Then update every 30 seconds for more responsive status changes
+    const interval = setInterval(updateTime, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Force component re-render when currentTime changes to update statuses
+  useEffect(() => {
+    // This effect just causes a re-render when currentTime changes
+  }, [currentTime]);
   const fetchBookings = async () => {
     try {
       setLoading(true);
@@ -145,11 +169,61 @@ function FutureBookings() {
       const data = await response.json();
       setBookings(data);
       setError(null);
+      
+      // Fetch waiting times for all bookings
+      await fetchWaitingTimes(data);
     } catch (error) {
       console.error("Error fetching bookings:", error);
       setError("Could not load your bookings. Please try again later.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWaitingTimes = async (bookingsData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const waitingTimesPromises = bookingsData
+        .filter(booking => booking.status === 'approved')
+        .map(async (booking) => {
+          try {
+            const encodedStation = encodeURIComponent(booking.station);
+            const response = await fetch(
+              `${process.env.REACT_APP_BACKEND_URL}/api/bookings/waiting-time/${encodedStation}/${booking.date}/${booking.time}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              return {
+                bookingId: booking._id,
+                waitingTime: data.waitingTime,
+                stationFull: data.stationFull
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching waiting time for booking ${booking._id}:`, error);
+          }
+          return null;
+        });
+
+      const waitingTimesResults = await Promise.all(waitingTimesPromises);
+      const waitingTimesMap = {};
+      
+      waitingTimesResults.forEach(result => {
+        if (result) {
+          waitingTimesMap[result.bookingId] = {
+            waitingTime: result.waitingTime,
+            stationFull: result.stationFull
+          };
+        }
+      });
+      
+      setWaitingTimes(waitingTimesMap);
+    } catch (error) {
+      console.error("Error fetching waiting times:", error);
     }
   };
 
@@ -171,23 +245,21 @@ function FutureBookings() {
       console.error("Error fetching payment history:", error);
     }
   };
-
-
   const fetchActiveCharging = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings/active`, {
+      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/activeCharging`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) {
-        return;
+      if (res.ok) {
+        const data = await res.json();
+        setActiveCharging(data.activeCharging);
+      } else {
+        setActiveCharging(null);
       }
-
-      const data = await res.json();
-      setActiveCharging(data);
     } catch (error) {
-      console.error("Error fetching active charging:", error);
+      setActiveCharging(null);
     }
   };
 
@@ -257,13 +329,12 @@ function FutureBookings() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleStartCharging = async (station, date, time) => {
+  };  const handleStartCharging = async (station, date, time) => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings/start-charging`, {
+      
+      // Create active charging session
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/activeCharging`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -272,37 +343,41 @@ function FutureBookings() {
         body: JSON.stringify({ station, date, time }),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        showNotification(data.message);
-        fetchActiveCharging();
-        navigate("/charging", {
-          state: {
-            station,
-            date,
-            time
-          }
-        });
-      } else {
-        showNotification(data.message || "Error starting charging", "error");
-      }
+      // Update booking status
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings/start-charging`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ station, date, time }),
+      });
+
+      fetchActiveCharging();
+      navigate("/charging", { state: { station, date, time } });
     } catch (err) {
-      console.error(err);
-      showNotification("Error starting charging", "error");
-    } finally {
-      setLoading(false);
+      console.error("Error starting charging:", err);
     }
-  };
-
-  const handleStopCharging = async (station) => {
-    if (!window.confirm("Are you sure you want to stop charging?")) {
-      return;
-    }
-
+  };  const handleStopCharging = async (station) => {
     try {
-      setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings/stop-charging`, {
+      
+      // End active charging session
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/activeCharging`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          station: activeCharging.station, 
+          date: activeCharging.date, 
+          time: activeCharging.time 
+        }),
+      });
+
+      // Update booking status
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings/stop-charging`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -311,19 +386,10 @@ function FutureBookings() {
         body: JSON.stringify({ station }),
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        showNotification(data.message);
-        setActiveCharging(null);
-        fetchBookings();
-      } else {
-        showNotification(data.message || "Error stopping charging", "error");
-      }
+      setActiveCharging(null);
+      fetchBookings();
     } catch (err) {
-      console.error(err);
-      showNotification("Error stopping charging", "error");
-    } finally {
-      setLoading(false);
+      console.error("Error stopping charging:", err);
     }
   };
 
@@ -339,10 +405,7 @@ function FutureBookings() {
   const formatDate = (dateString) => {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
-  };
-
-  const getBookingStatus = (booking) => {
-
+  };  const getBookingStatus = (booking) => {
     // Check if the booking has been paid
     if (booking.paymentStatus === 'paid' || booking.status === 'paid') {
       return "completed";
@@ -350,27 +413,59 @@ function FutureBookings() {
 
     const now = new Date();
     const bookingDate = new Date(`${booking.date}T${booking.time}`);
-    const isPast = bookingDate < now;
+    const timeDiffInMinutes = (now - bookingDate) / (1000 * 60);
 
-    if (isPast) {
-      return "past";
+    // Check if there's an active charging session for this booking
+    if (activeCharging && 
+        activeCharging.station === booking.station && 
+        activeCharging.date === booking.date && 
+        activeCharging.time === booking.time) {
+      return "active";
     }
 
-    if (activeCharging && activeCharging.station === booking.station) {
-      return "charging";
+    // Get waiting time info for this booking
+    const waitingInfo = waitingTimes[booking._id];
+    
+    if (booking.status === 'approved' && waitingInfo) {
+      const { waitingTime, stationFull } = waitingInfo;
+      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+      const actualStartTime = new Date(bookingDateTime.getTime() + (waitingTime * 60000));
+      const timeToActualStart = (actualStartTime - now) / (1000 * 60);
+      
+      // If all charging points are occupied, user must wait
+      if (stationFull && waitingTime > 0) {
+        return "upcoming";
+      }
+      
+      // If we're within 10 minutes of the actual start time (including waiting time)
+      if (timeToActualStart >= -10 && timeToActualStart <= 10) {
+        return "ready";
+      }
+      
+      // If we're still waiting for the calculated start time
+      if (timeToActualStart > 10) {
+        return "upcoming";
+      }
     }
 
-    // Check if current time matches the booking's time
-    const today = now.toISOString().split("T")[0];
-    const currentHour = now.getHours();
-    const bookingHour = parseInt(booking.time.split(":")[0]);
-    const isToday = booking.date === today;
-    const isCurrentHour = isToday && bookingHour === currentHour;
-
-    if (isCurrentHour) {
-      return "now";
+    // Fallback to original logic for non-approved bookings or when waiting time is not available
+    // If booking time has passed by more than 10 minutes without starting charging
+    if (timeDiffInMinutes > 10) {
+      return "expired";
     }
 
+    // Check if we're within the 10 minute window before booking time
+    // or up to 10 minutes after booking time
+    if (timeDiffInMinutes >= -10 && timeDiffInMinutes <= 10) {
+      return "ready";
+    }
+
+    // If booking is still in the future (more than 10 minutes away)
+    if (timeDiffInMinutes < -10) {
+      return "upcoming";
+    }
+
+    // Default fallback
     return "upcoming";
   };
 
@@ -393,12 +488,22 @@ function FutureBookings() {
     let filtered = bookings;
 
     // First apply the tab filters
-    if (activeTab === "upcoming") filtered = filtered.filter((b) => getBookingStatus(b) === "upcoming");
+    if (activeTab === "upcoming") {
+      // Include both upcoming bookings and any bookings with 'approved' status
+      filtered = filtered.filter((b) => 
+        getBookingStatus(b) === "upcoming" || b.status === 'approved'
+      );
+    }
     else if (activeTab === "past") filtered = filtered.filter((b) => ["past", "completed"].includes(getBookingStatus(b)));
     else if (activeTab === "completed") filtered = filtered.filter((b) => getBookingStatus(b) === "completed");
+    // By default (activeTab === "all"), show all bookings including approved ones
 
-    // Then apply status filters if they're set
-    if (filterStatus === "paid") {
+    // Then apply additional status filters if they're set
+    if (filterStatus === "approved") {
+      filtered = filtered.filter(b => b.status === 'approved');
+    } else if (filterStatus === "rejected") {
+      filtered = filtered.filter(b => b.status === 'rejected' || b.status === 'late_registration');
+    } else if (filterStatus === "paid") {
       filtered = filtered.filter(b => {
         const payment = findPaymentForBooking(b);
         return payment !== undefined;
@@ -512,6 +617,88 @@ function FutureBookings() {
   // Toggle sort order
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === "upcoming" ? "past" : "upcoming");
+  };
+  const deleteExpiredBookings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings/delete-expired`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.deletedCount > 0) {
+          fetchBookings();
+        }
+      }
+    } catch (error) {
+      console.error("Error deleting expired bookings:", error);
+    }
+  };
+
+  useEffect(() => {
+    // Delete expired bookings every 10 minutes
+    const interval = setInterval(() => {
+      deleteExpiredBookings();
+    }, 10 * 60 * 1000); // 10 minutes
+
+    return () => clearInterval(interval);
+  }, []);
+  // Function to fetch station details by station name
+  const fetchStationDetails = async (stationName) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      // First, try to search by exact name match
+      let response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/stations/search?name=${encodeURIComponent(stationName)}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (response.ok) {
+        const stations = await response.json();
+        
+        // Try to find exact match first
+        let matchedStation = stations.find(station => 
+          station['Station Name'].toLowerCase().trim() === stationName.toLowerCase().trim()
+        );
+
+        // If no exact match, try partial match
+        if (!matchedStation && stations.length > 0) {
+          matchedStation = stations.find(station => 
+            station['Station Name'].toLowerCase().includes(stationName.toLowerCase()) ||
+            stationName.toLowerCase().includes(station['Station Name'].toLowerCase())
+          );
+        }
+
+        // If still no match, try getting all stations and search through them
+        if (!matchedStation) {
+          response = await fetch(
+            `${process.env.REACT_APP_BACKEND_URL}/api/stations`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          );
+          
+          if (response.ok) {
+            const allStations = await response.json();
+            matchedStation = allStations.find(station => {
+              const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ');
+              return normalize(station['Station Name']) === normalize(stationName);
+            });
+          }
+        }
+
+        return matchedStation || null;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching station details:", error);
+      return null;
+    }
   };
 
   if (loading && bookings.length === 0 && appointments.length === 0) {
@@ -686,12 +873,12 @@ function FutureBookings() {
                           <div className="booking-station-name">
                             <LocationIcon />
                             <h4>{booking.station}</h4>
-                            <div className="status-container">
-                              <span className={`status-badge ${status}`}>
-                                {status === 'active' ? 'Active' :
+                            <div className="status-container">                              <span className={`status-badge ${status}`}>
+                                {status === 'active' ? 'Charging Now' :
                                   status === 'upcoming' ? 'Upcoming' :
                                     status === 'ready' ? 'Ready to Start' :
-                                      status === 'completed' ? 'Completed' : 'Past'}
+                                      status === 'completed' ? 'Completed' : 
+                                        status === 'expired' ? 'Expired' : 'Past'}
                               </span>
                               {status === 'active' && (
                                 <span className="pulse-indicator"></span>
@@ -714,9 +901,7 @@ function FutureBookings() {
                                 <label>Time</label>
                                 <p>{booking.time}</p>
                               </div>
-                            </div>
-
-                            {booking.estimatedChargeTime && (
+                            </div>                            {booking.estimatedChargeTime && (
                               <div className="info-item charging-time">
                                 <ChargingIcon />
                                 <div>
@@ -725,20 +910,70 @@ function FutureBookings() {
                                 </div>
                               </div>
                             )}
+
+                            {/* Show waiting time for approved bookings */}
+                            {booking.status === 'approved' && waitingTimes[booking._id] && (
+                              <div className="info-item waiting-time">
+                                <ClockIcon />
+                                <div>
+                                  <label>Expected Wait</label>
+                                  <p>
+                                    {waitingTimes[booking._id].waitingTime === 0 
+                                      ? "No waiting time" 
+                                      : `${waitingTimes[booking._id].waitingTime} minutes`}
+                                  </p>
+                                </div>
+                              </div>
+                            )}
                           </div>
 
-                          <div className="booking-actions">
-                            {status === 'ready' && (
+                          <div className="booking-actions">                            {status === 'ready' && (
                               <button
                                 className="action-btn start-btn"
-                                onClick={() => navigate('/charging', {
-                                  state: {
-                                    station: booking.station,
-                                    date: booking.date,
-                                    time: booking.time,
-                                    estimatedChargeTime: booking.estimatedChargeTime
+                                onClick={async (e) => {
+                                  // Prevent multiple clicks
+                                  const button = e.target;
+                                  const originalText = button.textContent;
+                                  button.disabled = true;
+                                  button.textContent = 'Loading...';
+                                  
+                                  try {
+                                    // Fetch full station details before navigating
+                                    const stationDetails = await fetchStationDetails(booking.station);
+                                    
+                                    navigate('/charging', {
+                                      state: {
+                                        station: stationDetails || {
+                                          'Station Name': booking.station,
+                                          'Address': 'N/A',
+                                          'City': 'N/A'
+                                        },
+                                        date: booking.date,
+                                        time: booking.time,
+                                        estimatedChargeTime: booking.estimatedChargeTime,
+                                        currentBattery: booking.currentBattery,
+                                        bookingId: booking._id
+                                      }
+                                    });
+                                  } catch (error) {
+                                    console.error('Error fetching station details:', error);
+                                    // Navigate anyway with basic station info
+                                    navigate('/charging', {
+                                      state: {
+                                        station: {
+                                          'Station Name': booking.station,
+                                          'Address': 'N/A',
+                                          'City': 'N/A'
+                                        },
+                                        date: booking.date,
+                                        time: booking.time,
+                                        estimatedChargeTime: booking.estimatedChargeTime,
+                                        currentBattery: booking.currentBattery,
+                                        bookingId: booking._id
+                                      }
+                                    });
                                   }
-                                })}
+                                }}
                               >
                                 <CarIcon /> Go to Charging
                               </button>
@@ -760,11 +995,36 @@ function FutureBookings() {
                               >
                                 <CancelIcon /> Cancel Booking
                               </button>
+                            )}                              {status === 'upcoming' && (
+                              <div className="status-message upcoming">
+                                {booking.status === 'approved' && waitingTimes[booking._id] ? (
+                                  waitingTimes[booking._id].waitingTime > 0 ? (
+                                    <p>Expected wait time: {waitingTimes[booking._id].waitingTime} minutes. 
+                                       {waitingTimes[booking._id].stationFull ? ' All charging points are currently occupied.' : ''}
+                                    </p>
+                                  ) : (
+                                    <p>You can start charging 10 minutes before your scheduled time</p>
+                                  )
+                                ) : (
+                                  <p>You can start charging 10 minutes before your scheduled time</p>
+                                )}
+                              </div>
                             )}
 
-                            {status === 'upcoming' && (
-                              <div className="status-message upcoming">
-                                <p>You can start charging 5 minutes before your scheduled time</p>
+                            {status === 'ready' && (
+                              <div className="status-message ready">
+                                <p>⚡ Ready to start charging now! 
+                                   {booking.status === 'approved' && waitingTimes[booking._id] && waitingTimes[booking._id].waitingTime > 0 
+                                     ? ` (After ${waitingTimes[booking._id].waitingTime} minute wait)`
+                                     : ''
+                                   }
+                                </p>
+                              </div>
+                            )}
+
+                            {status === 'expired' && (
+                              <div className="status-message expired">
+                                <p>⚠️ This booking has expired and will be automatically removed.</p>
                               </div>
                             )}
 

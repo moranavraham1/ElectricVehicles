@@ -20,7 +20,10 @@ const stationsRoutes = require('./routes/stations');
 const bookingRoutes = require('./routes/bookings');
 const paymentRoutes = require('./routes/payments');
 const appointmentRoutes = require('./appointmentRoutes');
+const activeChargingRoutes = require('./routes/activeCharging');
 const { startScheduler } = require('./appointmentScheduler');
+const Booking = require('./models/Booking');
+const ActiveCharging = require('./models/ActiveCharging');
 
 const express = require('express');
 const authMiddleware = require('./authMiddleware');
@@ -43,6 +46,8 @@ app.use('/api/stations', stationsRoutes);
 app.use('/api/bookings', authMiddleware, bookingRoutes);
 app.use('/api/payments', authMiddleware, paymentRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/activeCharging', authMiddleware, activeChargingRoutes);
+app.use('/api/active-charging', authMiddleware, activeChargingRoutes);
 
 
 app.get('/', (req, res) => {
@@ -51,6 +56,8 @@ app.get('/', (req, res) => {
 
 // Start the appointment scheduler
 startScheduler();
+
+// Removed automatic booking cleanup - bookings are now only removed when user stops charging
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

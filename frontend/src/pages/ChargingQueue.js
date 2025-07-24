@@ -1,5 +1,5 @@
 // ChargingQueue.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
 import { useParams, useNavigate, Link, useLocation } from "react-router-dom";
 import "../designs/ChargingQueue.css";
@@ -18,6 +18,30 @@ const ChargingQueue = () => {
     const location = useLocation();
     const [returnToStation, setReturnToStation] = useState(null);
     const [stationDetails, setStationDetails] = useState(null);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    // Add refreshQueue as a useCallback function to prevent unnecessary recreations
+    const refreshQueue = useCallback(async () => {
+        try {
+            setLoading(true);
+            const encodedStation = encodeURIComponent(stationName);
+            const response = await axios.get(
+                `${process.env.REACT_APP_BACKEND_URL}/api/bookings/queue/${encodedStation}/${selectedDate}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }
+            );
+            setQueue(response.data);
+            setError(null);
+        } catch (err) {
+            console.error("Failed to refresh queue:", err);
+            setError("Failed to refresh charging queue data. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    }, [stationName, selectedDate]);
 
     useEffect(() => {
         // Get current user's email
@@ -48,34 +72,19 @@ const ChargingQueue = () => {
             }
         };
 
-
-        const fetchQueue = async () => {
-            try {
-                setLoading(true);
-                const encodedStation = encodeURIComponent(stationName);
-                const response = await axios.get(
-                    `${process.env.REACT_APP_BACKEND_URL}/api/bookings/queue/${encodedStation}/${selectedDate}`,
-                    {
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("token")}`,
-                        },
-                    }
-                );
-                setQueue(response.data);
-                setError(null);
-            } catch (err) {
-                console.error("Failed to fetch queue:", err);
-                setError("Failed to load charging queue data. Please try again.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchQueue();
-
+        // Initial fetch of queue data
+        refreshQueue();
         fetchStationDetails();
 
-    }, [stationName, selectedDate, location.state]);
+        // Set up an interval to refresh the queue data every 30 seconds
+        const intervalId = setInterval(() => {
+            refreshQueue();
+        }, 30000); // 30 seconds
+
+        // Clean up the interval when the component unmounts
+        return () => clearInterval(intervalId);
+
+    }, [stationName, selectedDate, location.state, refreshQueue]);
 
     const handleBack = () => {
         if (returnToStation) {
@@ -115,73 +124,142 @@ const ChargingQueue = () => {
         }
     };
 
-    const calculateWaitingTime = (index, queue) => {
-        if (index === 0) return "You're next!";
-
+    // חישוב זמן המתנה מדויק לפי סדר עדיפות, עמדות וזמני טעינה
+    const calculateWaitingTime = (index, sortedQueue) => {
+        // Get current time in minutes since midnight
+        const now = new Date();
+        const currentHourInMinutes = now.getHours() * 60 + now.getMinutes();
+        const currentDateStr = now.toISOString().split('T')[0];
         
-        // Get the number of charging points at this station (default to 1 if not available)
+        // קבל את כמות עמדות הטעינה בתחנה
         const numChargingPoints = stationDetails?.["Duplicate Count"] || 1;
         
-        // Group bookings by time slot
-        const timeSlots = {};
-        queue.forEach((booking, i) => {
-            if (!timeSlots[booking.time]) {
-                timeSlots[booking.time] = [];
+        // Get the booking we're calculating wait time for
+        const targetBooking = sortedQueue[index];
+        const [targetHours, targetMinutes] = targetBooking.time.split(":").map(Number);
+        const targetTimeInMinutes = targetHours * 60 + targetMinutes;
+        const targetDuration = targetBooking.estimatedChargeTime || 30;
+        
+        // Skip calculation if booking is in the past
+        if (targetBooking.date < currentDateStr || 
+            (targetBooking.date === currentDateStr && targetTimeInMinutes < currentHourInMinutes)) {
+            return "Booking time has passed";
+        }
+        
+        // אם הזמן של ההזמנה טרם הגיע (השעה הנוכחית מוקדמת יותר)
+        if (targetBooking.date === currentDateStr && targetTimeInMinutes > currentHourInMinutes) {
+            // בדוק אם יש זמן קצר עד התור (פחות מ-10 דקות)
+            const minutesToAppointment = targetTimeInMinutes - currentHourInMinutes;
+            if (minutesToAppointment <= 10) {
+                return `Your booking in ${minutesToAppointment} minutes`;
             }
-            timeSlots[booking.time].push({...booking, queueIndex: i});
+        }
+        
+        // מערך שמייצג מתי כל עמדה פנויה (בדקות מאז חצות)
+        // Initialize with current time for today's bookings, or 0 for future dates
+        const isToday = targetBooking.date === currentDateStr;
+        const chargingPoints = Array(numChargingPoints).fill(isToday ? currentHourInMinutes : 0);
+        
+        // Filter to only include bookings that could affect our target booking
+        const relevantBookings = sortedQueue.filter((booking, i) => {
+            // Don't include our target booking
+            if (i === index) return false;
+            
+            // Convert booking time to minutes
+            const [bookingHours, bookingMinutes] = booking.time.split(":").map(Number);
+            const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
+            const bookingDuration = booking.estimatedChargeTime || 30;
+            
+            // אם ההזמנה היא למועד מוקדם יותר מהתור שלנו, 
+            // בדוק אם היא תסתיים לפני שהתור שלנו מתחיל
+            if (bookingTimeInMinutes < targetTimeInMinutes) {
+                // חשב את זמן הסיום של ההזמנה האחרת
+                const bookingEndTime = bookingTimeInMinutes + bookingDuration;
+                
+                // אם ההזמנה האחרת מסתיימת לאחר תחילת התור שלנו, היא רלוונטית
+                return bookingEndTime > targetTimeInMinutes;
+            }
+            
+            // אם ההזמנה היא לאותו זמן בדיוק כמו שלנו, היא רלוונטית רק אם היא לפנינו בתור
+            // (בהתאם למיקום בתור המסודר)
+            if (bookingTimeInMinutes === targetTimeInMinutes) {
+                return i < index;
+            }
+            
+            // אם ההזמנה היא למועד מאוחר יותר, היא לא רלוונטית
+            return false;
         });
         
-        // Find current user's time slot
-        const currentUserTime = queue[index].time;
-        const currentUser = queue[index];
-        
-        // Get all users in the same time slot
-        const usersInSameTimeSlot = timeSlots[currentUserTime];
-        
-        // Sort users in this time slot by their position in the original queue
-        usersInSameTimeSlot.sort((a, b) => a.queueIndex - b.queueIndex);
-        
-        // Find current user's position in this time slot
-        const positionInTimeSlot = usersInSameTimeSlot.findIndex(b => b.queueIndex === index);
-        
-        // If user's position in their time slot is within charging point capacity, 
-        // check if there are users already occupying the charging points
-        if (positionInTimeSlot < numChargingPoints) {
-            return "No waiting time - station available";
+        // Process all relevant bookings to update charging point availability
+        for (const booking of relevantBookings) {
+            const [hours, minutes] = booking.time.split(":").map(Number);
+            const startTimeInMinutes = hours * 60 + minutes;
+            const duration = booking.estimatedChargeTime || 30;
+            
+            // Find the charging point that will be available first
+            let earliestAvailable = Math.min(...chargingPoints);
+            let earliestPointIndex = chargingPoints.indexOf(earliestAvailable);
+            
+            // When this booking will actually start charging
+            const actualStart = Math.max(startTimeInMinutes, chargingPoints[earliestPointIndex]);
+            
+            // Update when this charging point will be free
+            chargingPoints[earliestPointIndex] = actualStart + duration;
         }
         
-        // If we need to wait, find the earliest available charging point
-        // First, organize users into batches
-        const batches = [];
-        for (let i = 0; i < usersInSameTimeSlot.length; i += numChargingPoints) {
-            batches.push(usersInSameTimeSlot.slice(i, i + numChargingPoints));
-        }
+        // Now calculate when our target booking can start
+        let earliestAvailable = Math.min(...chargingPoints);
+        let earliestPointIndex = chargingPoints.indexOf(earliestAvailable);
         
-        // Find which batch our user is in
-        const userBatchIndex = Math.floor(positionInTimeSlot / numChargingPoints);
-        
-        // Calculate waiting time based on previous batches
-        let totalWaitTime = 0;
-        
-        // For each previous batch, take the smallest charging time
-        // (as the next batch can start once the first spot becomes available)
-        for (let i = 0; i < userBatchIndex; i++) {
-            if (batches[i] && batches[i].length > 0) {
-                // Find the minimum charging time in this batch
-                const minChargingTime = Math.min(...batches[i].map(b => b.estimatedChargeTime || 30));
-                totalWaitTime += minChargingTime;
-            }
-        }
-        
-        if (totalWaitTime === 0) {
-            return "No waiting time - station available";
-        } else if (totalWaitTime < 60) {
-
-            return `Estimated wait: ${totalWaitTime} minutes`;
+        // Our actual start time is the later of our booking time or when a point becomes available
+        const actualStart = Math.max(targetTimeInMinutes, chargingPoints[earliestPointIndex]);
+        const waitTime = actualStart - targetTimeInMinutes;
+          // Format the wait time message
+        if (waitTime <= 0) {
+            return 0; // No waiting time
+        } else if (waitTime < 60) {
+            return waitTime; // Return wait time in minutes
         } else {
-            const hours = Math.floor(totalWaitTime / 60);
-            const minutes = totalWaitTime % 60;
-            return `Estimated wait: ${hours} hour${hours > 1 ? 's' : ''} ${minutes > 0 ? `${minutes} minutes` : ''}`;
+            const hours = Math.floor(waitTime / 60);
+            const mins = waitTime % 60;
+            return waitTime; // Return total minutes, let the UI format it
+        }
+    };
+
+    // Format the wait time message
+    const formatWaitingTime = (minutes) => {
+        if (minutes === 0) {
+            return "No waiting time";
+        } else if (minutes < 60) {
+            return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+        } else {
+            const hours = Math.floor(minutes / 60);
+            const mins = minutes % 60;
+            return `${hours} hour${hours !== 1 ? 's' : ''}${mins > 0 ? ` ${mins} minute${mins !== 1 ? 's' : ''}` : ''}`;
+        }
+    };
+
+    // Add function to manually trigger appointment processing
+    const triggerProcessing = async () => {
+        try {
+            setIsProcessing(true);
+            await axios.post(
+                `${process.env.REACT_APP_BACKEND_URL}/api/bookings/process-pending`,
+                {},
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("token")}`,
+                    },
+                }
+            );
+            // After processing, refresh the queue to show any newly approved bookings
+            await refreshQueue();
+            alert('Processing completed. The queue has been refreshed.');
+        } catch (err) {
+            console.error("Failed to trigger processing:", err);
+            alert('Failed to process pending appointments. Please try again.');
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -197,11 +275,68 @@ const ChargingQueue = () => {
                 <p className="queue-subtitle">for {stationName} - {selectedDate}</p>
             </div>
 
+            {/* האם יש תור למשתמש הנוכחי? */}
+            {queue.length > 0 && (() => {
+                const sortedQueue = [...queue].sort((a, b) => {
+                    if (a.time !== b.time) {
+                        return a.time.localeCompare(b.time);
+                    }
+                    if (a.priorityScore !== b.priorityScore) {
+                        return a.priorityScore - b.priorityScore;
+                    }
+                    return (a.currentBattery ?? 100) - (b.currentBattery ?? 100);
+                });
 
-            <div className="queue-notification">
-                <strong>Note:</strong> This queue shows only approved appointments. Pending appointments are processed 1 hour before their scheduled time.
+                const userBookingIndex = sortedQueue.findIndex(booking => 
+                    booking.user.toLowerCase() === currentUserEmail
+                );
+
+                if (userBookingIndex !== -1) {
+                    const userBooking = sortedQueue[userBookingIndex];
+                    const waitingTime = calculateWaitingTime(userBookingIndex, sortedQueue);
+                    const formattedWaitingTime = formatWaitingTime(waitingTime);
+                    
+                    return (
+                        <div className="user-booking-summary">
+                            <h3>Your Position in Queue</h3>
+                            <div className="user-booking-details">
+                                <div className="user-booking-position">
+                                    <span className="position-number">{userBookingIndex + 1}</span>
+                                    <span className="position-total">of {sortedQueue.length}</span>
+                                </div>
+                                <div className="user-booking-info">
+                                    <div className="user-booking-time">
+                                        <span className="time-label">⏰ Time:</span>
+                                        <span className="time-value">{userBooking.time}</span>
+                                    </div>
+                                    <div className="user-waiting-time">
+                                        <span className="waiting-time-label">⏳ Estimated Wait:</span>
+                                        <span className="waiting-time-value">
+                                            {waitingTime === 0 
+                                                ? "No waiting - Ready to charge" 
+                                                : formattedWaitingTime
+                                            }
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                }
+                
+                return null;
+            })()}
+
+            <div className="queue-actions">
+                <button 
+                    className="refresh-button" 
+                    onClick={refreshQueue} 
+                    disabled={loading}
+                >
+                    {loading ? 'Refreshing...' : 'Refresh Queue'}
+                </button>
+                
             </div>
-
 
             <div className="queue-content">
                 {loading ? (
@@ -211,56 +346,73 @@ const ChargingQueue = () => {
                 ) : error ? (
                     <div className="error-message">
                         <p>{error}</p>
-                        <button onClick={() => fetchQueue()}>
+                        <button onClick={() => refreshQueue()}>
                             Try Again
                         </button>
                     </div>
                 ) : queue.length === 0 ? (
                     <div className="empty-queue">
-
                         <p>No approved bookings scheduled for this date yet.</p>
                         <p className="queue-note">Note: Appointments are approved 1 hour before their scheduled time based on priority.</p>
-
                     </div>
                 ) : (
                     <div className="queue-list">
-                        {queue.map((booking, index) => {
-                            const urgency = getUrgencyInfo(booking.urgencyLevel);
-                            const waitingTime = calculateWaitingTime(index, queue);
-
-                            const isCurrentUser = booking.user.toLowerCase() === currentUserEmail;
-                            
-                            return (
-                                <div 
-                                    key={index} 
-                                    className={`queue-item ${isCurrentUser ? 'current-user-booking' : ''}`}
-                                >
-                                    <div className="queue-item-content">
-                                        {isCurrentUser && (
-                                            <div className="current-user-badge">
-                                                Your booking
+                        {(() => {
+                            // קודם כל למיין את התור לפי זמן, מהמוקדם למאוחר
+                            const sortedQueue = [...queue].sort((a, b) => {
+                                // המיון הראשי הוא לפי זמן
+                                if (a.time !== b.time) {
+                                    return a.time.localeCompare(b.time);
+                                }
+                                
+                                // רק אם שני תורים באותה שעה, השתמש באלגוריתם העדיפויות
+                                if (a.priorityScore !== b.priorityScore) {
+                                    return a.priorityScore - b.priorityScore;
+                                }
+                                
+                                // אם גם העדיפויות שוות, העדף רמת סוללה נמוכה יותר
+                                return (a.currentBattery ?? 100) - (b.currentBattery ?? 100);
+                            });
+                            return sortedQueue.map((booking, index) => {
+                                const urgency = getUrgencyInfo(booking.urgencyLevel);
+                                const waitingTime = calculateWaitingTime(index, sortedQueue);
+                                const isCurrentUser = booking.user.toLowerCase() === currentUserEmail;
+                                return (
+                                    <div 
+                                        key={index} 
+                                        className={`queue-item ${isCurrentUser ? 'current-user-booking' : ''}`}
+                                    >
+                                        <div className="queue-item-content">
+                                            {isCurrentUser && (
+                                                <div className="current-user-badge">
+                                                    Your booking
+                                                </div>
+                                            )}
+                                            <div className="queue-item-row">
+                                                <span className="time-icon">⏰</span> <strong>Time:</strong> {booking.time}
                                             </div>
-                                        )}
-
-                                        <div className="queue-item-row">
-                                            <span className="time-icon">⏰</span> <strong>Time:</strong> {booking.time}
-                                        </div>
-                                        <div className="queue-item-row">
-                                            <span className="urgency-icon">🔺</span> <strong>Urgency:</strong> {urgency.label}
-                                        </div>
-                                        <div className="queue-item-row">
-                                            <span className="user-icon">📧</span> <strong>User:</strong> {booking.user}
-                                        </div>
-                                        <div className="queue-item-row">
-                                            <span className="charging-icon">⏱️</span> <strong>Charging Time:</strong> {booking.estimatedChargeTime} minutes
-                                        </div>
-                                        <div className="queue-item-row">
-                                            <span className="waiting-icon">⏳</span> <strong>{waitingTime}</strong>
+                                            <div className="queue-item-row">
+                                                <span className="urgency-icon">🔺</span> <strong>Urgency:</strong> {urgency.label}
+                                            </div>
+                                            <div className="queue-item-row">
+                                                <span className="user-icon">📧</span> <strong>User:</strong> {booking.user}
+                                            </div>
+                                            <div className="queue-item-row">
+                                                <span className="charging-icon">⏱️</span> <strong>Charging Time:</strong> {booking.estimatedChargeTime} minutes
+                                            </div>                                            <div className="queue-item-row">
+                                                <span className="waiting-icon">⏳</span> 
+                                                <strong>
+                                                    {waitingTime === 0 
+                                                        ? "No waiting time - ready to charge" 
+                                                        : `Estimated wait: ${formatWaitingTime(waitingTime)}`
+                                                    }
+                                                </strong>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            });
+                        })()}
                     </div>
                 )}
             </div>

@@ -189,7 +189,7 @@ describe('Auth Controller - Unit Tests', () => {
       
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Invalid email or password.'
+        message: 'Invalid password.'
       }));
     });
 

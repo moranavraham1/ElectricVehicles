@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
   verificationCode: { type: String }, // Added field for verification code
   resetPasswordToken: String,
   resetPasswordExpires: Date,
+  laxity: { type: Number, default: 0 }, // Laxity bonus points for rejected bookings
 });
 
 userSchema.methods.comparePassword = function (password) {

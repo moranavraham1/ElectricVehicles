@@ -38,13 +38,8 @@ function VerifyCode() {
     e.preventDefault();
 
     try {
-      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/verify-code`, { email, code });
-
+      await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/verify-code`, { email: email.toLowerCase(), code });
       toast.success('Email verification successful! Redirecting to login page...');
-
-      console.log("Verification successful, redirecting to login page");
-
-
       window.location.href = '/login';
     } catch (error) {
       console.error("Verification error:", error);
@@ -58,7 +53,7 @@ function VerifyCode() {
     startTimer();
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/resend-verification-code`, { email });
+      const response = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/auth/resend-verification-code`, { email: email.toLowerCase() });
       toast.success(response.data.message);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to resend verification code.');

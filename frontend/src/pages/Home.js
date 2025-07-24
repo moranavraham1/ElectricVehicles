@@ -70,7 +70,13 @@ const Home = () => {
   const [stationsPage, setStationsPage] = useState(1);
   const STATIONS_PER_PAGE = 5;
   const [mapLoading, setMapLoading] = useState({});
-  const [fullMapLoading, setFullMapLoading] = useState({});
+  const [fullMapLoading, setFullMapLoading] = useState({});  // State for booking management
+  const [userBookings, setUserBookings] = useState([]);
+  const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [selectedStationForAppointment, setSelectedStationForAppointment] = useState(null);
+  const [appointmentStatus, setAppointmentStatus] = useState('');
+  const [nearestBooking, setNearestBooking] = useState(null);
+  const [waitingTimes, setWaitingTimes] = useState({}); // Store waiting times for each booking
 
   // Check if we're navigating from Map or Favorites with a station to book
   useEffect(() => {
@@ -118,9 +124,9 @@ const Home = () => {
     setTime('');
     setAvailableTimes([]);
   };
-
+  // Legacy function - now redirects to new appointment-based logic
   const startCharging = (station) => {
-    navigate('/charging', { state: { station } });
+    handleStartCharging(station);
   };
   const goToAppointmentPage = async (station) => {
     try {
@@ -425,31 +431,72 @@ const Home = () => {
       console.log("✅ response from check-availability:", response.data);
       let availableTimeSlots = response.data.availableTimes || [];
       const bookingsPerTime = response.data.bookingsPerTime || {};
-      const maxCapacity = selectedStation["Duplicate Count"] || 1;
+      const maxCapacity = response.data.maxCapacity || selectedStation["Duplicate Count"] || 1;
+      console.log(`🔌 Station capacity: ${maxCapacity} charging points`);
       let updatedChargingSlots = {};
 
-      availableTimeSlots = availableTimeSlots.filter(time => {
+      // Get current time
+      const now = new Date();
+      // Calculate one hour from now threshold
+      const oneHourFromNow = new Date(now);
+      oneHourFromNow.setHours(now.getHours() + 1);
+      
+      // Get ALL possible time slots from the response, not just available ones
+      // This is important to include fully booked slots that are one hour ahead
+      let allTimeSlots = [];
+      
+      // Extract all time slots from the bookingsPerTime object
+      for (const timeSlot in bookingsPerTime) {
+        if (!availableTimeSlots.includes(timeSlot)) {
+          allTimeSlots.push(timeSlot);
+        }
+      }
+      
+      // Combine with available time slots to get all possible slots
+      allTimeSlots = [...new Set([...availableTimeSlots, ...allTimeSlots])];
+      console.log("💡 All possible time slots:", allTimeSlots);
+      
+      // Process each time slot
+      const processedTimeSlots = allTimeSlots.map(time => {
         const bookedCount = bookingsPerTime[time] || 0;
         const remainingSlots = maxCapacity - bookedCount;
         updatedChargingSlots[time] = remainingSlots;
-        return remainingSlots > 0;
-      });
-      const now = new Date();
-      availableTimeSlots = availableTimeSlots.filter(time => {
+        return { time, remainingSlots };
+      }).filter(({ time, remainingSlots }) => {
         const [hour, minute] = time.split(":");
-
-        // Ensure proper date format for creating date object (YYYY-MM-DD)
+        
+        // Create date object for this time slot
         const slotDateTime = new Date(`${selectedDate}T${hour}:${minute}:00`);
-        const isAfterNow = slotDateTime > now;
-        console.log(`💡 Time slot ${time} - Date: ${slotDateTime.toISOString()} - Is after now (${now.toISOString()}): ${isAfterNow}`);
-        return isAfterNow;
+        
+        // Check if slot is at least one hour in the future
+        const isOneHourAhead = slotDateTime >= oneHourFromNow;
+        
+        // If it's at least one hour ahead, include it regardless of capacity
+        // Otherwise, check if there are remaining slots
+        const shouldInclude = isOneHourAhead || remainingSlots > 0;
+        
+        console.log(`💡 Time slot ${time} - Is one hour ahead: ${isOneHourAhead}, Remaining slots: ${remainingSlots}, Include: ${shouldInclude}`);
+        
+        // Still need to be after current time (basic check)
+        return slotDateTime > now && shouldInclude;
+      }).map(item => item.time);
+
+      // Sort time slots chronologically
+      const sortedTimeSlots = processedTimeSlots.sort((a, b) => {
+        const [aHour, aMinute] = a.split(":").map(Number);
+        const [bHour, bMinute] = b.split(":").map(Number);
+        
+        if (aHour !== bHour) {
+          return aHour - bHour;
+        }
+        return aMinute - bMinute;
       });
 
-      console.log("💡 Final available time slots:", availableTimeSlots);
+      console.log("💡 Final sorted time slots:", sortedTimeSlots);
 
-      setAvailableTimes(availableTimeSlots);
+      setAvailableTimes(sortedTimeSlots);
       setChargingSlots(updatedChargingSlots);
-      setIsAvailable(availableTimeSlots.length > 0);
+      setIsAvailable(sortedTimeSlots.length > 0);
     } catch (error) {
       console.error("Error fetching available times:", error);
       setAvailableTimes([]);
@@ -484,7 +531,49 @@ const Home = () => {
       return;
     }
 
-    try {
+    try {      
+      // 🔒 CRITICAL: Re-check availability immediately before booking to prevent race conditions
+      console.log("🔍 Performing final availability check before booking...");
+      
+      const availabilityResponse = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
+        {
+          station: selectedStation["Station Name"] || selectedStation,
+          date: date,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`,
+          },
+        }
+      );
+
+      const { availableTimes, maxCapacity, bookingsPerTime } = availabilityResponse.data;
+      const currentBookingsForTime = bookingsPerTime[time] || 0;
+      
+      console.log(`🔍 Final check - Time ${time}: ${currentBookingsForTime}/${maxCapacity} slots used`);
+      
+      // Check if time is at least one hour from now
+      const now = new Date();
+      const oneHourFromNow = new Date(now);
+      oneHourFromNow.setHours(now.getHours() + 1);
+      
+      const [hour, minute] = time.split(":");
+      const selectedDateTime = new Date(`${date}T${hour}:${minute}:00`);
+      const isOneHourAhead = selectedDateTime >= oneHourFromNow;
+      
+      // Check if the selected time is still available or if it's at least one hour ahead
+      if (!availableTimes.includes(time) && !isOneHourAhead) {
+        alert(`⚠️ Sorry! This time slot (${time}) is no longer available.\n\nStation "${selectedStation["Station Name"]}" has ${maxCapacity} charging point${maxCapacity > 1 ? 's' : ''} and all are now reserved for this time.\n\nPlease select a different time slot.`);
+        
+        // Refresh available times to show current status
+        setAvailableTimes(availableTimes);
+        setTime(""); // Clear the selected time
+        return;
+      }
+
+      // Submit booking request - always as pending status
+      // The appointment scheduler will process it ~1 hour before the appointment time
       await axios.post(
         `${process.env.REACT_APP_BACKEND_URL}/api/bookings/book`,
         {
@@ -503,7 +592,10 @@ const Home = () => {
         }
       );
 
-      alert("Booking successful!");
+      alert("Booking request submitted successfully! Your booking will remain in 'pending' status until approximately 1 hour before the scheduled time. At that point, our system will process all pending requests and you will receive a confirmation email if your booking is approved.");
+
+      // Refresh bookings list to update status
+      fetchUserBookings();
 
       setChargingSlots(prevSlots => {
         const updatedSlots = { ...prevSlots };
@@ -519,7 +611,31 @@ const Home = () => {
       closeModal();
     } catch (error) {
       console.error("Error booking appointment:", error);
-      alert("Failed to book appointment. Please try again later.");
+      if (error.response && error.response.status === 400) {
+        const errorData = error.response.data;
+        if (errorData.capacity && errorData.currentBookings) {
+          // Check if the booking is at least one hour ahead
+          const now = new Date();
+          const oneHourFromNow = new Date(now);
+          oneHourFromNow.setHours(now.getHours() + 1);
+          
+          const [hour, minute] = time.split(":");
+          const selectedDateTime = new Date(`${date}T${hour}:${minute}:00`);
+          const isOneHourAhead = selectedDateTime >= oneHourFromNow;
+          
+          if (isOneHourAhead) {
+            alert(`⚠️ There seems to be an issue with your booking request. For time slots more than 1 hour ahead, you should be able to make a booking even if others have pending bookings.\n\nPlease try again or contact support if the issue persists.`);
+          } else {
+            alert(`⚠️ This time slot is fully booked!\n\nStation "${selectedStation["Station Name"]}" has ${errorData.capacity} charging point${errorData.capacity > 1 ? 's' : ''} and all are reserved for ${time} on ${date}.\n\nPlease choose a different time slot.`);
+          }
+        } else {
+          alert(`❌ Booking failed: ${errorData.message || 'Unknown error'}`);
+        }
+      } else if (error.response && error.response.data && error.response.data.message) {
+        alert(`Booking failed: ${error.response.data.message}`);
+      } else {
+        alert("Failed to book appointment. Please try again later.");
+      }
     }
   };
 
@@ -626,22 +742,334 @@ const Home = () => {
     };
   }, []);
 
-
   // Use effects
   useEffect(() => {
     fetchUserLocation();
-  }, []);
+    fetchStations();
+    fetchUserBookings();
+  }, []);  // Function to fetch user bookings
+  const fetchUserBookings = async () => {
+    try {
+      console.log("📡 Fetching user bookings...");
+      const token = localStorage.getItem("token");
+      const userEmail = localStorage.getItem("loggedInUser");
+      console.log("📧 User email from localStorage:", userEmail);
+      console.log("🔑 Token exists:", !!token);
+      
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/bookings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
+      console.log("📊 Response status:", response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log("📋 Fetched bookings data:", data);
+        setUserBookings(data);
+        
+        // Fetch waiting times for approved bookings
+        await fetchWaitingTimes(data);
+      } else {
+        console.error("❌ Failed to fetch bookings, status:", response.status);
+      }
+    } catch (error) {
+      console.error("❌ Error fetching bookings:", error);
+    }
+  };
+
+  // Function to fetch waiting times for user bookings
+  const fetchWaitingTimes = async (bookingsData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const waitingTimesPromises = bookingsData
+        .filter(booking => booking.status === 'approved')
+        .map(async (booking) => {
+          try {
+            const encodedStation = encodeURIComponent(booking.station);
+            const response = await fetch(
+              `${process.env.REACT_APP_BACKEND_URL}/api/bookings/waiting-time/${encodedStation}/${booking.date}/${booking.time}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            
+            if (response.ok) {
+              const data = await response.json();
+              return {
+                bookingId: booking._id,
+                waitingTime: data.waitingTime,
+                stationFull: data.stationFull
+              };
+            }
+          } catch (error) {
+            console.error(`Error fetching waiting time for booking ${booking._id}:`, error);
+          }
+          return null;
+        });
+
+      const waitingTimesResults = await Promise.all(waitingTimesPromises);
+      const waitingTimesMap = {};
+      
+      waitingTimesResults.forEach(result => {
+        if (result) {
+          waitingTimesMap[result.bookingId] = {
+            waitingTime: result.waitingTime,
+            stationFull: result.stationFull
+          };
+        }
+      });
+      
+      setWaitingTimes(waitingTimesMap);
+    } catch (error) {
+      console.error("Error fetching waiting times:", error);
+    }
+  };
+
+  // Refresh bookings when component mounts and when coming back from other pages
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
+    fetchUserBookings();
+  }, [location.pathname]);
 
-    return () => {
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-    };
+  // Refresh bookings every minute to keep status up to date
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUserBookings();
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(interval);
   }, []);
+  // Function to check booking status for a specific station
+  const checkBookingStatus = (stationName) => {
+    console.log("🔍 Checking booking status for station:", stationName);
+    const userEmail = localStorage.getItem('loggedInUser');
+    console.log("👤 User email for filtering:", userEmail);
+    console.log("📋 All user bookings:", userBookings);
+    console.log("📋 userBookings length:", userBookings.length);
+      const stationBookings = userBookings.filter(
+      booking => {
+        console.log("🔍 Comparing booking:", booking);
+        console.log("   booking.user:", booking.user);
+        console.log("   userEmail:", userEmail);
+        console.log("   booking.station:", booking.station);
+        console.log("   stationName:", stationName);
+        
+        const userMatch = booking.user === userEmail;
+        // Case-insensitive comparison for station names
+        const stationMatch = booking.station.toLowerCase().trim() === stationName.toLowerCase().trim();
+        console.log("   userMatch:", userMatch, "stationMatch:", stationMatch);
+        console.log("   booking.station.toLowerCase():", booking.station.toLowerCase().trim());
+        console.log("   stationName.toLowerCase():", stationName.toLowerCase().trim());
+        
+        return userMatch && stationMatch;
+      }
+    );
 
+    console.log("🎯 Filtered station bookings:", stationBookings);
+
+    if (stationBookings.length === 0) {
+      console.log("❌ No bookings found for this station");
+      return {
+        hasBooking: false,
+        status: 'no_booking',
+        message: 'No booking found for this station'
+      };
+    }
+
+    // Find bookings within the acceptable time window, considering waiting time
+    const now = new Date();
+    console.log("⏰ Current time:", now);
+    
+    const relevantBookings = stationBookings
+      .map(booking => {
+        const waitingInfo = waitingTimes[booking._id];
+        const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+        
+        // Calculate actual start time considering waiting time
+        const actualStartTime = waitingInfo ? 
+          new Date(bookingDateTime.getTime() + (waitingInfo.waitingTime * 60000)) : 
+          bookingDateTime;
+          
+        return {
+          ...booking,
+          bookingDateTime,
+          actualStartTime,
+          waitingInfo
+        };
+      })
+      .filter(booking => {
+        // Use actual start time (including waiting time) for the window calculation
+        const timeDiffInMinutes = (now - booking.actualStartTime) / (1000 * 60);
+        console.log("📅 Booking datetime:", booking.bookingDateTime);
+        console.log("⏰ Actual start time (with waiting):", booking.actualStartTime);
+        console.log("⏱️ Time difference from actual start (positive = past, negative = future):", timeDiffInMinutes);
+        
+        // If station is full and there's waiting time, user must wait
+        if (booking.waitingInfo && booking.waitingInfo.stationFull && booking.waitingInfo.waitingTime > 0) {
+          console.log("🚫 Station is full, user must wait");
+          return false;
+        }
+        
+        // CRITICAL FIX: Check if there are other users whose charging time would overlap with this booking
+        // If the waiting time > 0, it means someone else is charging and we must wait
+        if (booking.waitingInfo && booking.waitingInfo.waitingTime > 0) {
+          console.log("⏰ Must wait for others to finish charging:", booking.waitingInfo.waitingTime, "minutes");
+          return false; 
+        }
+        
+        // Accept bookings from 10 minutes before to 10 minutes after actual start time
+        const isWithinWindow = timeDiffInMinutes >= -10 && timeDiffInMinutes <= 10;
+        console.log("✅ Is within 10-minute window of actual start:", isWithinWindow);
+        return isWithinWindow;
+      })
+      .sort((a, b) => Math.abs((now - a.actualStartTime)) - Math.abs((now - b.actualStartTime))); // Sort by closest to actual start time
+
+    console.log("🎯 Relevant bookings within time window:", relevantBookings);
+
+    if (relevantBookings.length === 0) {
+      // If no bookings in the current window, find the next upcoming booking
+      const upcomingBookings = stationBookings
+        .map(booking => {
+          const waitingInfo = waitingTimes[booking._id];
+          const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+          const actualStartTime = waitingInfo ? 
+            new Date(bookingDateTime.getTime() + (waitingInfo.waitingTime * 60000)) : 
+            bookingDateTime;
+            
+          return {
+            ...booking,
+            bookingDateTime,
+            actualStartTime,
+            waitingInfo
+          };
+        })
+        .filter(booking => booking.actualStartTime > now)
+        .sort((a, b) => a.actualStartTime - b.actualStartTime);
+
+      console.log("🔮 Next upcoming bookings:", upcomingBookings);
+
+      if (upcomingBookings.length === 0) {
+        console.log("⏰ No upcoming bookings");
+        return {
+          hasBooking: false,
+          status: 'no_upcoming_booking',
+          message: 'No upcoming bookings for this station'
+        };
+      }
+
+      const nextBooking = upcomingBookings[0];
+      console.log("📅 Next booking scheduled for later");
+      
+      // Include waiting time info in the message
+      let message = `Next booking: ${nextBooking.bookingDateTime.toLocaleString()}`;
+      if (nextBooking.waitingInfo && nextBooking.waitingInfo.waitingTime > 0) {
+        message += ` (Expected wait: ${nextBooking.waitingInfo.waitingTime} minutes)`;
+      }
+      
+      return {
+        hasBooking: true,
+        status: 'booking_scheduled',
+        booking: nextBooking,
+        message
+      };
+    }
+
+    // If we have bookings within the window, use the closest one
+    const closestBooking = relevantBookings[0];
+    console.log("✅ Ready to charge with booking:", closestBooking);
+    
+    // CRITICAL FIX: Final check for any waiting time - if we have to wait, we can't charge yet
+    if (closestBooking.waitingInfo && closestBooking.waitingInfo.waitingTime > 0) {
+      console.log("⏰ Cannot start charging now - must wait:", closestBooking.waitingInfo.waitingTime, "minutes");
+      
+      return {
+        hasBooking: true,
+        status: 'booking_scheduled',
+        booking: closestBooking,
+        message: `Your booking is ready, but you need to wait approximately ${closestBooking.waitingInfo.waitingTime} minutes before charging as other users are currently using the station.`
+      };
+    }
+    
+    let message = 'You can start charging now!';
+    return {
+      hasBooking: true,
+      status: 'ready_to_charge',
+      booking: closestBooking,
+      message
+    };
+  };
+  // Enhanced start charging function
+  const handleStartCharging = (station) => {
+    console.log("🚗 handleStartCharging called with station:", station);
+    console.log("🏢 Station name:", station['Station Name']);
+    
+    const bookingCheck = checkBookingStatus(station['Station Name']);
+    console.log("📋 Booking check result:", bookingCheck);
+    
+    if (bookingCheck.status === 'ready_to_charge') {
+      console.log("✅ User can start charging - navigating to charging page");
+      
+      // Extract all necessary data from the booking for charging
+      const booking = bookingCheck.booking;
+      
+      // User can start charging - pass all required data to the charging page
+      navigate('/charging', { 
+        state: { 
+          station,
+          date: booking.date,
+          time: booking.time,
+          estimatedChargeTime: booking.estimatedChargeTime || 30,
+          currentBattery: booking.currentBattery || batteryLevel,
+          targetBattery: booking.targetBattery || 80,
+          booking: booking
+        } 
+      });
+    } else {
+      console.log("❌ User cannot start charging - showing appointment modal");
+      console.log("📋 Setting appointment status to:", bookingCheck.status);
+      // Show appointment modal
+      setSelectedStationForAppointment(station);
+      setAppointmentStatus(bookingCheck.status);
+      setNearestBooking(bookingCheck.booking);
+      setShowAppointmentModal(true);
+    }
+  };
+  // Close appointment modal
+  const closeAppointmentModal = () => {
+    setShowAppointmentModal(false);
+    setSelectedStationForAppointment(null);
+    setAppointmentStatus('');
+    setNearestBooking(null);
+  };
+
+  // Navigate to booking modal instead of appointment page
+  const goToBookingFromModal = () => {
+    closeAppointmentModal();
+    // Open the booking modal
+    setSelectedStation(selectedStationForAppointment);
+    setDate("");
+    setTime("");
+    setAvailableTimes([]);
+    setShowModal(true);
+  };
+
+  // Auto-refresh availability when modal is open to prevent race conditions
+  useEffect(() => {
+    let intervalId;
+    
+    if (showModal && selectedStation && date) {
+      // Set up auto-refresh every 10 seconds when modal is open
+      intervalId = setInterval(() => {
+        console.log("🔄 Auto-refreshing availability to prevent race conditions...");
+        fetchAvailableTimes(date);
+      }, 10000); // Refresh every 10 seconds
+    }
+    
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
+  }, [showModal, selectedStation, date]);
 
   return (
     <div className="home-container" onClick={() => setSuggestions([])}>
@@ -876,9 +1304,7 @@ const Home = () => {
                   }}
                 >
                   Book Appointment
-                </button>
-
-                <button
+                </button>                <button
                   type="button"
                   style={{
                     border: '2px solid #3B82F6',
@@ -897,7 +1323,7 @@ const Home = () => {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    startCharging(station);
+                    handleStartCharging(station);
                   }}
                 >
                   Start Charging
@@ -1102,13 +1528,29 @@ const Home = () => {
             </button>
           )}
         </div>
-      )}
-
-      {/* Booking Modal */}
+      )}      {/* Booking Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <h2>Book an appointment for {selectedStation['Station Name']}</h2>
+            
+            {/* Real-time availability indicator */}
+            <div style={{
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              border: '1px solid rgba(34, 197, 94, 0.3)',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              fontSize: '14px',
+              color: '#166534',
+              marginBottom: '15px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{ fontSize: '12px' }}>🔄</span>
+              Availability updates automatically every 10 seconds
+            </div>
+            
             <div style={{
               backgroundColor: 'rgba(59, 130, 246, 0.3)',
               padding: '10px',
@@ -1182,13 +1624,63 @@ const Home = () => {
                   fetchAvailableTimes(selectedDate);
                 }
               }}
-            />
-
-            <label htmlFor="time">Select Time:</label>
+            />            <label htmlFor="time">Select Time:</label>
             <select
               id="time"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              onChange={async (e) => {
+                const selectedTime = e.target.value;
+                
+                if (selectedTime) {
+                  // 🔒 Real-time check when user selects a time
+                  try {
+                    console.log(`🔍 Checking if time ${selectedTime} is still available...`);
+                    const availabilityResponse = await axios.post(
+                      `${process.env.REACT_APP_BACKEND_URL}/api/bookings/check-availability`,
+                      {
+                        station: selectedStation["Station Name"] || selectedStation,
+                        date: date,
+                      },
+                      {
+                        headers: {
+                          Authorization: `Bearer ${localStorage.getItem("token")}`,
+                        },
+                      }
+                    );
+
+                    const { availableTimes, maxCapacity, bookingsPerTime } = availabilityResponse.data;
+                    const currentBookingsForTime = bookingsPerTime[selectedTime] || 0;
+                    
+                    // Check if time is at least one hour from now
+                    const now = new Date();
+                    const oneHourFromNow = new Date(now);
+                    oneHourFromNow.setHours(now.getHours() + 1);
+                    
+                    const [hour, minute] = selectedTime.split(":");
+                    const selectedDateTime = new Date(`${date}T${hour}:${minute}:00`);
+                    const isOneHourAhead = selectedDateTime >= oneHourFromNow;
+                    
+                    console.log(`🔍 Selected time: ${selectedTime} - Is one hour ahead: ${isOneHourAhead}`);
+                    
+                    // If time is fully booked and not at least one hour ahead, show warning
+                    if (!availableTimes.includes(selectedTime) && !isOneHourAhead) {
+                      alert(`⚠️ Sorry! The time slot ${selectedTime} is no longer available.\n\nStation "${selectedStation["Station Name"]}" has ${maxCapacity} charging point${maxCapacity > 1 ? 's' : ''} and all are now reserved for this time.\n\nPlease select a different time.`);
+                      
+                      // Update available times and clear selection
+                      setAvailableTimes(availableTimes);
+                      setTime("");
+                      return;
+                    }
+                    
+                    console.log(`✅ Time ${selectedTime} is acceptable for booking ${isOneHourAhead ? '(one hour ahead rule)' : '(slots available)'}`);
+                  } catch (error) {
+                    console.error("Error checking time availability:", error);
+                    // Continue with selection even if check fails
+                  }
+                }
+                
+                setTime(selectedTime);
+              }}
               disabled={availableTimes.length === 0}
             >
               <option value="">-- Select Time --</option>
@@ -1228,6 +1720,108 @@ const Home = () => {
             >
               Confirm Booking
             </button>
+          </div>
+        </div>
+      )}      {/* Appointment Status Modal */}
+      {showAppointmentModal && (
+        <div className="modal-overlay" onClick={closeAppointmentModal}>
+          <div className="modal-content appointment-modal" onClick={(e) => e.stopPropagation()}>
+            <h2>Start Charging</h2>
+            <div className="station-info">
+              <h3>{selectedStationForAppointment?.['Station Name']}</h3>
+              <p>{selectedStationForAppointment?.Address}, {selectedStationForAppointment?.City}</p>
+            </div>            <div className="appointment-status-info">              {appointmentStatus === 'no_booking' && (
+                <div className="status-message no-appointment">
+                  <div className="status-icon">❌</div>
+                  <div className="status-text">
+                    <h4>No Booking Found</h4>
+                    <p>You don't have any active reservations for this station. Please book a time slot to charge here.</p>
+                  </div>
+                </div>
+              )}
+
+              {appointmentStatus === 'no_upcoming_booking' && (
+                <div className="status-message no-upcoming">
+                  <div className="status-icon">⏰</div>
+                  <div className="status-text">
+                    <h4>No Upcoming Bookings</h4>
+                    <p>You don't have any upcoming reservations for this station. Please book a new time slot to charge here.</p>
+                  </div>
+                </div>
+              )}
+
+              {appointmentStatus === 'ready_to_charge' && (
+                <div className="status-message ready">
+                  <div className="status-icon">✅</div>
+                  <div className="status-text">
+                    <h4>Ready to Charge!</h4>
+                    <p>Your booking is within the 10-minute window. You can start charging now.</p>
+                    {nearestBooking && (
+                      <div className="appointment-details">
+                        <p><strong>Booking:</strong> {new Date(nearestBooking.date).toLocaleDateString()} at {nearestBooking.time}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {appointmentStatus === 'booking_scheduled' && (
+                <div className="status-message scheduled">
+                  <div className="status-icon">📅</div>
+                  <div className="status-text">
+                    <h4>Booking Scheduled</h4>
+                    <p>You have an upcoming booking for this station.</p>
+                    {nearestBooking && (
+                      <div className="appointment-details">
+                        <p><strong>Next Booking:</strong></p>
+                        <p>{new Date(nearestBooking.date).toLocaleDateString()} at {nearestBooking.time}</p>
+                        <p className="time-notice">You can start charging 10 minutes before your booking time.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>            {/* Action buttons */}
+            <div className="appointment-modal-actions">
+              {appointmentStatus === 'ready_to_charge' ? (
+                <div className="button-group">
+                  <button
+                    onClick={() => {
+                      closeAppointmentModal();
+                      navigate('/charging', { 
+                        state: { 
+                          station: selectedStationForAppointment,
+                          booking: nearestBooking
+                        } 
+                      });
+                    }}
+                    className="primary-button"
+                  >
+                    Start Charging
+                  </button>
+                  <button
+                    onClick={closeAppointmentModal}
+                    className="secondary-button"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="button-group">                  <button
+                    onClick={goToBookingFromModal}
+                    className="primary-button"
+                  >
+                    Book Time Slot
+                  </button>
+                  <button
+                    onClick={closeAppointmentModal}
+                    className="secondary-button"
+                  >
+                    Close
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

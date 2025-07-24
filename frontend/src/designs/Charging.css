@@ -333,6 +333,35 @@ body {
     text-align: center;
 }
 
+.battery-full-warning {
+    font-size: 0.9rem;
+    color: #FFD700;
+    text-align: center;
+    margin-top: 10px;
+    padding: 8px 16px;
+    background: rgba(255, 215, 0, 0.1);
+    border-radius: var(--border-radius-md);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.02);
+    }
+
+    100% {
+        opacity: 0.8;
+        transform: scale(1);
+    }
+}
+
 .estimated-end {
     font-size: 0.9rem;
     color: rgba(255, 255, 255, 0.9);
@@ -878,4 +907,185 @@ body {
     border-left: 3px solid var(--primary-light);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 
+}
+
+/* Green Start Charging button styling */
+.start-charging-button {
+    background: linear-gradient(135deg, #10B981, #059669) !important;
+    color: white !important;
+    font-weight: 700;
+    border: none !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);
+    padding: 15px 30px;
+    font-size: 16px;
+    width: 90%;
+    max-width: 300px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.start-charging-button:hover {
+    background: linear-gradient(135deg, #34D399, #10B981) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(16, 185, 129, 0.5);
+}
+
+.start-charging-button:active {
+    transform: translateY(1px);
+    box-shadow: 0 3px 10px rgba(16, 185, 129, 0.3);
+}
+
+.start-charging-button:focus {
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.5), 0 4px 15px rgba(16, 185, 129, 0.4);
+}
+
+.start-charging-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2);
+}
+
+/* Add shine effect for start charging button */
+.start-charging-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(to right,
+            rgba(255, 255, 255, 0),
+            rgba(255, 255, 255, 0.3),
+            rgba(255, 255, 255, 0));
+    transform: skewX(-25deg);
+}
+
+.start-charging-button:hover::before {
+    animation: shine 1.5s infinite;
+}
+
+/* Waiting Time Modal */
+.waiting-time-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    z-index: 1001;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.waiting-modal-header {
+    background-color: #3B82F6;
+    color: white;
+    padding: 15px;
+    text-align: center;
+}
+
+.waiting-modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+}
+
+.waiting-modal-content {
+    padding: 20px;
+    flex: 1;
+}
+
+.station-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: rgba(239, 68, 68, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #EF4444;
+}
+
+.status-icon {
+    font-size: 24px;
+}
+
+.station-status p {
+    margin: 0;
+    font-weight: 500;
+}
+
+.waiting-time-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: 8px;
+    border-left: 4px solid #3B82F6;
+}
+
+.waiting-icon {
+    font-size: 24px;
+}
+
+.waiting-time-info p {
+    margin: 0;
+}
+
+.waiting-time-value {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #3B82F6;
+}
+
+.waiting-explanation {
+    margin-top: 20px;
+    color: #4B5563;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.waiting-modal-actions {
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    border-top: 1px solid #E5E7EB;
+}
+
+.view-queue-button, .close-modal-button {
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.view-queue-button {
+    background-color: #3B82F6;
+    color: white;
+    border: none;
+    flex: 1;
+    margin-right: 10px;
+}
+
+.view-queue-button:hover {
+    background-color: #2563EB;
+}
+
+.close-modal-button {
+    background-color: white;
+    color: #4B5563;
+    border: 1px solid #D1D5DB;
+    flex: 1;
+}
+
+.close-modal-button:hover {
+    background-color: #F3F4F6;
 }

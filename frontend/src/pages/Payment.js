@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import '../designs/Payment.css';
-import { HomeIcon, MapIcon, UserIcon, HeartIcon, LogoutIcon, BackIcon } from '../components/common/Icons';
 import NavigationBar from '../components/common/NavigationBar';
-import Button from '../components/common/Button';
 
 const Payment = () => {
     const location = useLocation();
@@ -17,17 +15,55 @@ const Payment = () => {
     const [expiryDate, setExpiryDate] = useState('');
     const [cvv, setCvv] = useState('');
     const [cardName, setCardName] = useState('');
-    
-    const { 
-        bookingId,
-        station, 
-        date, 
-        time, 
-        chargingTime, 
-        initialBattery, 
-        finalBattery,
-        batteryGained
-    } = location.state || {};
+      const { 
+        bookingId = 'default-booking-123',
+        station = 'Default Station', 
+        date = new Date().toLocaleDateString('he-IL'), 
+        time = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' }), 
+        chargingTime = 1800, // 30 minutes in seconds
+        initialBattery = 25, 
+        finalBattery = 80,
+        batteryGained = 55
+    } = location.state || {};      // Prevent navigation away from payment page only on clicks outside form area
+    useEffect(() => {
+        // Only disable browser back button, not clicks
+        const handlePopState = (event) => {
+            event.preventDefault();
+            window.history.pushState(null, null, window.location.pathname);
+        };
+        
+        // Push current state to prevent back navigation
+        window.history.pushState(null, null, window.location.pathname);
+        window.addEventListener('popstate', handlePopState);
+        
+        // Cleanup
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+      // Check authentication and localStorage
+    useEffect(() => {
+        const token = localStorage.getItem('token');
+        const loggedInUser = localStorage.getItem('loggedInUser');
+        
+        console.log('Payment page - Token:', token ? 'exists' : 'missing');
+        console.log('Payment page - LoggedInUser:', loggedInUser ? loggedInUser : 'missing');
+        console.log('Payment page - All localStorage keys:', Object.keys(localStorage));
+        console.log('Payment page - Location state:', location.state);
+        
+        // Only redirect if absolutely no authentication data exists
+        if (!token && !loggedInUser) {
+            console.log('No authentication data found, redirecting to login');
+            navigate('/');
+            return;
+        }
+        
+        // Check if we have the required payment data
+        if (!location.state || !location.state.bookingId) {
+            console.log('No payment data found, using default values');
+            console.log('Available location state:', location.state);
+        }
+    }, [navigate, location.state]);
     
     // Calculate payment amount based on charging time
     const calculatePaymentAmount = () => {
@@ -36,12 +72,7 @@ const Payment = () => {
         const minutes = Math.ceil(chargingTime / 60); // Convert seconds to minutes
         return minutes * baseRate;
     };
-    
     const amount = calculatePaymentAmount();
-    
-    const handleBack = () => {
-        navigate(-1);
-    };
     
     const formatCardNumber = (value) => {
         // Remove all non-digit characters
@@ -134,15 +165,12 @@ const Payment = () => {
             setError('An error occurred');
         } finally {
             setLoading(false);
-        }
-    };
+        }    };
     
-    return (
-        <div className="payment-container">
+    // Always show the payment page
+    
+    return (        <div className="payment-container">
             <div className="payment-header">
-                <button onClick={handleBack} className="back-button">
-                    <BackIcon />
-                </button>
                 <h1>Payment</h1>
                 <p className="payment-subtitle">Complete your charging session payment</p>
             </div>
@@ -285,8 +313,7 @@ const Payment = () => {
                         <p>Your payment has been processed successfully.</p>
                         <p>Redirecting to your profile...</p>
                     </div>
-                )}
-            </div>
+                )}            </div>
             {/* Bottom Navigation */}
             <NavigationBar />
         </div>

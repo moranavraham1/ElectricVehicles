@@ -28,6 +28,9 @@ transporter.verify(function (error, success) {
 // הוספת משתנה ל-timeout ID כדי שנוכל לבטל אותו במידת הצורך
 const allocationTimeouts = {};
 
+// Import the appointment scheduler functions
+const { manualCheckAllPendingAppointments } = require('../appointmentScheduler');
+
 router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
   try {
     const { station, date } = req.params;
@@ -37,6 +40,8 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
 
     const normalizedStation = normalize(station);
 
+    // Log the request parameters for debugging
+    console.log(`Queue request for station: "${station}" (normalized: "${normalizedStation}"), date: ${date}`);
 
     // כדי לוודא השוואת תאריכים נכונה, נשתמש בתאריך של היום בפורמט YYYY-MM-DD
     const now = new Date();
@@ -55,13 +60,18 @@ router.get('/queue/:station/:date', authMiddleware, async (req, res) => {
     }
 
     // מציאת רק תורים מאושרים לתחנה ותאריך
+    // Use case-insensitive regex for more robust matching
     const queue = await Booking.find({
       station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') },
       date,
       status: 'approved' // Only include approved bookings in the queue
     });
 
-    console.log(`Found ${queue.length} approved bookings for station ${station} on ${date}`);
+    // Log all found bookings for debugging
+    console.log(`Found ${queue.length} approved bookings for station ${station} on ${date}:`);
+    queue.forEach((booking, index) => {
+      console.log(`${index + 1}. User: ${booking.user}, Time: ${booking.time}, Status: ${booking.status}`);
+    });
 
     // סינון תורים שכבר עבר זמנם (רק אם התאריך הוא היום)
     const filteredQueue = queue.filter(booking => {
@@ -177,27 +187,41 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.post("/check-availability", async (req, res) => {
+router.post("/check-availability", authMiddleware, async (req, res) => {
   try {
     const { station, date } = req.body;
 
     console.log("💡 check-availability called with:", { station, date });
-
 
     const trimmedStation =
       typeof station === 'string'
         ? station.trim()
         : station['Station Name']?.trim?.() || '';
 
-    const stationDetails = await Station.findOne({ "Station Name": trimmedStation });
-    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 2 : 2;
+    // Get station details with more flexible matching
+    const stationDetails = await Station.findOne({ 
+      $or: [
+        { "Station Name": { $regex: new RegExp(`^${trimmedStation}$`, 'i') } },
+        { name: { $regex: new RegExp(`^${trimmedStation}$`, 'i') } }
+      ]
+    });
+    const maxSlots = stationDetails ? parseInt(stationDetails["Duplicate Count"]) || 1 : 1;
 
     console.log("💡 Station details:", { stationName: trimmedStation, maxSlots });
 
-    const bookings = await Booking.find({ station: trimmedStation, date });
-    const activeCharging = await ActiveCharging.find({ station: trimmedStation, date });
+    // Check both pending and approved bookings to get accurate availability
+    const bookings = await Booking.find({ 
+      station: { $regex: new RegExp(`^${trimmedStation}$`, 'i') },
+      date,
+      status: { $in: ['pending', 'approved'] } // Include both pending and approved
+    });
+    
+    const activeCharging = await ActiveCharging.find({ 
+      station: { $regex: new RegExp(`^${trimmedStation}$`, 'i') },
+      date 
+    });
+    
     console.log("💡 Found bookings:", bookings.length, "Active charging:", activeCharging.length);
-
 
     const bookingsPerTime = {};
     for (const b of bookings) {
@@ -208,7 +232,6 @@ router.post("/check-availability", async (req, res) => {
     }
 
     console.log("💡 Bookings per time:", bookingsPerTime);
-
 
     const availableTimes = [];
     for (let hour = 0; hour < 24; hour++) {
@@ -224,11 +247,14 @@ router.post("/check-availability", async (req, res) => {
       }
     }
 
-
     console.log(`💡 Generated ${availableTimes.length} available time slots for date: ${date}`);
 
-
-    res.json({ availableTimes, bookingsPerTime, maxCapacity: maxSlots });
+    res.json({ 
+      availableTimes, 
+      bookingsPerTime, 
+      maxCapacity: maxSlots,
+      stationName: trimmedStation
+    });
   } catch (error) {
     console.error("Error checking availability:", error);
     res.status(500).json({ message: "Server error", error });
@@ -442,10 +468,6 @@ const sendBookingPendingEmail = async (email, station, date, time) => {
             <div class="instructions">
               <p>You will receive another email when your request is approved or rejected according to our allocation system.</p>
               <p>If you have any questions, please use our system or reply to this email.</p>
-            </div>
-            
-            <div style="text-align: center;">
-              <a href="#" class="button">View Your Booking</a>
             </div>
             
             <p class="expires">If you didn't request this booking, please ignore this email.</p>
@@ -970,13 +992,69 @@ router.post('/book', authMiddleware, async (req, res) => {
     const normalize = (str) => str.trim().toLowerCase().replace(/\s+/g, ' ');
     const trimmedStation = normalize(station);
 
-
+    // Check if user already has a booking for this exact time slot
     const existingBooking = await Booking.findOne({ user: userEmail, station: trimmedStation, date, time });
 
     if (existingBooking) {
       return res.status(400).json({ message: 'You already have a booking for this time slot.' });
     }
 
+    // CRITICAL: Check station capacity before allowing new booking
+    try {
+      // Get station details to determine capacity
+      const stationDetails = await Station.findOne({ 
+        $or: [
+          { "Station Name": { $regex: new RegExp(`^${trimmedStation}$`, 'i') } },
+          { name: { $regex: new RegExp(`^${trimmedStation}$`, 'i') } }
+        ]
+      });
+      
+      const stationCapacity = stationDetails?.["Duplicate Count"] || 1;
+      console.log(`🏢 Station ${trimmedStation} has capacity: ${stationCapacity}`);
+      
+      // Check if the requested booking is more than one hour ahead
+      const bookingDateTime = new Date(`${date}T${time}:00`);
+      const now = new Date();
+      const oneHourAhead = new Date(now);
+      oneHourAhead.setHours(oneHourAhead.getHours() + 1);
+      
+      const isMoreThanOneHourAhead = bookingDateTime > oneHourAhead;
+      
+      // For bookings more than one hour ahead, only count approved bookings against capacity
+      // For bookings less than one hour ahead, count both pending and approved bookings
+      let bookingStatusFilter = { $in: ['pending', 'approved'] };
+      if (isMoreThanOneHourAhead) {
+        bookingStatusFilter = 'approved';
+        console.log(`⏰ Booking is more than 1 hour ahead, only counting approved bookings against capacity`);
+      }
+      
+      // Count existing bookings for this exact time slot
+      const existingBookingsCount = await Booking.countDocuments({
+        station: { $regex: new RegExp(`^${trimmedStation}$`, 'i') },
+        date,
+        time,
+        status: bookingStatusFilter
+      });
+      
+      console.log(`📊 Found ${existingBookingsCount} existing bookings for ${trimmedStation} on ${date} at ${time}`);
+      
+      // Check if station is already at capacity
+      if (existingBookingsCount >= stationCapacity) {
+        console.log(`❌ Station ${trimmedStation} is at full capacity (${existingBookingsCount}/${stationCapacity})`);
+        return res.status(400).json({ 
+          message: `This time slot is fully booked. Station ${station} has ${stationCapacity} charging point${stationCapacity > 1 ? 's' : ''} and all are reserved for ${time} on ${date}.`,
+          capacity: stationCapacity,
+          currentBookings: existingBookingsCount
+        });
+      }
+      
+      console.log(`✅ Station ${trimmedStation} has available capacity (${existingBookingsCount + 1}/${stationCapacity})`);
+      
+    } catch (capacityError) {
+      console.error('Error checking station capacity:', capacityError);
+      // Continue with booking creation but log the error
+      console.warn('⚠️ Could not verify station capacity, proceeding with booking...');
+    }
 
     const newBooking = new Booking({
       user: userEmail,
@@ -987,7 +1065,6 @@ router.post('/book', authMiddleware, async (req, res) => {
       estimatedChargeTime,
       currentBattery,
       createdAt: new Date(),
-
       status: 'pending'
     });
 
@@ -1004,6 +1081,38 @@ router.post('/book', authMiddleware, async (req, res) => {
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({ message: 'Error creating booking' });
+  }
+});
+
+// Delete expired bookings (must be before /:id route)
+router.delete('/delete-expired', authMiddleware, async (req, res) => {
+  try {
+    const now = new Date();
+    const bookings = await Booking.find({ status: { $in: ['pending', 'approved'] } });
+
+    const expiredBookings = [];
+    for (const booking of bookings) {
+      const bookingDateTime = new Date(`${booking.date}T${booking.time}`);
+      const timeDiffInMinutes = (now - bookingDateTime) / (1000 * 60);
+      
+      if (timeDiffInMinutes > 10) {
+        const activeCharging = await ActiveCharging.findOne({
+          user: booking.user,
+          station: booking.station,
+          date: booking.date,
+          time: booking.time
+        });
+
+        if (!activeCharging) {
+          expiredBookings.push(booking._id);
+        }
+      }
+    }
+
+    const result = await Booking.deleteMany({ _id: { $in: expiredBookings } });
+    res.json({ deletedCount: result.deletedCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -1259,27 +1368,15 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
     const pendingWithPriority = pendingBookings.map(booking => {
       const createdAt = new Date(booking.createdAt);
       const waitingMinutes = (now - createdAt) / (60 * 1000);
-
-      // Calculate laxity (deadline - processing time)
       const processingTime = booking.estimatedChargeTime || 30;
       const deadlineMinutes = 60; // Default deadline is 60 minutes
       const laxity = Math.max(0, deadlineMinutes - processingTime);
-
-      // Apply aging factor based on waiting time
       const waitFactor = Math.min(waitingMinutes / maxWaitTime, 1);
       const agingBoost = waitFactor * maxBoost;
-
-      // Priority calculation (lower score = higher priority):
-      // - Low laxity (urgency) gets higher priority
-      // - Low battery gets higher priority
-      // - Longer wait time gets higher priority due to aging
       const priorityScore =
-        laxity * 2 - // Laxity factor (main component of LLEP)
-        agingBoost - // Aging factor (reduces score as waiting time increases)
-        (100 - (booking.currentBattery ?? 50)) / 5; // Battery factor (lower battery = higher priority)
-
-      console.log(`User ${booking.user} - Laxity: ${laxity}, Battery: ${booking.currentBattery}, Waiting: ${waitingMinutes.toFixed(1)}min, Score: ${priorityScore.toFixed(2)}`);
-
+        laxity * 2 -
+        agingBoost -
+        (100 - (booking.currentBattery ?? 50)) / 5;
       return {
         _id: booking._id,
         user: booking.user,
@@ -1295,17 +1392,12 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
 
     // חישוב ציוני עדיפות להזמנות שכבר אושרו
     const approvedWithPriority = approvedBookings.map(booking => {
-      // For approved bookings, calculate similar metrics but with lower priority
       const processingTime = booking.estimatedChargeTime || 30;
       const deadlineMinutes = 60;
       const laxity = Math.max(0, deadlineMinutes - processingTime);
-
-      // Approved bookings get a penalty to their score, making them less likely to be bumped
-      // unless there's a significant difference in urgency
       const priorityScore =
-        laxity * 2 + 15 - // Approved bookings get penalty of +15
-        (100 - (booking.currentBattery ?? 50)) / 10; // Lower impact of battery level for approved bookings
-
+        laxity * 2 + 15 -
+        (100 - (booking.currentBattery ?? 50)) / 10;
       return {
         _id: booking._id,
         user: booking.user,
@@ -1324,28 +1416,16 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
 
     // מיון כל ההזמנות לפי העדיפות (lower score = higher priority)
     allBookingsWithPriority.sort((a, b) => {
-      // First compare by priority score (lower is better)
       if (a.priorityScore !== b.priorityScore) {
         return a.priorityScore - b.priorityScore;
       }
-
-      // If priority scores are equal, consider laxity (lower is better)
       if (a.laxity !== b.laxity) {
         return a.laxity - b.laxity;
       }
-
-      // If laxity tied, consider battery (lower is better)
       if (a.currentBattery !== b.currentBattery) {
         return a.currentBattery - b.currentBattery;
       }
-
-      // Finally, consider waiting time (longer waiting is better)
       return new Date(a.createdAt) - new Date(b.createdAt);
-    });
-
-    console.log("Sorted bookings by priority (top 5 shown):");
-    allBookingsWithPriority.slice(0, 5).forEach((booking, i) => {
-      console.log(`${i + 1}. User: ${booking.user}, Score: ${booking.priorityScore.toFixed(2)}, Status: ${booking.status}, Battery: ${booking.currentBattery}, Laxity: ${booking.laxity}`);
     });
 
     // בחירת ההזמנות בעלות העדיפות הגבוהה ביותר
@@ -1354,17 +1434,9 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
     // מציאת הזמנות ממתינות שנבחרו לאישור
     const pendingToApprove = selectedBookings.filter(b => b.status === 'pending');
 
-    // מציאת הזמנות מאושרות שנשארות מאושרות
-    const approvedToKeep = selectedBookings.filter(b => b.status === 'approved');
-
-    // מציאת הזמנות ממתינות שנדחות
+    // מציאת הזמנות ממתינות שנדחות (מעבר למספר העמדות)
     const pendingToReject = pendingWithPriority.filter(b =>
-      !pendingToApprove.some(approved => approved._id.toString() === b._id.toString())
-    );
-
-    // מציאת הזמנות מאושרות שנדרשות לביטול כדי לפנות מקום להזמנות דחופות יותר
-    const approvedToCancel = approvedWithPriority.filter(b =>
-      !approvedToKeep.some(keep => keep._id.toString() === b._id.toString())
+      !selectedBookings.some(approved => approved._id.toString() === b._id.toString())
     );
 
     // טיפול בהזמנות ממתינות שמאושרות
@@ -1373,10 +1445,7 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
         { _id: booking._id },
         { $set: { status: 'approved' } }
       );
-
-      // טעינת מידע מלא של ההזמנה לפני שליחת המייל
       const fullBookingData = await Booking.findById(booking._id);
-
       if (fullBookingData) {
         await sendBookingConfirmationEmail(
           fullBookingData.user,
@@ -1394,38 +1463,38 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
       }
     }
 
-    // טיפול בהזמנות ממתינות שנדחות
+    // טיפול בהזמנות ממתינות שנדחות (מעבר למספר העמדות)
     for (const booking of pendingToReject) {
       const newRejectionCount = (booking.rejectionCount || 0) + 1;
       await Booking.updateOne(
         { _id: booking._id },
         { $set: { status: 'rejected', rejectionCount: newRejectionCount } }
       );
-
       // מציאת תחנות קרובות כהמלצה
       const alternativeStations = await findNearbyStations(trimmedStation);
-
       await sendBookingCancellationEmail(booking.user, trimmedStation, date, time, alternativeStations);
-      console.log(`❌ Booking rejected for user ${booking.user}`);
+      console.log(`❌ Booking rejected for user ${booking.user} (no available slot)`);
     }
 
     // טיפול בהזמנות מאושרות שנדרשות לביטול
+    const approvedToCancel = approvedWithPriority.filter(b =>
+      !selectedBookings.some(keep => keep._id.toString() === b._id.toString())
+    );
+
     for (const booking of approvedToCancel) {
       const newRejectionCount = (booking.rejectionCount || 0) + 1;
       await Booking.updateOne(
         { _id: booking._id },
         { $set: { status: 'cancelled', rejectionCount: newRejectionCount } }
       );
-
       // מציאת תחנות קרובות כהמלצה
       const alternativeStations = await findNearbyStations(trimmedStation);
-
       await sendBookingCancellationEmail(booking.user, trimmedStation, date, time, alternativeStations, true);
       console.log(`⚠️ Previously approved booking cancelled for user ${booking.user} due to higher priority bookings`);
     }
 
     console.log(`✅ Allocation completed for ${station} on ${date} at ${time}.`);
-    console.log(`Approved: ${pendingToApprove.length}, Rejected: ${pendingToReject.length}, Cancelled previously approved: ${approvedToCancel.length}`);
+    console.log(`Approved: ${pendingToApprove.length}, Rejected: ${pendingToReject.length}`);
   } catch (error) {
     console.error('Error in allocation process:', error);
   }
@@ -1435,7 +1504,7 @@ const allocateBookings = async (station, date, time, isRetry = false) => {
 const findNearbyStations = async (stationName) => {
   try {
     // בשלב זה נחזיר רשימה קבועה של 2 תחנות אקראיות חלופיות
-    // בעתיד אפשר להחליף את זה עם לוגיקה אמיתית המבוססת על מיקום
+   
     const allStations = await Station.find({ "Station Name": { $ne: stationName } }).limit(10);
 
     if (allStations.length <= 2) {
@@ -1451,5 +1520,179 @@ const findNearbyStations = async (stationName) => {
   }
 };
 
+// Add a new endpoint to manually trigger appointment processing
+router.post('/process-pending', authMiddleware, async (req, res) => {
+  try {
+    console.log('Manual processing of pending bookings triggered by user');
+    
+    // Run the manual check function
+    const result = await manualCheckAllPendingAppointments();
+    
+    res.status(200).json({ 
+      message: 'Manual processing completed',
+      result
+    });
+  } catch (error) {
+    console.error('Error in manual processing:', error);
+    res.status(500).json({ message: 'Error processing appointments', error: error.message });
+  }
+});
+
+// Get waiting time for a specific booking
+router.get('/waiting-time/:station/:date/:time', authMiddleware, async (req, res) => {
+  try {
+    const { station, date, time } = req.params;
+    const userEmail = req.user.email;
+
+    const normalize = (str) =>
+      decodeURIComponent(str).trim().toLowerCase().replace(/\s+/g, ' ');
+
+    const normalizedStation = normalize(station);
+
+    // Get the station details to know how many charging points it has
+    const stationDetails = await Station.findOne({ 
+      name: { $regex: new RegExp(`^${normalizedStation}$`, 'i') }
+    });
+    
+    const numChargingPoints = stationDetails?.["Duplicate Count"] || 1;
+
+    // Get all approved bookings for this station and date
+    const allBookings = await Booking.find({
+      station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') },
+      date,
+      status: 'approved'
+    });
+
+    // Get all active charging sessions for this station
+    const activeChargingSessions = await ActiveCharging.find({
+      station: { $regex: new RegExp(`^${normalizedStation}$`, 'i') }
+    });
+
+    // Check if all charging points are currently occupied
+    const stationFull = activeChargingSessions.length >= numChargingPoints;
+
+    // Find the specific booking for this user
+    const userBooking = allBookings.find(booking => 
+      booking.user === userEmail && booking.time === time
+    );
+
+    if (!userBooking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Calculate waiting time using the same logic as ChargingQueue
+    const waitingTime = calculateWaitingTimeForBooking(userBooking, allBookings, numChargingPoints);
+
+    res.json({
+      waitingTime,
+      stationFull,
+      numChargingPoints,
+      activeChargingSessions: activeChargingSessions.length
+    });
+  } catch (error) {
+    console.error('Error calculating waiting time:', error);
+    res.status(500).json({ message: 'Error calculating waiting time' });
+  }
+});
+
+// Helper function to calculate waiting time for a booking
+function calculateWaitingTimeForBooking(targetBooking, allBookings, numChargingPoints) {
+  const now = new Date();
+  const currentHourInMinutes = now.getHours() * 60 + now.getMinutes();
+  const currentDateStr = now.toISOString().split('T')[0];
+  
+  const [targetHours, targetMinutes] = targetBooking.time.split(":").map(Number);
+  const targetTimeInMinutes = targetHours * 60 + targetMinutes;
+  const targetDuration = targetBooking.estimatedChargeTime || 30;
+  
+  // Modified: Only skip calculation if booking is more than 10 minutes in the past
+  // This ensures bookings remain active for 10 minutes after their scheduled time
+  if (targetBooking.date < currentDateStr || 
+      (targetBooking.date === currentDateStr && 
+       (targetTimeInMinutes + 10) < currentHourInMinutes)) {
+    return 0; // Booking time has passed by more than 10 minutes
+  }
+  
+  // If booking time hasn't arrived yet (current time is earlier)
+  if (targetBooking.date === currentDateStr && targetTimeInMinutes > currentHourInMinutes) {
+    const minutesToAppointment = targetTimeInMinutes - currentHourInMinutes;
+    if (minutesToAppointment <= 10) {
+      return 0; // Ready to charge soon
+    }
+  }
+  
+  // Sort all bookings by time, then by priority
+  const sortedBookings = [...allBookings].sort((a, b) => {
+    if (a.time !== b.time) {
+      return a.time.localeCompare(b.time);
+    }
+    return (a.priorityScore || 0) - (b.priorityScore || 0);
+  });
+  
+  const targetIndex = sortedBookings.findIndex(booking => 
+    booking._id.equals(targetBooking._id)
+  );
+  
+  if (targetIndex === -1) return 0;
+  
+  // Initialize charging points availability
+  const isToday = targetBooking.date === currentDateStr;
+  const chargingPoints = Array(numChargingPoints).fill(isToday ? currentHourInMinutes : 0);
+  
+  // Process all bookings before the target booking
+  const relevantBookings = sortedBookings.filter((booking, i) => {
+    if (i === targetIndex) return false;
+    
+    const [bookingHours, bookingMinutes] = booking.time.split(":").map(Number);
+    const bookingTimeInMinutes = bookingHours * 60 + bookingMinutes;
+    const bookingDuration = booking.estimatedChargeTime || 30;
+    
+    // Modified: Consider bookings that are active within their 10-minute window after scheduled time
+    const isActiveBooking = booking.date === currentDateStr && 
+                           (bookingTimeInMinutes <= currentHourInMinutes && 
+                            currentHourInMinutes <= (bookingTimeInMinutes + 10));
+    
+    // If booking is earlier than target booking
+    if (bookingTimeInMinutes < targetTimeInMinutes) {
+      // Check if it will finish before target booking starts
+      const bookingEndTime = bookingTimeInMinutes + bookingDuration;
+      
+      // Modified: Include bookings that overlap with target time, considering the extended 10-minute window
+      return bookingEndTime > targetTimeInMinutes || isActiveBooking;
+    }
+    
+    // If booking is at same time as target but comes before in queue
+    if (bookingTimeInMinutes === targetTimeInMinutes) {
+      return i < targetIndex;
+    }
+    
+    return false;
+  });
+  
+  // Process relevant bookings to update charging point availability
+  for (const booking of relevantBookings) {
+    const [hours, minutes] = booking.time.split(":").map(Number);
+    const startTimeInMinutes = hours * 60 + minutes;
+    const duration = booking.estimatedChargeTime || 30;
+    
+    // Find the charging point that will be available first
+    let earliestAvailable = Math.min(...chargingPoints);
+    let earliestPointIndex = chargingPoints.indexOf(earliestAvailable);
+    
+    // When this booking will actually start charging
+    const actualStart = Math.max(startTimeInMinutes, chargingPoints[earliestPointIndex]);
+    
+    // Update when this charging point will be free
+    // Modified: Ensure the charging point is occupied for the full duration of the booking
+    chargingPoints[earliestPointIndex] = actualStart + duration;
+  }
+  
+  // Calculate when target booking can start
+  let earliestAvailable = Math.min(...chargingPoints);
+  const actualStart = Math.max(targetTimeInMinutes, earliestAvailable);
+  const waitTime = actualStart - targetTimeInMinutes;
+  
+  return Math.max(0, waitTime);
+}
 
 module.exports = router;

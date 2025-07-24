@@ -65,6 +65,15 @@ const AdminIcon = () => (
   </svg>
 );
 
+const DeleteIcon = () => (
+  <svg xmlns="https://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"></polyline>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+    <line x1="10" y1="11" x2="10" y2="17"></line>
+    <line x1="14" y1="11" x2="14" y2="17"></line>
+  </svg>
+);
+
 function PersonalArea() {
   const [userDetails, setUserDetails] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -73,6 +82,9 @@ function PersonalArea() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const [isAdmin, setIsAdmin] = useState(false);
   const navigate = useNavigate();
@@ -193,6 +205,47 @@ function PersonalArea() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== 'delete') {
+      showToast('Please type "delete" to confirm account deletion', 'error');
+      return;
+    }
+    
+    try {
+      setIsDeleting(true);
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(
+        `${process.env.REACT_APP_BACKEND_URL}/api/auth/delete-account`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ confirmText: deleteConfirmation }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast('Your account has been deleted successfully', 'success');
+        localStorage.clear();
+        setTimeout(() => {
+          navigate("/login");
+        }, 2000);
+      } else {
+        showToast(data.message || 'Failed to delete account', 'error');
+        setIsDeleting(false);
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      showToast('An error occurred while deleting your account', 'error');
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="personal-area-page">
       <div className="top-bar">
@@ -252,6 +305,114 @@ function PersonalArea() {
               opacity: 1;
             }
           }
+
+          .tab-navigation .delete-tab {
+            background-color: #ef4444;
+            color: white;
+            border: none;
+            font-weight: 500;
+            border-radius: 8px;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+          }
+
+          .tab-navigation .delete-tab:hover {
+            background-color: #dc2626;
+          }
+
+          .delete-account-btn {
+            display: none;
+          }
+
+          .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+          }
+
+          .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            padding: 24px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            direction: ltr;
+          }
+
+          .modal-title {
+            color: #1E293B;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+          }
+
+          .modal-description {
+            color: #475569;
+            margin-bottom: 24px;
+            line-height: 1.6;
+          }
+
+          .warning-text {
+            color: #ef4444;
+            font-weight: 500;
+            margin-bottom: 16px;
+          }
+
+          .modal-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 16px;
+          }
+
+          .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+          }
+
+          .cancel-modal-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            background-color: white;
+            color: #1E293B;
+            cursor: pointer;
+            font-weight: 500;
+          }
+
+          .confirm-delete-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: none;
+            background-color: #ef4444;
+            color: white;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s ease;
+          }
+
+          .confirm-delete-btn:disabled {
+            background-color: #fca5a5;
+            cursor: not-allowed;
+          }
+
+          .confirm-delete-btn:not(:disabled):hover {
+            background-color: #dc2626;
+          }
         `}
       </style>
 
@@ -276,6 +437,12 @@ function PersonalArea() {
             onClick={() => setView("password")}
           >
             <PasswordIcon /> Password
+          </button>
+          <button
+            className="delete-tab"
+            onClick={() => setShowDeleteModal(true)}
+          >
+            <DeleteIcon /> Delete Account
           </button>
 
           {isAdmin && (
@@ -372,6 +539,42 @@ function PersonalArea() {
           )}
         </div>
       </div>
+
+      {showDeleteModal && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2 className="modal-title">Delete Your Account</h2>
+            <p className="modal-description">
+              Are you sure you want to delete your account? This action cannot be undone.
+              All your personal data, bookings, and preferences will be permanently deleted.
+            </p>
+            <p className="warning-text">To confirm, please type "delete" below:</p>
+            <input
+              type="text"
+              className="modal-input"
+              placeholder="Type 'delete' to confirm"
+              value={deleteConfirmation}
+              onChange={(e) => setDeleteConfirmation(e.target.value)}
+              autoFocus
+            />
+            <div className="modal-buttons">
+              <button className="cancel-modal-btn" onClick={() => {
+                setShowDeleteModal(false);
+                setDeleteConfirmation('');
+              }}>
+                Cancel
+              </button>
+              <button
+                className="confirm-delete-btn"
+                disabled={deleteConfirmation !== 'delete' || isDeleting}
+                onClick={handleDeleteAccount}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete Account'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bottom-bar">
         <Link to="/home" className="bottom-bar-button">
